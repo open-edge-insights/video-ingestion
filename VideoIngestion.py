@@ -110,7 +110,7 @@ class VideoIngestion:
     def _data_ingest(self, data):
         # Set measurement name.
         DataInLib = DataIngestionLib()
-        DataInLib.set_measurement_name('basler_cam')
+        DataInLib.set_measurement_name('stream1')
         for res in data:
             if res is None:
                 break
