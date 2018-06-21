@@ -6,7 +6,7 @@ from influxdb import InfluxDBClient
 from DataAgent.da_grpc.client.client import GrpcClient
 from ImageStore.py.imagestore import ImageStore
 
-measurement_name = 'basler_cam'
+measurement_name = 'stream1'
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("read_frames")
@@ -45,6 +45,7 @@ def retrieve_frames(data_points):
                     img_channels = elem['Channels']
                     reshape_frame = np.reshape(Frame, (img_height, img_width,
                                                        img_channels))
+                    #cv2.imwrite(str(frame_num)+".jpg", reshape_frame)
                     cv2.imshow(str(frame_num), reshape_frame)
                     cv2.waitKey(0)
                     frame_num += 1

@@ -12,6 +12,8 @@ from DataIngestionLib.DataIngestionLib import DataIngestionLib
 from agent.etr_utils.log import configure_logging, LOG_LEVELS
 from agent.dpm.config import Configuration
 
+MEASUREMENT_NAME = "stream1"
+
 
 class VideoIngestionError(Exception):
     """ Exception raised by VideoIngestion.
@@ -33,29 +35,73 @@ class VideoIngestion:
 
         self.log.info('Loading Triggers')
         self.trigger_ex = ThreadPoolExecutor(max_workers=config.trigger_threads)
-        self.triggers = {}
-        for (trigger_name, conf) in config.triggers.items():
-            self.triggers[trigger_name] = load_trigger(trigger_name, conf)
-            ingestors = self.triggers[trigger_name].get_supported_ingestors()
+        self.triggers = []
+        self.config = config
+        for (n, c) in config.classification['classifiers'].items():
+            self.log.info('Setting up pipeline for %s classifier', n)
+            triggers = c['trigger']
+            if isinstance(triggers, list):
+                # Load the first trigger, and register it to its supported
+                # ingestors
+                prev_trigger = self._init_trigger(triggers[0], register=True)
+                prev_name = triggers[0]
+
+                # Load the rest of the trigger pipeline
+                for t in triggers[1:]:
+                    # Initialize the trigger
+                    trigger = self._init_trigger(t)
+
+                    # Register it to receive data from the previous trigger in
+                    # the pipeline
+                    prev_trigger.register_trigger_callback(
+                            lambda data: self._on_trigger_data(
+                                trigger, prev_name, data, filtering=True))
+
+                    # Set previous trigger
+                    prev_trigger = trigger
+                    prev_name = t
+                # Register the callback with last trigger.
+                prev_trigger.register_trigger_callback(
+                    lambda data: self._on_trigger(prev_name, data))
+            else:
+                # Only the single trigger.
+                trigger = self._init_trigger(triggers, register=True)
+                trigger.register_trigger_callback(
+                    lambda data: self._on_trigger(triggers, data))
+
+    def _init_trigger(self, name, register=False):
+        """Initialize trigger
+        """
+        self.log.info('Loading trigger %s', name)
+
+        if name not in self.config.triggers:
+            raise VideoIngestionError(
+                    ('Trigger \'{}\' is not specified in the '
+                        'configuration').format(name))
+
+        config = self.config.triggers[name]
+        trigger = load_trigger(name, config)
+
+        if register:
             registered = False
+            ingestors = trigger.get_supported_ingestors()
             for i in ingestors:
                 if self.DataInMgr.has_ingestor(i):
+                    self.log.info(
+                            'Registering %s trigger to %s ingestor', name, i)
                     self.DataInMgr.register_interest(
-                        i, lambda i, d: self._on_trigger_data(
-                            self.triggers[trigger_name], i, d))
+                            i, lambda i, d: self._on_trigger_data(
+                                    trigger, i, d))
                     registered = True
 
             if not registered:
                 raise VideoIngestionError(
                     ('None of the supported ingestors are loaded for '
-                        'trigger: {}').format(trigger_name))
-            trigger = self.triggers.get(trigger_name, None)
-            if trigger is None:
-                raise VideoIngestionError(
-                    ('Trigger Not found: {}').format(trigger_name))
-            self.DataInLib = DataIngestionLib()
-            trigger.register_trigger_callback(
-                lambda data: self._on_trigger(trigger_name, data))
+                     'trigger: {}').format(i))
+
+        self.triggers.append(trigger)
+
+        return trigger
 
     def run(self):
         """Run Video Ingestion.
@@ -69,16 +115,20 @@ class VideoIngestion:
         """
         self.log.info('Stopping Video Ingestion')
         self.DataInMgr.stop()
-        for t in self.triggers.values():
+        for t in self.triggers:
             t.stop()
         self.trigger_ex.shutdown()
         self.log.info('Video Ingestion stopped')
 
-    def _on_trigger_data(self, trigger, ingestor, data):
+    def _on_trigger_data(self, trigger, ingestor, data, filtering=False):
         """Private method to submit a worker to execute a trigger on ingestion
         data.
         """
-        fut = self.trigger_ex.submit(trigger.process_data, ingestor, data)
+        if filtering:
+            fut = self.trigger_ex.submit(
+                    self._on_filter_trigger_data, ingestor, trigger, data)
+        else:
+            fut = self.trigger_ex.submit(trigger.process_data, ingestor, data)
         fut.add_done_callback(self._on_trigger_done)
 
     def _on_trigger_done(self, fut):
@@ -86,9 +136,20 @@ class VideoIngestion:
         """
         exc = fut.exception()
         if exc is not None:
-            self.log.error(
-                    'Error in trigger:\n%s',
-                    ''.join(tb.format_tb(exc.__traceback__)))
+            self.log.error('Error in trigger: \n%s', tb.format_exc(exc))
+
+    def _on_filter_trigger_data(self, ingestor, trigger, data):
+        """Private method for passing data onto a trigger setup to filter data.
+        """
+        # TODO: Could probably optimize to not use entire executor thread for
+        # this ingestor
+        for i in data:
+            if i is None:
+                break
+            # Unpacking the data
+            sample_num, user_data, video_data = i
+            # Send the data through the trigger
+            trigger.process_data(ingestor, video_data)
 
     def _on_trigger(self, trigger, data):
         """Private method for handling the trigger start event, starting a
@@ -104,20 +165,18 @@ class VideoIngestion:
         exc = fut.exception()
         if exc is not None:
             self.log.error(
-                    'Error while sending the video frames:\n%s',
-                    ''.join(tb.format_tb(exc.__traceback__)))
+                    'Error while classifying frames:\n%s', tb.format_exc(exc))
 
     def _data_ingest(self, data):
         # Set measurement name.
         DataInLib = DataIngestionLib()
-        DataInLib.set_measurement_name('stream1')
+        DataInLib.set_measurement_name(MEASUREMENT_NAME)
         for res in data:
             if res is None:
                 break
             sample_num, user_data, (cam_sn, frame) = res
             # Get the video frame info.
             height, width, channels = frame.shape
-            print(type(height), "****", type(width), "****", type(channels))
             # Add the video buffer handle, info to the datapoint.
             ret = DataInLib.add_fields("vid-fr", frame.tobytes())
             assert (ret is not False), 'Captured buffer could be added to\
@@ -128,6 +187,10 @@ class VideoIngestion:
             assert ret is not False, "Adding of height to DataPoint Failed"
             ret = DataInLib.add_fields("Channels", channels)
             assert ret is not False, "Adding of channels to DataPoint Failed"
+            ret = DataInLib.add_fields("Cam_Sn", cam_sn)
+            assert ret is not False, "Adding of Camera SN to DataPoint Failed"
+            ret = DataInLib.add_fields("Sample_num", sample_num)
+            assert ret is not False, "Adding of Sample Num to DataPoint Failed"
             ret = DataInLib.save_data_point()
             assert ret is not False, "Saving of DataPoint Failed"
 
