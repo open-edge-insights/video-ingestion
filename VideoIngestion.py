@@ -2,7 +2,6 @@ import os
 import signal
 import argparse
 import logging
-
 import traceback as tb
 from concurrent.futures import ThreadPoolExecutor
 from agent.dpm.triggers import load_trigger
@@ -32,7 +31,6 @@ class VideoIngestion:
         self.log = logging.getLogger(__name__)
         self.log.info('Initialize Data Ingestion Manager')
         self.DataInMgr = DataIngestionManager(config.data_ingestion_manager)
-
         self.log.info('Loading Triggers')
         self.trigger_ex = ThreadPoolExecutor(max_workers=config.trigger_threads)
         self.triggers = []
@@ -169,8 +167,12 @@ class VideoIngestion:
 
     def _data_ingest(self, data):
         # Set measurement name.
-        DataInLib = DataIngestionLib()
-        DataInLib.set_measurement_name(MEASUREMENT_NAME)
+        try:
+            DataInLib = DataIngestionLib()
+            DataInLib.set_measurement_name(MEASUREMENT_NAME)
+        except Exception as e:
+            self.log.error(e)
+            os._exit(1)
         for res in data:
             if res is None:
                 break
@@ -178,9 +180,14 @@ class VideoIngestion:
             # Get the video frame info.
             height, width, channels = frame.shape
             # Add the video buffer handle, info to the datapoint.
-            ret = DataInLib.add_fields("vid-fr", frame.tobytes())
-            assert (ret is not False), 'Captured buffer could be added to\
-                DataPoint'
+            try:
+                ret = DataInLib.add_fields("vid-fr", frame.tobytes())
+                assert (ret is not False), 'Captured buffer could be added to\
+                    DataPoint'
+            except Exception as e:
+                self.log.error("Redis not running")
+                self.log.error(e)
+                os._exit(1)
             ret = DataInLib.add_fields("Width", width)
             assert ret is not False, "Adding ofwidth to DataPoint Failed"
             ret = DataInLib.add_fields("Height", height)
@@ -191,9 +198,12 @@ class VideoIngestion:
             assert ret is not False, "Adding of Camera SN to DataPoint Failed"
             ret = DataInLib.add_fields("Sample_num", sample_num)
             assert ret is not False, "Adding of Sample Num to DataPoint Failed"
-            ret = DataInLib.save_data_point()
-            assert ret is not False, "Saving of DataPoint Failed"
-
+            try:
+                ret = DataInLib.save_data_point()
+                assert ret is not False, "Saving of DataPoint Failed"
+            except Exception as e:
+                self.log.error(e)
+                os._exit(1)
 
 def parse_args():
     """Parse command line arguments
@@ -236,7 +246,6 @@ def main():
     log = logging.getLogger('MAIN')
 
     args.func(log, config)
-
 
 def run_videopipeline(log, config):
     """ Method to run the VideoPipeline.
