@@ -12,7 +12,7 @@ This module injests the video data from a file or basler's webcam and sends it t
 * To install python dependencies for this module, use cmd:
   
   ```sh
-  pip3 install -r vi_requirements.txt
+  sudo -H pip3 install -r vi_requirements.txt
   ```
 
 * In another terminal export the PYTHONPATH as done for DataAgent and run the command.
@@ -23,14 +23,11 @@ This module injests the video data from a file or basler's webcam and sends it t
   
   In place of factory.json one can give another json file too with the required configuration.
 
-* In case one is using the robotic arm trigger, this trigger waits until it receives a camera ON message over mqtt. To publish this message run the command.
-  
-  ```sh
-  python3 VideoIngestion/test/mqtt_publish.py
-  ```
+* In case one is trying with robotic arm trigger/Basler's camera, please follow the below steps:
 
-* To read the frames from ImageStore and view it, run the command.
-  
-  ```sh
-  python3 VideoIngestion/test/read_frames.py
-  ```
+  **Pre-requisites**:
+  Refer `README-BASLER.md` till `Compilation and Installation` section having command `python3 setup.py install`. If everything installed successfully, one should see `basler-capture` tool accessible in terminal. 
+
+  * In one terminal, run VideoIngestion module: `python3 VideoIngestion/VideoIngestion.py --config factory_cam.json`
+  * The `VideoIngestion.py` waits until it receives a camera ON message over mqtt. To publish this message run: `python3 VideoIngestion/test/mqtt_publish.py` in another terminal
+  * To read the frames from ImageStore and view it, run the command: `python3 VideoIngestion/test/read_frames.py`
