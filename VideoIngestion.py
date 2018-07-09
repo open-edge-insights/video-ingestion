@@ -198,6 +198,8 @@ class VideoIngestion:
             assert ret is not False, "Adding of Camera SN to DataPoint Failed"
             ret = DataInLib.add_fields("Sample_num", sample_num)
             assert ret is not False, "Adding of Sample Num to DataPoint Failed"
+            ret = DataInLib.add_fields("user_data", user_data)
+            assert ret is not False, "Adding of user_data to DataPoint Failed"
             try:
                 ret = DataInLib.save_data_point()
                 assert ret is not False, "Saving of DataPoint Failed"
