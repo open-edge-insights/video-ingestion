@@ -1,4 +1,5 @@
 import os
+import datetime
 import signal
 import argparse
 import logging
@@ -12,6 +13,7 @@ from agent.etr_utils.log import configure_logging, LOG_LEVELS
 from agent.dpm.config import Configuration
 
 MEASUREMENT_NAME = "stream1"
+
 
 
 class VideoIngestionError(Exception):
@@ -228,6 +230,9 @@ def main():
     # Parse command line arguments
     args = parse_args()
 
+    currentDateTime = datetime.datetime.now()
+    logFileName= 'videoingestion_' + str(currentDateTime) + '.log'
+
     # Creating log directory if it does not exist
     if not os.path.exists(args.log_dir):
         os.mkdir(args.log_dir)
@@ -241,10 +246,10 @@ def main():
 
     # Configuring logging
     if config.log_file_size is not None:
-        configure_logging(args.log.upper(), 'etr.log', args.log_dir,
+        configure_logging(args.log.upper(), logFileName , args.log_dir,
                           max_bytes=config.log_file_size)
     else:
-        configure_logging(args.log.upper(), 'etr.log', args.log_dir)
+        configure_logging(args.log.upper(), logFileName , args.log_dir)
     log = logging.getLogger('MAIN')
 
     args.func(log, config)
