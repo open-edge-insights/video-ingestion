@@ -35,8 +35,11 @@ def retrieve_frames(data_points):
             img_handles = elem['ImgHandle'].split(',')
             for idx in range(len(img_handles)):
                 print(img_handles[idx])
-                ret, frame = img_store.read(img_handles[idx])
-                if ret is True:
+                try:
+                    frame = img_store.read(img_handles[idx])
+                except Exception:
+                    log.error('Frame read failed')
+                if frame != None:
                     # Convert the buffer into np array.
                     Frame = np.frombuffer(frame, dtype=np.uint8)
                     # Reshape the array.
