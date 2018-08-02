@@ -36,7 +36,7 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--camera_state', default='0,
+    parser.add_argument('--camera_state', default='0',
                         help="0 is for cam_off and 1 is for cam_on")
     return parser.parse_args()
 
