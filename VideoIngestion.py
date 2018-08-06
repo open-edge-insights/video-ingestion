@@ -15,7 +15,6 @@ from agent.dpm.config import Configuration
 MEASUREMENT_NAME = "stream1"
 
 
-
 class VideoIngestionError(Exception):
     """ Exception raised by VideoIngestion.
     """
@@ -175,6 +174,7 @@ class VideoIngestion:
         except Exception as e:
             self.log.error(e)
             os._exit(1)
+
         for res in data:
             if res is None:
                 break
@@ -209,6 +209,20 @@ class VideoIngestion:
                 self.log.error(e)
                 os._exit(1)
 
+        # Adding the delimiter point for signalling end of part
+        ret = DataInLib.add_fields("Width", 0)
+        ret = DataInLib.add_fields("Height", 0)
+        ret = DataInLib.add_fields("Channels", 0)
+        ret = DataInLib.add_fields("Sample_num", 0)
+        ret = DataInLib.add_fields("user_data", 0)
+        try:
+            ret = DataInLib.save_data_point()
+            assert ret is not False, "Adding delimiter Failed"
+        except Exception as e:
+            self.log.error(e)
+            os._exit(1)
+
+
 def parse_args():
     """Parse command line arguments
     """
@@ -231,7 +245,7 @@ def main():
     args = parse_args()
 
     currentDateTime = datetime.datetime.now()
-    logFileName= 'videoingestion_' + str(currentDateTime) + '.log'
+    logFileName = 'videoingestion_' + str(currentDateTime) + '.log'
 
     # Creating log directory if it does not exist
     if not os.path.exists(args.log_dir):
@@ -246,13 +260,14 @@ def main():
 
     # Configuring logging
     if config.log_file_size is not None:
-        configure_logging(args.log.upper(), logFileName , args.log_dir,
+        configure_logging(args.log.upper(), logFileName, args.log_dir,
                           max_bytes=config.log_file_size)
     else:
-        configure_logging(args.log.upper(), logFileName , args.log_dir)
+        configure_logging(args.log.upper(), logFileName, args.log_dir)
     log = logging.getLogger('MAIN')
 
     args.func(log, config)
+
 
 def run_videopipeline(log, config):
     """ Method to run the VideoPipeline.
