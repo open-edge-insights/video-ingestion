@@ -244,8 +244,10 @@ def main():
     # Parse command line arguments
     args = parse_args()
 
-    currentDateTime = datetime.datetime.now()
-    logFileName = 'videoingestion_' + str(currentDateTime) + '.log'
+    currentDateTime = str(datetime.datetime.now())
+    listDateTime = currentDateTime.split(" ")
+    currentDateTime = "_".join(listDateTime)
+    logFileName = 'videoingestion_' + currentDateTime + '.log'
 
     # Creating log directory if it does not exist
     if not os.path.exists(args.log_dir):

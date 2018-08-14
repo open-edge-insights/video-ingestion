@@ -13,7 +13,8 @@ log = logging.getLogger("read_frames")
 
 
 def retrieve_data_from_influx(measurement, tag):
-    config = GrpcClient.GetConfigInt("InfluxDBCfg")
+    client = GrpcClient()
+    config = client.GetConfigInt("InfluxDBCfg")
     influx_c = InfluxDBClient(config["Host"],
                               config["Port"],
                               config["UserName"],
