@@ -24,7 +24,7 @@ import cv2
 import logging
 import numpy as np
 from influxdb import InfluxDBClient
-from DataAgent.da_grpc.client.py.client import GrpcClient
+from DataAgent.da_grpc.client.client import GrpcClient
 from ImageStore.py.imagestore import ImageStore
 
 measurement_name = 'stream1'
