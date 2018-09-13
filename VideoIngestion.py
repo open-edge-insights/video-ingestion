@@ -57,6 +57,9 @@ class VideoIngestion:
         self.log.info('Loading Triggers')
         self.trigger_ex = \
             ThreadPoolExecutor(max_workers=config.trigger_threads)
+        self.pool_ex = \
+            ThreadPoolExecutor(max_workers=config.trigger_threads)
+
         self.triggers = []
         self.config = config
         for (n, c) in config.classification['classifiers'].items():
@@ -140,6 +143,7 @@ class VideoIngestion:
         for t in self.triggers:
             t.stop()
         self.trigger_ex.shutdown()
+        self.pool_ex.shutdown()
         self.log.info('Video Ingestion stopped')
 
     def _on_trigger_data(self, trigger, ingestor, data, filtering=False):
@@ -178,7 +182,7 @@ class VideoIngestion:
         thread to process all of the incoming data from the trigger.
         """
         self.log.info('Received start signal from trigger "%s"', trigger)
-        fut = self.trigger_ex.submit(self._data_ingest, data)
+        fut = self.pool_ex.submit(self._data_ingest, data)
         fut.add_done_callback(self._data_ingest_done)
 
     def _data_ingest_done(self, fut):
@@ -314,7 +318,7 @@ def run_videopipeline(log, config):
     agent = VideoIngestion(config)
 
     def handle_signal(signum, frame):
-        log.info('ETR killed...')
+        log.info('ETA killed...')
         agent.stop()
 
     signal.signal(signal.SIGTERM, handle_signal)
