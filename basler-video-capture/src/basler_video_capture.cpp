@@ -63,16 +63,23 @@ BaslerVideoCapture::BaslerVideoCapture(std::string serial_number) {
             found = true;
         }
     }
-
     if(!found) {
         throw BaslerVideoCaptureError("Cannot find the camera");
     }
-
     // Opening the camera
-    m_cap.Open();
-
+    try {
+	m_cap.Open();
+    } catch(const std::exception &ex) {
+        std::cerr << "Error while opening camera:" << ex.what() << std::endl;
+        throw;
+    }
     // Start grabbing frames
-    m_cap.StartGrabbing(Pylon::GrabStrategy_LatestImageOnly);
+    try {
+	m_cap.StartGrabbing(Pylon::GrabStrategy_LatestImageOnly);
+    } catch(const std::exception &ex) {
+	std::cerr << "Error while grabbing frames:" << ex.what() << std::endl;
+	throw;
+    }
 }
 
 boost::python::tuple BaslerVideoCapture::read() {
