@@ -22,9 +22,9 @@ following commands:
 
 ```sh
 $ cd libs
-$ tar xvf pylon-5.0.11.10914-x86_64.tar.gz
-$ cd pylon-5.0.11.10914-x86_64
-$ tar -C /opt -zxf pylonSDK-5.0.11.10914-x86_64.tar.gz
+$ tar xvf pylon-5.1.0.12682-x86_64.tar.gz
+$ cd pylon-5.1.0.12682-x86_64
+$ tar -C /opt -zxf pylonSDK-5.1.0.12682-x86_64.tar.gz
 ```
 
 This should successfully install the Basler Pylon 5 SDK.
@@ -38,19 +38,19 @@ $ sudo -H pip3 install numpy
 
 ### Boost with Python Support
 To install the Boost dependency, download the following Boost source code 
-[here](https://sourceforge.net/projects/boost/files/boost/1.63.0/boost_1_63_0.tar.gz).
+[here](https://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_0.tar.gz).
 Once you have downloaded the boost tar.gz file, decompress it with the following
 command:
 
 ```sh
-$ tar xvf boost_1_63_0.tar.gz
+$ tar xvf boost_1_66_0.tar.gz
 ```
 
 After extracting the code, execute the following commands to build and install
 boost.
 
 ```sh
-$ cd boost_1_63_0
+$ cd boost_1_66_0
 $ ./bootstrap.sh --with-python=/usr/bin/python3
 $ ./b2 --with-python
 $ sudo ./b2 install
