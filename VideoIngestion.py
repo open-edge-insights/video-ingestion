@@ -31,7 +31,7 @@ from agent.dpm.triggers import load_trigger
 from agent.dpm.ingestion.data_ingestion_manager\
     import DataIngestionManager
 from DataIngestionLib.DataIngestionLib import DataIngestionLib
-from agent.etr_utils.log import configure_logging, LOG_LEVELS
+from Util.log import configure_logging, LOG_LEVELS
 from agent.dpm.config import Configuration
 
 MEASUREMENT_NAME = "stream1"
@@ -276,6 +276,8 @@ def main():
     currentDateTime = "_".join(listDateTime)
     logFileName = 'videoingestion_' + currentDateTime + '.log'
 
+    log = configure_logging(args.log.upper(), logFileName, args.log_dir, __name__)
+
     # Creating log directory if it does not exist
     if not os.path.exists(args.log_dir):
         os.mkdir(args.log_dir)
@@ -284,16 +286,8 @@ def main():
         # Read in the configuration file and initialize needed objects
         config = Configuration(args.config)
     except KeyError as e:
-        print('!!! ERROR: Configuration missing key: {}'.format(str(e)))
+        log.error('!!! ERROR: Configuration missing key: {}'.format(str(e)))
         return -1
-
-    # Configuring logging
-    if config.log_file_size is not None:
-        configure_logging(args.log.upper(), logFileName, args.log_dir,
-                          max_bytes=config.log_file_size)
-    else:
-        configure_logging(args.log.upper(), logFileName, args.log_dir)
-    log = logging.getLogger('MAIN')
 
     # Workaround for ClearLinux as there is no /etc/hosts on host m/c
     etc_hosts_file = "/etc/hosts"
