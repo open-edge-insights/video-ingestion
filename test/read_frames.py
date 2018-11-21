@@ -24,7 +24,7 @@ import cv2
 import logging
 import numpy as np
 from influxdb import InfluxDBClient
-from DataAgent.da_grpc.client.py.client import GrpcClient
+from DataAgent.da_grpc.client.py.client_internal.client import GrpcInternalClient
 from ImageStore.py.imagestore import ImageStore
 
 measurement_name = 'stream1'
@@ -34,7 +34,7 @@ log = logging.getLogger("read_frames")
 
 
 def retrieve_data_from_influx(measurement, tag):
-    client = GrpcClient()
+    client = GrpcInternalClient()
     config = client.GetConfigInt("InfluxDBCfg")
     influx_c = InfluxDBClient(config["Host"],
                               config["Port"],
