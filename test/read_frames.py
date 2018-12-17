@@ -24,23 +24,27 @@ import cv2
 import logging
 import numpy as np
 from influxdb import InfluxDBClient
-from DataAgent.da_grpc.client.py.client_internal.client import GrpcInternalClient
+from DataAgent.da_grpc.client.py.client_internal.client import \
+    GrpcInternalClient
 from ImageStore.client.py.client import GrpcImageStoreClient
 import os
-filepath = os.path.abspath(os.path.dirname(__file__))
-CA_CERT = filepath + "/Certificates/ca/ca_certificate.pem"
-IM_CLIENT_KEY = filepath + "/Certificates/imagestore/imagestore_client_key.pem"
-IM_CLIENT_CERT = filepath + \
-    "/Certificates/imagestore/imagestore_client_certificate.pem"
+
+IM_CLIENT_KEY = "/etc/ssl/imagestore/imagestore_client_key.pem"
+IM_CLIENT_CERT = "/etc/ssl/imagestore/imagestore_client_certificate.pem"
 
 measurement_name = 'stream1'
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("read_frames")
 
+CERTS_PATH = "/etc/ssl/grpc_int_ssl_secrets"
+CLIENT_CERT = CERTS_PATH + "/grpc_internal_client_certificate.pem"
+CLIENT_KEY = CERTS_PATH + "/grpc_internal_client_key.pem"
+CA_CERT = CERTS_PATH + "/ca_certificate.pem"
+
 
 def retrieve_data_from_influx(measurement, tag):
-    client = GrpcInternalClient()
+    client = GrpcInternalClient(CLIENT_CERT, CLIENT_KEY, CA_CERT)
     config = client.GetConfigInt("InfluxDBCfg")
     influx_c = InfluxDBClient(config["Host"],
                               config["Port"],
@@ -55,7 +59,7 @@ def retrieve_data_from_influx(measurement, tag):
 def retrieve_frames(data_points):
     # Initialize Image Store.
     img_store = GrpcImageStoreClient(IM_CLIENT_CERT, IM_CLIENT_KEY, CA_CERT)
-    #img_store = ImageStore()
+    # img_store = ImageStore()
     # Loop over the data points to retrive the frames using frame handles and
     # write the frames.
     frame_num = 0
