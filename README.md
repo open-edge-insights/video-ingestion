@@ -1,10 +1,6 @@
 # Video Ingestion Module:
 This module injests the video data from a file or basler's webcam and sends it to Image Store and influx using Data Ingestion Lib.
 
-## Pre-requisites:
-
-* Influxdb, Redis and mosquitto (only if working with camera) services should be running
-
 ## Steps to run this module
 
 * Run the DataAgent with the config file having right configs for InfluxDB and Redis.
