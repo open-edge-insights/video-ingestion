@@ -276,7 +276,8 @@ def main():
     currentDateTime = "_".join(listDateTime)
     logFileName = 'videoingestion_' + currentDateTime + '.log'
 
-    log = configure_logging(args.log.upper(), logFileName, args.log_dir, __name__)
+    log = configure_logging(args.log.upper(), logFileName, args.log_dir,
+                            __name__)
 
     # Creating log directory if it does not exist
     if not os.path.exists(args.log_dir):
