@@ -62,6 +62,11 @@ class VideoIngestion:
 
         self.triggers = []
         self.config = config
+        try:
+            self.DataInLib = DataIngestionLib()
+        except Exception as e:
+            self.log.error(e)
+            os._exit(1)
         for (n, c) in config.classification['classifiers'].items():
             self.log.info('Setting up pipeline for %s classifier', n)
             triggers = c['trigger']
@@ -194,13 +199,6 @@ class VideoIngestion:
                     'Error while classifying frames:\n%s', tb.format_exc(exc))
 
     def _data_ingest(self, data):
-        # Set measurement name.
-        try:
-            DataInLib = DataIngestionLib()
-            DataInLib.set_measurement_name(MEASUREMENT_NAME)
-        except Exception as e:
-            self.log.error(e)
-            os._exit(1)
 
         for res in data:
             if res is None:
@@ -209,41 +207,44 @@ class VideoIngestion:
             # Get the video frame info.
             height, width, channels = frame.shape
             # Add the video buffer handle, info to the datapoint.
+            dp = self.DataInLib.init_data_point()
+            dp.set_measurement_name(MEASUREMENT_NAME)
             try:
-                ret = DataInLib.add_fields("vid-fr", frame.tobytes())
+                ret = dp.add_fields("vid-fr", frame.tobytes())
                 assert (ret is not False), 'Captured buffer could be added to\
                     DataPoint'
             except Exception as e:
-                self.log.error("Redis not running")
                 self.log.error(e)
                 os._exit(1)
-            ret = DataInLib.add_fields("Width", width)
+            ret = dp.add_fields("Width", width)
             assert ret is not False, "Adding ofwidth to DataPoint Failed"
-            ret = DataInLib.add_fields("Height", height)
+            ret = dp.add_fields("Height", height)
             assert ret is not False, "Adding of height to DataPoint Failed"
-            ret = DataInLib.add_fields("Channels", channels)
+            ret = dp.add_fields("Channels", channels)
             assert ret is not False, "Adding of channels to DataPoint Failed"
-            ret = DataInLib.add_fields("Cam_Sn", cam_sn)
+            ret = dp.add_fields("Cam_Sn", cam_sn)
             assert ret is not False, "Adding of Camera SN to DataPoint Failed"
-            ret = DataInLib.add_fields("Sample_num", sample_num)
+            ret = dp.add_fields("Sample_num", sample_num)
             assert ret is not False, "Adding of Sample Num to DataPoint Failed"
-            ret = DataInLib.add_fields("user_data", user_data)
+            ret = dp.add_fields("user_data", user_data)
             assert ret is not False, "Adding of user_data to DataPoint Failed"
             try:
-                ret = DataInLib.save_data_point()
+                ret = self.DataInLib.save_data_point(dp)
                 assert ret is not False, "Saving of DataPoint Failed"
             except Exception as e:
                 self.log.error(e)
                 os._exit(1)
 
         # Adding the delimiter point for signalling end of part
-        ret = DataInLib.add_fields("Width", 0)
-        ret = DataInLib.add_fields("Height", 0)
-        ret = DataInLib.add_fields("Channels", 0)
-        ret = DataInLib.add_fields("Sample_num", 0)
-        ret = DataInLib.add_fields("user_data", 0)
+        dp = self.DataInLib.init_data_point()
+        dp.set_measurement_name(MEASUREMENT_NAME)
+        ret = dp.add_fields("Width", 0)
+        ret = dp.add_fields("Height", 0)
+        ret = dp.add_fields("Channels", 0)
+        ret = dp.add_fields("Sample_num", 0)
+        ret = dp.add_fields("user_data", 0)
         try:
-            ret = DataInLib.save_data_point()
+            ret = self.DataInLib.save_data_point(dp)
             assert ret is not False, "Adding delimiter Failed"
         except Exception as e:
             self.log.error(e)
