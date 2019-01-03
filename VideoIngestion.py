@@ -27,12 +27,12 @@ import argparse
 import logging
 import traceback as tb
 from concurrent.futures import ThreadPoolExecutor
-from agent.dpm.triggers import load_trigger
-from agent.dpm.ingestion.data_ingestion_manager\
+from algos.dpm.triggers import load_trigger
+from algos.dpm.ingestion.data_ingestion_manager\
     import DataIngestionManager
 from DataIngestionLib.DataIngestionLib import DataIngestionLib
 from Util.log import configure_logging, LOG_LEVELS
-from agent.dpm.config import Configuration
+from algos.dpm.config import Configuration
 
 MEASUREMENT_NAME = "stream1"
 
