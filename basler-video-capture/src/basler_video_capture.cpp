@@ -164,6 +164,29 @@ void BaslerVideoCapture::set_exposure(int64_t us_exposure_time) {
     }
 }
 
+
+void BaslerVideoCapture::set_inter_packet_delay(int64_t packet_delay) {
+    GenApi::INodeMap &control = m_cap.GetNodeMap();
+    const GenApi::CIntegerPtr pk_delay = control.GetNode("GevSCPD");
+    if(pk_delay == nullptr) {
+        throw BaslerVideoCaptureError(
+                "Capture device does not have 'GevSCPD' property");
+    }
+
+    try {
+        if(GenApi::IsWritable(pk_delay)) {
+            pk_delay->SetValue(packet_delay);
+        } else {
+            throw BaslerVideoCaptureError(
+                    "'GevSCPD' property is not writable");
+        }
+    } catch(const Pylon::GenericException &e) {
+        std::ostringstream os;
+        os << "Error setting GevSCPD property: " << e.GetDescription();
+        throw BaslerVideoCaptureError(os.str());
+    }
+}
+
 int64_t BaslerVideoCapture::get_gain() {
     GenApi::INodeMap &control = m_cap.GetNodeMap();
     const GenApi::CIntegerPtr gain = control.GetNode("GainRaw");

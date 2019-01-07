@@ -105,6 +105,9 @@ public:
      */
     void set_exposure(int64_t us_exposure_time);
 
+
+    void set_inter_packet_delay(int64_t packet_delay);
+
     /**
      * Get the camera's current gain value.
      *
@@ -185,6 +188,7 @@ BOOST_PYTHON_MODULE(basler_video_capture) {
             "BaslerVideoCapture", init<std::string>())
         .def("read", &bvc::BaslerVideoCapture::read)
         .def("set_exposure", &bvc::BaslerVideoCapture::set_exposure)
+        .def("set_inter_packet_delay", &bvc::BaslerVideoCapture::set_inter_packet_delay)
         .def("get_exposure", &bvc::BaslerVideoCapture::get_exposure)
         .def("set_gain", &bvc::BaslerVideoCapture::set_gain)
         .def("get_gain", &bvc::BaslerVideoCapture::get_gain)
