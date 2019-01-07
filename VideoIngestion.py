@@ -291,19 +291,6 @@ def main():
         log.error('!!! ERROR: Configuration missing key: {}'.format(str(e)))
         return -1
 
-    # Workaround for ClearLinux as there is no /etc/hosts on host m/c
-    etc_hosts_file = "/etc/hosts"
-    if os.path.exists(etc_hosts_file):
-        log.info("%s file exists", etc_hosts_file)
-        with open(etc_hosts_file, "r+") as fp:
-            if "localhost" not in fp.read():
-                log.info("Writing localhost entry to %s", etc_hosts_file)
-                fp.write("127.0.0.1 localhost")
-    else:
-        with open(etc_hosts_file, "w") as fp:
-            log.info("Writing localhost entry to %s", etc_hosts_file)
-            fp.write("127.0.0.1 localhost")
-
     args.func(log, config)
 
 
