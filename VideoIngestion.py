@@ -178,7 +178,7 @@ class VideoIngestion:
             if i is None:
                 break
             # Unpacking the data
-            sample_num, user_data, video_data = i
+            video_data = i
             # Send the data through the trigger
             trigger.process_data(ingestor, video_data)
 
@@ -234,22 +234,6 @@ class VideoIngestion:
             except Exception as e:
                 self.log.error(e)
                 os._exit(1)
-
-        # Adding the delimiter point for signalling end of part
-        dp = self.DataInLib.init_data_point()
-        dp.set_measurement_name(MEASUREMENT_NAME)
-        ret = dp.add_fields("Width", 0)
-        ret = dp.add_fields("Height", 0)
-        ret = dp.add_fields("Channels", 0)
-        ret = dp.add_fields("Sample_num", 0)
-        ret = dp.add_fields("user_data", 0)
-        try:
-            ret = self.DataInLib.save_data_point(dp)
-            assert ret is not False, "Adding delimiter Failed"
-        except Exception as e:
-            self.log.error(e)
-            os._exit(1)
-
 
 def parse_args():
     """Parse command line arguments
