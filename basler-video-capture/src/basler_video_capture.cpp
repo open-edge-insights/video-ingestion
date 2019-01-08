@@ -260,8 +260,11 @@ PyObject* create_exc_class(const char* name, PyObject* base_type_obj) {
     std::string str_qualified_name = scope_name + "." + name;
     char* qualified_name = const_cast<char*>(str_qualified_name.c_str());
     PyObject* type_obj = PyErr_NewException(qualified_name, base_type_obj, 0);
-    if(!type_obj) throw_error_already_set();
-    scope().attr(name) = handle<>(borrowed(type_obj));
+    if(!type_obj) {
+        throw_error_already_set();
+    } else {
+        scope().attr(name) = handle<>(borrowed(type_obj));
+    }
     return type_obj;
 }
 
