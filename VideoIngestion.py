@@ -251,12 +251,20 @@ class VideoIngestion:
             dp = self.DataInLib.init_data_point()
             dp.set_measurement_name(MEASUREMENT_NAME)
             try:
-                ret = dp.add_fields("vid-fr", frame.tobytes())
+                # Adding image to inmemory store
+                ret = dp.add_fields("vid-fr-inmem", frame.tobytes(), 'inmemory')
                 assert (ret is not False), 'Captured buffer could be added to\
                     DataPoint'
+
+                # Adding image to persistent store
+                ret = dp.add_fields("vid-fr-persist", frame.tobytes(),
+                                    'persistent')
+                assert (ret is not False), 'Captured buffer could be added to\
+                    DataPoint'
+
             except Exception as e:
                 self.log.error(e)
-                os._exit(1)
+
             ret = dp.add_fields("Width", width)
             assert ret is not False, "Adding ofwidth to DataPoint Failed"
             ret = dp.add_fields("Height", height)
@@ -275,6 +283,7 @@ class VideoIngestion:
             except Exception as e:
                 self.log.error(e)
                 os._exit(1)
+
 
 def parse_args():
     """Parse command line arguments
