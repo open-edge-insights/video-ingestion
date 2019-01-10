@@ -26,6 +26,9 @@ import signal
 import argparse
 import logging
 import traceback as tb
+import threading
+import queue
+import time
 from concurrent.futures import ThreadPoolExecutor
 from algos.dpm.triggers import load_trigger
 from algos.dpm.ingestion.data_ingestion_manager\
@@ -35,6 +38,7 @@ from Util.log import configure_logging, LOG_LEVELS
 from algos.dpm.config import Configuration
 
 MEASUREMENT_NAME = "stream1"
+MAX_BUFFERS = 10
 
 
 class VideoIngestionError(Exception):
@@ -59,6 +63,14 @@ class VideoIngestion:
             ThreadPoolExecutor(max_workers=config.trigger_threads)
         self.pool_ex = \
             ThreadPoolExecutor(max_workers=config.trigger_threads)
+
+        self.trigger_thread = threading.Thread(target=self.trigger_process)
+        self.trigger_queue = queue.Queue(maxsize=MAX_BUFFERS)
+        self.trigger_ev = threading.Event()
+
+        self.dil_thread = threading.Thread(target=self.dil_process)
+        self.dil_queue = queue.Queue(maxsize=MAX_BUFFERS)
+        self.dil_ev = threading.Event()
 
         self.triggers = []
         self.config = config
@@ -138,6 +150,8 @@ class VideoIngestion:
         """
         self.log.info('Starting video ingestion')
         self.DataInMgr.start()
+        self.trigger_thread.start()
+        self.dil_thread.start()
         self.DataInMgr.join()
 
     def stop(self):
@@ -147,6 +161,10 @@ class VideoIngestion:
         self.DataInMgr.stop()
         for t in self.triggers:
             t.stop()
+        #self.trigger_ev.set()
+        self.trigger_thread.join()
+        self.dil_ev.set()
+        self.dil_thread.join()
         self.trigger_ex.shutdown()
         self.pool_ex.shutdown()
         self.log.info('Video Ingestion stopped')
@@ -155,12 +173,7 @@ class VideoIngestion:
         """Private method to submit a worker to execute a trigger on ingestion
         data.
         """
-        if filtering:
-            fut = self.trigger_ex.submit(
-                    self._on_filter_trigger_data, ingestor, trigger, data)
-        else:
-            fut = self.trigger_ex.submit(trigger.process_data, ingestor, data)
-        fut.add_done_callback(self._on_trigger_done)
+        self.trigger_queue.put((trigger, ingestor, data, filtering))
 
     def _on_trigger_done(self, fut):
         """Private method to log errors if they occur in the trigger method.
@@ -187,8 +200,7 @@ class VideoIngestion:
         thread to process all of the incoming data from the trigger.
         """
         self.log.info('Received start signal from trigger "%s"', trigger)
-        fut = self.pool_ex.submit(self._data_ingest, data)
-        fut.add_done_callback(self._data_ingest_done)
+        self.dil_queue.put(data)
 
     def _data_ingest_done(self, fut):
         """Private method to log errors if they occur whilel processing frames.
@@ -197,6 +209,35 @@ class VideoIngestion:
         if exc is not None:
             self.log.error(
                     'Error while classifying frames:\n%s', tb.format_exc(exc))
+
+    def trigger_process(self):
+        while not self.trigger_ev.is_set():
+            pending = self.trigger_ex._work_queue.qsize()
+            if  pending < self.config.trigger_threads:
+                trigger, ingestor, data, filtering = self.trigger_queue.get()
+
+                if filtering:
+                    fut = self.trigger_ex.submit(
+                            self._on_filter_trigger_data, ingestor,
+                            trigger, data)
+                else:
+                    fut = self.trigger_ex.submit(trigger.process_data,
+                                                ingestor, data)
+                fut.add_done_callback(self._on_trigger_done)
+            else:
+                time.sleep(0.01)
+
+
+    def dil_process(self):
+        while not self.dil_ev.is_set():
+            pending = self.pool_ex._work_queue.qsize()
+            if  pending < self.config.trigger_threads:
+                data = self.dil_queue.get()
+
+                fut = self.pool_ex.submit(self._data_ingest, data)
+                fut.add_done_callback(self._data_ingest_done)
+            else:
+                time.sleep(0.01)
 
     def _data_ingest(self, data):
 
