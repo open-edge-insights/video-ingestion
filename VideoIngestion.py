@@ -50,12 +50,12 @@ class VideoIngestionError(Exception):
 class VideoIngestion:
     """ This module ingests camera output to ImageStore using DataIngestion lib.
     """
-    def __init__(self, config):
+    def __init__(self, config, log):
         """ Constructor
         Parameters:
             config : Contains JSON file parameters.
         """
-        self.log = logging.getLogger(__name__)
+        self.log = log
         self.log.info('Initialize Data Ingestion Manager')
         self.DataInMgr = DataIngestionManager(config.data_ingestion_manager)
         self.log.info('Loading Triggers')
@@ -75,7 +75,7 @@ class VideoIngestion:
         self.triggers = []
         self.config = config
         try:
-            self.DataInLib = DataIngestionLib()
+            self.DataInLib = DataIngestionLib(log)
         except Exception as e:
             self.log.error(e)
             os._exit(1)
@@ -227,7 +227,6 @@ class VideoIngestion:
             else:
                 time.sleep(0.01)
 
-
     def dil_process(self):
         while not self.dil_ev.is_set():
             pending = self.pool_ex._work_queue.qsize()
@@ -311,13 +310,12 @@ def main():
     currentDateTime = "_".join(listDateTime)
     logFileName = 'videoingestion_' + currentDateTime + '.log'
 
-    log = configure_logging(args.log.upper(), logFileName, args.log_dir,
-                            __name__)
-
     # Creating log directory if it does not exist
     if not os.path.exists(args.log_dir):
         os.mkdir(args.log_dir)
 
+    log = configure_logging(args.log.upper(), logFileName, args.log_dir,
+                            __name__)
     try:
         # Read in the configuration file and initialize needed objects
         config = Configuration(args.config)
@@ -325,14 +323,15 @@ def main():
         log.error('!!! ERROR: Configuration missing key: {}'.format(str(e)))
         return -1
 
-    args.func(log, config)
+    args.func(config, log)
 
 
-def run_videopipeline(log, config):
+def run_videopipeline(config, log):
     """ Method to run the VideoPipeline.
     """
     log.info('Initializing the factory agent')
-    agent = VideoIngestion(config)
+
+    agent = VideoIngestion(config, log)
 
     def handle_signal(signum, frame):
         log.info('ETA killed...')
