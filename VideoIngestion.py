@@ -157,17 +157,8 @@ class VideoIngestion:
     def stop(self):
         """ Stop the Video Ingestion.
         """
-        self.log.info('Stopping Video Ingestion')
-        self.DataInMgr.stop()
-        for t in self.triggers:
-            t.stop()
-        #self.trigger_ev.set()
-        self.trigger_thread.join()
-        self.dil_ev.set()
-        self.dil_thread.join()
-        self.trigger_ex.shutdown()
-        self.pool_ex.shutdown()
-        self.log.info('Video Ingestion stopped')
+        self.log.info('Exiting from Video Ingestion')
+        sys.exit(1)
 
     def _on_trigger_data(self, trigger, ingestor, data, filtering=False):
         """Private method to submit a worker to execute a trigger on ingestion
@@ -213,7 +204,7 @@ class VideoIngestion:
     def trigger_process(self):
         while not self.trigger_ev.is_set():
             pending = self.trigger_ex._work_queue.qsize()
-            if  pending < self.config.trigger_threads:
+            if pending < self.config.trigger_threads:
                 trigger, ingestor, data, filtering = self.trigger_queue.get()
 
                 if filtering:
@@ -222,7 +213,7 @@ class VideoIngestion:
                             trigger, data)
                 else:
                     fut = self.trigger_ex.submit(trigger.process_data,
-                                                ingestor, data)
+                                                 ingestor, data)
                 fut.add_done_callback(self._on_trigger_done)
             else:
                 time.sleep(0.01)
@@ -230,7 +221,7 @@ class VideoIngestion:
     def dil_process(self):
         while not self.dil_ev.is_set():
             pending = self.pool_ex._work_queue.qsize()
-            if  pending < self.config.trigger_threads:
+            if pending < self.config.trigger_threads:
                 data = self.dil_queue.get()
 
                 fut = self.pool_ex.submit(self._data_ingest, data)
@@ -251,7 +242,8 @@ class VideoIngestion:
             dp.set_measurement_name(MEASUREMENT_NAME)
             try:
                 # Adding image to inmemory store
-                ret = dp.add_fields("vid-fr-inmem", frame.tobytes(), 'inmemory')
+                ret = dp.add_fields("vid-fr-inmem", frame.tobytes(),
+                                    'inmemory')
                 assert (ret is not False), 'Captured buffer could be added to\
                     DataPoint'
 
@@ -334,7 +326,7 @@ def run_videopipeline(config, log):
     agent = VideoIngestion(config, log)
 
     def handle_signal(signum, frame):
-        log.info('ETA killed...')
+        log.info('SIGTERM handler: ETA killed...')
         agent.stop()
 
     signal.signal(signal.SIGTERM, handle_signal)
@@ -342,7 +334,7 @@ def run_videopipeline(config, log):
     try:
         agent.run()
     except KeyboardInterrupt:
-        log.info('Quitting...')
+        log.error('Quitting...')
     except Exception:
         log.error('Error during execution:\n%s', tb.format_exc())
     finally:
