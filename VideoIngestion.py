@@ -327,7 +327,7 @@ def run_videopipeline(config, log):
     agent = VideoIngestion(config, log)
 
     def handle_signal(signum, frame):
-        log.info('SIGTERM handler: ETA killed...')
+        log.info('IEI killed...')
         agent.stop()
 
     signal.signal(signal.SIGTERM, handle_signal)
