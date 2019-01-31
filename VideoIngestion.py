@@ -21,6 +21,7 @@ SOFTWARE.
 """
 
 import os
+import sys
 import datetime
 import signal
 import argparse
