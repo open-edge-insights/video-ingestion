@@ -31,3 +31,11 @@ This module injests the video data from a file or basler's webcam and sends it t
   * In one terminal, run VideoIngestion module: `python3 VideoIngestion/VideoIngestion.py --config factory_prod.json`
   * The `VideoIngestion.py` waits until it receives a camera ON message over mqtt. To publish this message run: `python3 VideoIngestion/test/mqtt_publish.py` in another terminal
   * To read the frames from ImageStore and view it, run the command: `python3 VideoIngestion/test/read_frames.py`
+
+## Steps to generate Makefile for basler-video-capture
+
+* Run this command from VideoIngestion/basler-video-capture directory:
+  
+  ```sh
+  cmake ./ -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=<Path to build directory>/lib.linux-x86_64-3.6 -DPYTHON_EXECUTABLE=/usr/bin/python3.6 -DCMAKE_BUILD_TYPE=Release
+  ```
