@@ -49,7 +49,7 @@ class VideoIngestionError(Exception):
 
 
 class VideoIngestion:
-    """ This module ingests camera output to ImageStore using DataIngestion lib.
+    """ This module ingests camera output to ImageStore using DataIngestion lib
     """
     def __init__(self, config, log):
         """ Constructor
@@ -82,35 +82,47 @@ class VideoIngestion:
             os._exit(1)
         for (n, c) in config.classification['classifiers'].items():
             self.log.info('Setting up pipeline for %s classifier', n)
-            triggers = c['trigger']
-            if isinstance(triggers, list):
-                # Load the first trigger, and register it to its supported
-                # ingestors
-                prev_trigger = self._init_trigger(triggers[0], register=True)
-                prev_name = triggers[0]
 
-                # Load the rest of the trigger pipeline
-                for t in triggers[1:]:
-                    # Initialize the trigger
-                    trigger = self._init_trigger(t)
+            # Only initialize the trigger for a classifier if the user has
+            # specified its existence
+            if 'trigger' in c:
+                triggers = c['trigger']
+                if isinstance(triggers, list):
+                    # Load the first trigger, and register it to its supported
+                    # ingestors
+                    prev_trigger = self._init_trigger(triggers[0],
+                                                      register=True)
+                    prev_name = triggers[0]
 
-                    # Register it to receive data from the previous trigger in
-                    # the pipeline
+                    # Load the rest of the trigger pipeline
+                    for t in triggers[1:]:
+                        # Initialize the trigger
+                        trigger = self._init_trigger(t)
+
+                        # Register it to receive data from the previous trigger
+                        # in the pipeline
+                        prev_trigger.register_trigger_callback(
+                                lambda data: self._on_trigger_data(
+                                    trigger, prev_name, data, filtering=True))
+
+                        # Set previous trigger
+                        prev_trigger = trigger
+                        prev_name = t
+                    # Register the callback with last trigger.
                     prev_trigger.register_trigger_callback(
-                            lambda data: self._on_trigger_data(
-                                trigger, prev_name, data, filtering=True))
-
-                    # Set previous trigger
-                    prev_trigger = trigger
-                    prev_name = t
-                # Register the callback with last trigger.
-                prev_trigger.register_trigger_callback(
-                    lambda data: self._on_trigger(prev_name, data))
+                        lambda data: self._on_trigger(prev_name, data))
+                else:
+                    # Only the single trigger.
+                    trigger = self._init_trigger(triggers, register=True)
+                    trigger.register_trigger_callback(
+                        lambda data: self._on_trigger(triggers, data))
             else:
-                # Only the single trigger.
-                trigger = self._init_trigger(triggers, register=True)
-                trigger.register_trigger_callback(
-                    lambda data: self._on_trigger(triggers, data))
+                for i in ['video', 'video_file']:
+                    if self.DataInMgr.has_ingestor(i):
+                        self.DataInMgr.register_interest(
+                                i,
+                                lambda i, d: self._on_trigger(
+                                    None, [(1, 1, d)]))
 
     def _init_trigger(self, name, register=False):
         """Initialize trigger
@@ -240,7 +252,13 @@ class VideoIngestion:
             height, width, channels = frame.shape
             # Add the video buffer handle, info to the datapoint.
             dp = self.DataInLib.init_data_point()
-            dp.set_measurement_name(MEASUREMENT_NAME)
+            # TODO: This should go away once we have identified proper input
+            #       streams (this is for video file or video with just 1
+            #       single stream)
+            if "serial" not in cam_sn:
+                dp.set_measurement_name(MEASUREMENT_NAME)
+            else:
+                dp.set_measurement_name(cam_sn)
             try:
                 # Adding image to inmemory store
                 ret = dp.add_fields("vid-fr-inmem", frame.tobytes(),
@@ -257,11 +275,11 @@ class VideoIngestion:
             except Exception as e:
                 self.log.error(e)
 
-            ret = dp.add_fields("Width", width)
+            ret = dp.add_fields("Width", float(width))
             assert ret is not False, "Adding ofwidth to DataPoint Failed"
-            ret = dp.add_fields("Height", height)
+            ret = dp.add_fields("Height", float(height))
             assert ret is not False, "Adding of height to DataPoint Failed"
-            ret = dp.add_fields("Channels", channels)
+            ret = dp.add_fields("Channels", float(channels))
             assert ret is not False, "Adding of channels to DataPoint Failed"
             ret = dp.add_fields("Cam_Sn", cam_sn)
             assert ret is not False, "Adding of Camera SN to DataPoint Failed"
