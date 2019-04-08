@@ -109,7 +109,7 @@ If you are working with a RTSP camera, then put the stream in 'capture_streams' 
             "video":{
                 "poll_interval":0.01,
                 "streams":{
-                        "capture_streams":"rtsp://admin:intel123@192.168.0.14:554/cam/realmonitor?channel=1&subtype=1 latency=100 ! rtph265depay ! h265parse ! mfxhevcdec ! videoconvert ! appsink",
+                        "capture_streams":"rtspsrc location=\"rtsp://<HOST IP ADDR>:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
                         "resize_resolution": "1920x1080",
                         "encoding": {
                             "type": "jpg",
@@ -134,7 +134,7 @@ If one wants to add multiple RTSP cameras, they can do so by having a json objec
                 "streams": {
                         "capture_streams": {
                             "cam_serial1": {
-                                "video_src": "rtsp://admin:intel123@10.223.109.205:554/cam/realmonitor?channel=1&subtype=1 latency=100 ! rtph265depay ! h265parse ! mfxhevcdec ! videoconvert ! appsink",
+                                "video_src": "rtspsrc location=\"rtsp://<HOST IP ADDR>:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
                                 "resize_resolution": "1920x1080",
                                 "encoding": {
                                     "type": "jpg",
@@ -144,7 +144,7 @@ If one wants to add multiple RTSP cameras, they can do so by having a json objec
                                 "poll_interval": 0.01
                             },
                             "cam_serial2": {
-                                "video_src": "rtsp://admin:intel123@10.223.109.205:554/cam/realmonitor?channel=1&subtype=1 latency=100 ! rtph265depay ! h265parse ! mfxhevcdec ! videoconvert ! appsink",
+                                "video_src": "rtspsrc location=\"rtsp://<HOST IP ADDR>:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
                                 "resize_resolution": "1920x1080",
                                 "encoding": {
                                     "type": "jpg",
@@ -161,7 +161,9 @@ If one wants to add multiple RTSP cameras, they can do so by having a json objec
 
 
 > **Note**:
-> The example above contains the hard coded string: 'admin:intel123@192.168.0.14:554/cam/realmonitor?channel=1&subtype=1'. This string may need to be altered to work with the specific camera that is in use. Also, this string has embedded within it a user name (admin) and password (intel123). Care must be taken to assure that these values are set correct for your specific camera.
+> In order to use the RTSP stream, the RTSP server must be started using VCL with the following command:
+`cvlc -vvv file://${HOME}/Videos/test_videos/pcb_d2000.avi --sout '#gather:rtp{sdp=rtsp://:8554/}' --loop --sout-keep`
+Please ensure the `pcb_d2000.avi` video file must be at ~/Videos/test_videos/ on your system where the RTSP server will be started.
 
 Gstreamer mediaSDK decoding commands requires there to be a parser and then the the decoder "h265parse ! mhevcdec".
 parsers and decoders:
