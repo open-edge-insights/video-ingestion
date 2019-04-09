@@ -262,7 +262,7 @@ class VideoIngestion:
             try:
                 # Adding image to inmemory & persistent store
                 ret = dp.add_fields("vid-fr", frame.tobytes(),
-                                    'both')
+                                    'inmemory_persistent')
                 assert (ret is not False), 'Captured buffer could be added to\
                     DataPoint'
 
