@@ -99,7 +99,7 @@ class VideoIngestion:
         try:
             self.DataInLib = DataIngestionLib(log)
         except Exception as e:
-            self.log.error(e)
+            self.log.error(e, exc_info=True)
             os._exit(1)
         for (n, c) in config.classification['classifiers'].items():
             self.log.info('Setting up pipeline for %s classifier', n)
@@ -238,7 +238,7 @@ class VideoIngestion:
         """Private method for handling the trigger start event, starting a
         thread to process all of the incoming data from the trigger.
         """
-        self.log.info('Received start signal from trigger "%s"', trigger)
+        self.log.debug('Received start signal from trigger "%s"', trigger)
         self.dil_queue.put(data)
 
     def _data_ingest_done(self, fut):
@@ -398,6 +398,7 @@ def main():
 
     log = configure_logging(args.log.upper(), logFileName, args.log_dir,
                             __name__)
+    log.info("=============== STARTING video_ingestion ===============")
     try:
         # Read in the configuration file and initialize needed objects
         config = Configuration(args.config)
