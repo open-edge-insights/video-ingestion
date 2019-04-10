@@ -1,0 +1,22 @@
+cert-tool/
+DataAnalytics/
+dist_libs/
+docker_setup/
+FactoryControlApp/
+kapacitor/
+licenses/
+StreamManager/
+StreamSubLib/
+Telegraf/
+test_videos/
+.git
+
+# Recursively remove all unwanted files
+**/*.md
+**/*.mp4
+**/*.avi
+**/*.json
+**/*.pyc
+**/*.tar
+**/*.log
+**/*.log.*
