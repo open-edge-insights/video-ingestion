@@ -38,6 +38,7 @@ from algos.dpm.ingestion.data_ingestion_manager\
 from DataIngestionLib.DataIngestionLib import DataIngestionLib
 from Util.log import configure_logging, LOG_LEVELS
 from algos.dpm.config import Configuration
+from distutils.util import strtobool
 
 MEASUREMENT_NAME = "stream1"
 MAX_BUFFERS = 10
@@ -96,6 +97,10 @@ class VideoIngestion:
         self.triggers = []
         self.cam_triggers = {}
         self.config = config
+
+        self.profiling = bool(strtobool(os.environ['PROFILING']))
+        self.log.debug('profiling is {0}'.format(self.profiling))
+
         try:
             self.DataInLib = DataIngestionLib(log)
         except Exception as e:
@@ -334,10 +339,22 @@ class VideoIngestion:
                 if encoding is not None:
                     frame = self.frame_encode(frame, config)
 
+                if self.profiling is True:
+                    ret = dp.add_fields("ts_vi_fr_store_entry",
+                                        float(time.time()*1000))
+                    assert ret is not False, "Adding of \
+                        ts_vi_fr_store_entry to DataPoint Failed"
+
                 ret = dp.add_fields("vid-fr-" + storage, frame.tobytes(),
                                     storage)
                 assert (ret is not False), 'Captured buffer could be added to\
                     DataPoint'
+
+                if self.profiling is True:
+                    ret = dp.add_fields("ts_vi_fr_store_exit",
+                                        float(time.time()*1000))
+                    assert ret is not False, "Adding of \
+                        ts_vi_fr_store_exit to DataPoint Failed"
 
             except Exception as e:
                 self.log.error(e)
@@ -358,6 +375,13 @@ class VideoIngestion:
                 ret = dp.add_fields("encoding", config["encoding"]["type"])
                 assert ret is not False, "Adding of encoding to DataPoint\
                      Failed"
+
+            if self.profiling is True:
+                ret = dp.add_fields("ts_vi_influx_entry",
+                                    float(time.time()*1000))
+                assert ret is not False, "Adding of \
+                    ts_vi_influx_entry to DataPoint Failed"
+
             try:
                 ret = self.DataInLib.save_data_point(dp)
                 assert ret is not False, "Saving of DataPoint Failed"
