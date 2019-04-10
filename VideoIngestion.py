@@ -49,6 +49,25 @@ class VideoIngestionError(Exception):
     pass
 
 
+def get_cameras_sn(config_obj):
+    """Get the list of camera serial numbers based on config specified"""
+    cameras_sn = []
+    ingestors = config_obj.data_ingestion_manager['ingestors']
+    if ingestors.get('video') and\
+            ingestors['video'].get('streams') and\
+            ingestors['video']['streams'].get('capture_streams'):
+        # if config is other than factory.json
+        capture_streams = ingestors.get('video').get('streams').get(
+            'capture_streams')
+        cameras_sn.extend(capture_streams.keys())
+    else:
+        # if config is factory.json
+        video_file = ingestors['video_file']['video_file']
+        cameras_sn.append(video_file[video_file.rfind('/')+1:])
+
+    return cameras_sn
+
+
 class VideoIngestion:
     """ This module ingests camera output to ImageStore using DataIngestion lib
     """
@@ -75,6 +94,7 @@ class VideoIngestion:
         self.dil_ev = threading.Event()
 
         self.triggers = []
+        self.cam_triggers = {}
         self.config = config
         try:
             self.DataInLib = DataIngestionLib(log)
@@ -89,34 +109,47 @@ class VideoIngestion:
             if 'trigger' in c:
                 triggers = c['trigger']
                 if isinstance(triggers, list):
-                    # Load the first trigger, and register it to its supported
-                    # ingestors
-                    prev_trigger = self._init_trigger(triggers[0],
-                                                      register=True)
-                    prev_name = triggers[0]
 
-                    # Load the rest of the trigger pipeline
-                    for t in triggers[1:]:
-                        # Initialize the trigger
-                        trigger = self._init_trigger(t)
+                    # Get all the camera serial numbers and create trigger
+                    # for each camera
+                    cameras_sn = get_cameras_sn(self.config)
+                    self.log.info("Creating triggers for cameras: {0}".format(
+                        cameras_sn))
 
-                        # Register it to receive data from the previous trigger
-                        # in the pipeline
-                        prev_trigger.register_trigger_callback(
+                    for camera_sn in cameras_sn:
+                        # Load the first trigger, and register it to its
+                        # supported ingestors
+                        prev_trigger = self._init_trigger(triggers[0],
+                                                          register=True)
+
+                        self.cam_triggers.update({camera_sn: prev_trigger})
+                        prev_name = triggers[0]
+
+                        # Load the rest of the trigger pipeline
+                        for t in triggers[1:]:
+                            # Initialize the trigger
+                            trigger = self._init_trigger(t)
+
+                            # Register it to receive data from the previous
+                            # trigger in the pipeline
+                            prev_trigger.register_trigger_callback(
                                 lambda data: self._on_trigger_data(
                                     trigger, prev_name, data, filtering=True))
 
-                        # Set previous trigger
-                        prev_trigger = trigger
-                        prev_name = t
-                    # Register the callback with last trigger.
-                    prev_trigger.register_trigger_callback(
-                        lambda data: self._on_trigger(prev_name, data))
+                            # Set previous trigger
+                            prev_trigger = trigger
+                            prev_name = t
+
+                        # Register the callback with last trigger.
+                        prev_trigger.register_trigger_callback(
+                            lambda data: self._on_trigger(prev_name, data))
                 else:
                     # Only the single trigger.
-                    trigger = self._init_trigger(triggers, register=True)
-                    trigger.register_trigger_callback(
-                        lambda data: self._on_trigger(triggers, data))
+                    for camera_sn in cameras_sn:
+                        trigger = self._init_trigger(triggers, register=True)
+                        trigger.register_trigger_callback(
+                            lambda data: self._on_trigger(triggers, data))
+                        self.cam_triggers.update({camera_sn: trigger})
             else:
                 for i in ['video', 'video_file']:
                     if self.DataInMgr.has_ingestor(i):
@@ -192,6 +225,7 @@ class VideoIngestion:
         """
         # TODO: Could probably optimize to not use entire executor thread for
         # this ingestor
+
         for i in data:
             if i is None:
                 break
@@ -220,14 +254,17 @@ class VideoIngestion:
             pending = self.trigger_ex._work_queue.qsize()
             if pending < self.config.trigger_threads:
                 trigger, ingestor, data, filtering = self.trigger_queue.get()
-
+                cam_sn = data[0]
+                self.log.debug('Trigger {0} for cam_sn: {1}'.format(
+                    self.cam_triggers.get(cam_sn), cam_sn))
                 if filtering:
                     fut = self.trigger_ex.submit(
                             self._on_filter_trigger_data, ingestor,
-                            trigger, data)
+                            self.cam_triggers.get(cam_sn), data)
                 else:
-                    fut = self.trigger_ex.submit(trigger.process_data,
-                                                 ingestor, data)
+                    fut = self.trigger_ex.submit(
+                        self.cam_triggers.get(cam_sn).process_data,
+                        ingestor, data)
                 fut.add_done_callback(self._on_trigger_done)
             else:
                 time.sleep(0.01)
