@@ -30,6 +30,7 @@ import traceback as tb
 import threading
 import queue
 import time
+import cv2
 from concurrent.futures import ThreadPoolExecutor
 from algos.dpm.triggers import load_trigger
 from algos.dpm.ingestion.data_ingestion_manager\
@@ -242,12 +243,41 @@ class VideoIngestion:
             else:
                 time.sleep(0.01)
 
+    def frame_encode(self, frame, config):
+        if config["encoding"]["type"] == "jpg":
+            if config["encoding"]["level"] in range(0, 101):
+                result, frame = cv2.imencode('.jpg', frame,
+                                             [int(cv2.IMWRITE_JPEG_QUALITY),
+                                              config["encoding"]["level"]])
+            else:
+                self.log.error("JPG Encoding value must be between 0-100")
+        elif config["encoding"]["type"] == "png":
+            if config["encoding"]["level"] in range(0, 10):
+                result, frame = cv2.imencode('.png', frame,
+                                             [int(cv2.IMWRITE_PNG_COMPRESSION),
+                                              config["encoding"]["level"]])
+            else:
+                self.log.error("PNG Encoding value must be between 0-9")
+        else:
+            self.log.error(config["encoding"]["type"] + "is not supported")
+        return frame
+
+    def frame_resize(self, frame, config):
+        width, height = config["resize_resolution"].split("x")
+        frame = cv2.resize(frame, (int(width), int(height)),
+                           interpolation=cv2.INTER_AREA)
+        return frame
+
     def _data_ingest(self, data):
 
         for res in data:
             if res is None:
                 break
-            sample_num, user_data, (cam_sn, frame) = res
+            sample_num, user_data, (cam_sn, frame, config) = res
+            resolution = config.get('resize_resolution', None)
+            encoding = config.get('encoding', None)
+            storage = config.get('img_store_type', 'inmemory')
+
             # Get the video frame info.
             height, width, channels = frame.shape
             # Add the video buffer handle, info to the datapoint.
@@ -260,9 +290,15 @@ class VideoIngestion:
             else:
                 dp.set_measurement_name(cam_sn)
             try:
-                # Adding image to inmemory & persistent store
-                ret = dp.add_fields("vid-fr", frame.tobytes(),
-                                    'inmemory_persistent')
+                if resolution is not None:
+                    width, height = config["resize_resolution"].split("x")
+                    frame = self.frame_resize(frame, config)
+
+                if encoding is not None:
+                    frame = self.frame_encode(frame, config)
+
+                ret = dp.add_fields("vid-fr-" + storage, frame.tobytes(),
+                                    storage)
                 assert (ret is not False), 'Captured buffer could be added to\
                     DataPoint'
 
@@ -281,6 +317,10 @@ class VideoIngestion:
             assert ret is not False, "Adding of Sample Num to DataPoint Failed"
             ret = dp.add_fields("user_data", user_data)
             assert ret is not False, "Adding of user_data to DataPoint Failed"
+            if encoding is not None:
+                ret = dp.add_fields("encoding", config["encoding"]["type"])
+                assert ret is not False, "Adding of encoding to DataPoint\
+                     Failed"
             try:
                 ret = self.DataInLib.save_data_point(dp)
                 assert ret is not False, "Saving of DataPoint Failed"
@@ -293,7 +333,7 @@ def parse_args():
     """Parse command line arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='factory.json',
+    parser.add_argument('--config', default='factory_video_file.json',
                         help='JSON configuration file')
     parser.add_argument('--log', choices=LOG_LEVELS.keys(), default='INFO',
                         help='Logging level (df: INFO)')

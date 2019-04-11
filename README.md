@@ -4,7 +4,7 @@ This module injests the video data from a file or a basler/RTSP camera and sends
 This is the reference for all the algorithms used in IEI
 
 ## Configuration
-[factory.json](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/blob/master/docker_setup/config/factory.json)
+[factory_video_file.json](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/blob/master/docker_setup/config/factory_video_file.json)
 is the configuration file where algorithm related configurations have been made with the following entires:
 
 ```
@@ -43,14 +43,21 @@ If you are working with a Basler camera, then put the stream in 'capture_streams
             "video":{
                 "poll_interval":0.01,
                 "streams":{
-                        "capture_streams":"pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"
+                        "capture_streams":"pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink",
+                        "resize_resolution": "1920x1080",
+                        "encoding": {
+                            "type": "jpg",
+                            "level": 95
+                        },
+                        "img_store_type": "inmemory",
                 }
             }
         }
     },
 ```
 
-Note: In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the factory_prod.json file. If multiple cameras are connected and the serial parameter is not specified then the source plugin by default connects to camera with device_index=0.
+Note: In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file
+for camera mode. If multiple cameras are connected and the serial parameter is not specified then the source plugin by default connects to camera with device_index=0.
 
 Example Pipeline to connect to basler camera with serial number 22573664 :
 **"capture_streams":"pylonsrc serial=22573664 imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"**
@@ -78,7 +85,13 @@ You will need to use opencv as your stream, then put the stream in 'capture_stre
             "video":{
                 "poll_interval":0.01,
                 "streams":{
-                        "capture_streams":"v4l2src ! videoconvert ! appsink"
+                        "capture_streams":"v4l2src ! videoconvert ! appsink",
+                        "resize_resolution": "1920x1080",
+                        "encoding": {
+                            "type": "jpg",
+                            "level": 95
+                        },
+                        "img_store_type": "inmemory",
                 }
             }
         }
@@ -96,7 +109,13 @@ If you are working with a RTSP camera, then put the stream in 'capture_streams' 
             "video":{
                 "poll_interval":0.01,
                 "streams":{
-                        "capture_streams":"rtsp://admin:intel123@192.168.0.14:554/cam/realmonitor?channel=1&subtype=1 latency=100 ! rtph265depay ! h265parse ! mfxhevcdec ! videoconvert ! appsink"
+                        "capture_streams":"rtsp://admin:intel123@192.168.0.14:554/cam/realmonitor?channel=1&subtype=1 latency=100 ! rtph265depay ! h265parse ! mfxhevcdec ! videoconvert ! appsink",
+                        "resize_resolution": "1920x1080",
+                        "encoding": {
+                            "type": "jpg",
+                            "level": 95
+                        },
+                        "img_store_type": "inmemory",
                 }
             }
         }
@@ -116,16 +135,22 @@ If one wants to add multiple RTSP cameras, they can do so by having a json objec
                         "capture_streams": {
                             "cam_serial1": {
                                 "video_src": "rtsp://admin:intel123@10.223.109.205:554/cam/realmonitor?channel=1&subtype=1 latency=100 ! rtph265depay ! h265parse ! mfxhevcdec ! videoconvert ! appsink",
-                                "resolution": "1920x1080",
-                                "encoding_format": "jpeg",
-                                "img_store_type": "inmem",
+                                "resize_resolution": "1920x1080",
+                                "encoding": {
+                                    "type": "jpg",
+                                    "level": 95
+                                },
+                                "img_store_type": "inmemory",
                                 "poll_interval": 0.01
                             },
                             "cam_serial2": {
                                 "video_src": "rtsp://admin:intel123@10.223.109.205:554/cam/realmonitor?channel=1&subtype=1 latency=100 ! rtph265depay ! h265parse ! mfxhevcdec ! videoconvert ! appsink",
-                                "resolution": "1920x1080",
-                                "encoding_format": "jpeg",
-                                "img_store_type": "inmem",
+                                "resize_resolution": "1920x1080",
+                                "encoding": {
+                                    "type": "jpg",
+                                    "level": 95
+                                },
+                                "img_store_type": "inmemory",
                                 "poll_interval": 0.01
                         }
                     }
@@ -144,6 +169,18 @@ h264parse !  mfx264dec
 h265parse ! mfxhevcdec
 mfxmpegvideoparse ! mfxmpeg2dec
 
+> **Note**:
+> 1. In case encoding option needs to be enabled add the `encoding` key in the video config json files.
+The supported encoding types are `jpg` and `png`.
+The supported encoding level for `jpg` is `0-100`.
+The supported encoding level for `png` is `0-9`.
+> 2. In case resizing option needs to be enabled add the `resize_resolution ` key in the video config files.
+The `resize_resolution` key takes frame width and frame height as, `resize_resolution = width x height`.
+> 3. In case the `encoding` or `resize_resolution` key is not added encoding or resizing will not be enabled.
+> 4. In case one needs to specify the image storage type, one can use the `img_store_type` key.
+The supported storage types are `inmemory`, `persistent` and `inmemory_persistent`.
+`inmemory_persistent` option will add the image to both the inmemory and persistent storage.
+In case the `img_store_type` key is not specified, then by default the image will be added to inmemory storage.
 
 The following sections describe each of the major components of the configuration
 structure specified above.
