@@ -113,7 +113,6 @@ RUN cd basler-source-plugin && \
 RUN mkdir -p /etc/ssl/imagestore
 
 # Adding project depedency modules
-ADD algos ./algos
 ADD DataAgent/__init__.py ./DataAgent/__init__.py
 ADD DataAgent ./DataAgent
 ADD DataIngestionLib ./DataIngestionLib
@@ -122,6 +121,7 @@ ADD Util ./Util
 # Adding VideoIngestion & test program
 ADD VideoIngestion/VideoIngestion.py .
 ADD VideoIngestion/test .
+ADD algos ./algos
 
 RUN mkdir -p /etc/ssl/ca
 ENV PYTHONPATH ${PYTHONPATH}:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/

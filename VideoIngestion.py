@@ -31,6 +31,7 @@ import threading
 import queue
 import time
 import cv2
+from distutils.util import strtobool
 from concurrent.futures import ThreadPoolExecutor
 from algos.dpm.triggers import load_trigger
 from algos.dpm.ingestion.data_ingestion_manager\
@@ -100,9 +101,13 @@ class VideoIngestion:
 
         self.profiling = bool(strtobool(os.environ['PROFILING']))
         self.log.debug('profiling is {0}'.format(self.profiling))
+        self.dev_mode = bool(strtobool(os.environ["DEV_MODE"]))
 
         try:
-            self.DataInLib = DataIngestionLib(log)
+            if self.dev_mode:
+                self.DataInLib = DataIngestionLib(log, dev_mode=True)
+            else:
+                self.DataInLib = DataIngestionLib(log)
         except Exception as e:
             self.log.error(e, exc_info=True)
             os._exit(1)
