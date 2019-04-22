@@ -1,10 +1,28 @@
 # Dockerfile for VideoIngestion
-ARG IEI_VERSION
-FROM ia_pybase:$IEI_VERSION
+ARG UBUNTU_IMAGE_VERSION
+FROM ubuntu:$UBUNTU_IMAGE_VERSION
 LABEL description="VideoIngestion image"
 
 ARG IEI_UID
 RUN useradd -r -u ${IEI_UID} -G video ieiuser
+
+ENV PY_WORK_DIR /IEI
+WORKDIR ${PY_WORK_DIR}
+
+# Installing python 2, pip2, python 3.6 and pip3.6
+RUN apt-get update
+RUN apt-get install -y software-properties-common
+RUN apt-get install -y pkg-config python python-pip
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update
+RUN apt-get install -y cmake g++ build-essential python3.6 python3.6-dev
+RUN apt-get install -y wget iputils-ping
+RUN wget https://bootstrap.pypa.io/get-pip.py
+RUN python3.6 get-pip.py
+RUN apt-get install -y libsm6 libxext6
+RUN apt-get install -y libfontconfig1 libxrender1
+ENV TERM xterm
+ENV DEBIAN_FRONTEND noninteractive
 
 # Adding basler camera's essentials by referring it's repo's README
 RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-5.1.0.12682-x86_64.tar.gz && \
@@ -116,7 +134,7 @@ ADD VideoIngestion/test .
 ADD algos ./algos
 
 RUN mkdir -p /etc/ssl/ca
-ENV PYTHONPATH ${PYTHONPATH}:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/
+ENV PYTHONPATH .:./DataAgent/da_grpc/protobuff:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/
 
 RUN chown -R ${IEI_UID} /etc/ssl/
 
@@ -135,3 +153,4 @@ RUN chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so
 
 ENTRYPOINT ["python3.6", "VideoIngestion.py", "--log-dir", "/IEI/video_ingestion_logs"]
 HEALTHCHECK NONE
+
