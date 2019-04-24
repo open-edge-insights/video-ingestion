@@ -7,54 +7,10 @@ This is the reference for all the algorithms used in IEI
 [factory_video_file.json](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/blob/master/docker_setup/config/factory_video_file.json)
 is the configuration file where algorithm related configurations have been made with the following entires:
 
-```
-{
-    "machine_id": <STRING: Unique string identifying the machine>,
-    "trigger_threads": <INT: (OPTIONAL) Number of threads to use for classification>,
-    "data_ingestion_manager": {
-        "ingestors": {
-            "<INGESTOR>": <OBJECT: Ingestor configuration object>
-        }
-    },
-    "triggers": {
-        "<TRIGGER>": <OBJECT: Trigger configuration>
-    },
-    "classification": {
-        "classifiers": {
-            "<CLASSIFIER>": {
-                "trigger": <STRING: Name of the trigger to use>,
-                "config": <OBJECT: Classifier configuration>
-            }
-        }
-    }
-}
-
-```
 ### 1.Basler Camera:
 
-If you are working with a Basler camera, then put the stream in 'capture_streams' using gstreamer commands.
-
-```
-    "machine_id": <STRING: Unique string identifying the machine>,
-    "trigger_threads": <INT: (OPTIONAL) Number of threads to use for classification>,
-    "log_file_size": <INT: (OPTIONAL) Maximum size for rotating log files>,
-    "data_ingestion_manager": {
-        "ingestors": {
-            "video":{
-                "poll_interval":0.01,
-                "streams":{
-                        "capture_streams":"pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink",
-                        "resize_resolution": "1920x1080",
-                        "encoding": {
-                            "type": "jpg",
-                            "level": 95
-                        },
-                        "img_store_type": "inmemory",
-                }
-            }
-        }
-    },
-```
+If you are working with a Basler camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
+The sample configurations is available in [factory_basler.json](../docker_setup/config/factory_basler.json).
 
 Note: In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file
 for camera mode. If multiple cameras are connected and the serial parameter is not specified then the source plugin by default connects to camera with device_index=0.
@@ -64,100 +20,20 @@ Example Pipeline to connect to basler camera with serial number 22573664 :
 
 ### 2.USB Camera:
 
-To work with USB Camera the device node i.e. `/dev/video0` where `0` is the device index has to be mounted to the VideoIngestion Container.
-Based on the number of cameras connected and their respective device index add the device node under the `devices` in the VideoIngestion Service in the
-docker-compose.yml file.
-
-In case only one USB camera is connected add the following line under `devices` in the VideoIngestion Service in the docker-compose.yml file.
-`/dev/video0:/dev/video0:mrw`
-
-Executable permission need to be given to the device node so add the following line in the `compose_startup.sh` script in the post_build_steps().
-`chmod -R 777 /dev/video0`
-
-You will need to use opencv as your stream, then put the stream in 'capture_streams' using gstreamer commands.
-
-```
-    "machine_id": <STRING: Unique string identifying the machine>,
-    "trigger_threads": <INT: (OPTIONAL) Number of threads to use for classification>,
-    "log_file_size": <INT: (OPTIONAL) Maximum size for rotating log files>,
-    "data_ingestion_manager": {
-        "ingestors": {
-            "video":{
-                "poll_interval":0.01,
-                "streams":{
-                        "capture_streams":"v4l2src ! videoconvert ! appsink",
-                        "resize_resolution": "1920x1080",
-                        "encoding": {
-                            "type": "jpg",
-                            "level": 95
-                        },
-                        "img_store_type": "inmemory",
-                }
-            }
-        }
-    },
-```
+To work with USB Camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
+The sample configuration is available in [factory_usb.json](../docker_setup/config/factory_usb.json).
 
 ### 3.RTSP Camera:
 
-If you are working with a RTSP camera, then put the stream in 'capture_streams' using gstreamer commands.
-```
-    "machine_id": "basler-capture-example",
-    "trigger_threads": 1,
-    "data_ingestion_manager": {
-        "ingestors": {
-            "video":{
-                "poll_interval":0.01,
-                "streams":{
-                        "capture_streams":"rtspsrc location=\"rtsp://<HOST IP ADDR>:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
-                        "resize_resolution": "1920x1080",
-                        "encoding": {
-                            "type": "jpg",
-                            "level": 95
-                        },
-                        "img_store_type": "inmemory",
-                }
-            }
-        }
-```
+If you are working with a hikvision ds2 RTSP camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
+The sample configuration is available in [factory_rtsp_hikvision_ds2.json](../docker_setup/config/factory_rtsp_hikvision_ds2.json).
+
+If you are working with a stimulated RTSP stream generated using cvlc command , then put the stream in 'capture_streams' using the below gstreamer pipeline.
+The sample configuration is available in [factory_rtsp_cvlc.json](../docker_setup/config/factory_rtsp_cvlc.json).
 
 ### Multiple camera configuration for RTSP cameras
 
 If one wants to add multiple RTSP cameras, they can do so by having a json object for `capture_streams` key with each key under this being a `serial number` of the camera and the json object it is pointing to, has all the configuration details for that camera. For reference, one can use [factory_mutli_cam.json](../docker_setup/config/factory_multi_cam.json) and do the necessary tweaks.
-
-```
-    "machine_id": "basler-capture-example",
-    "trigger_threads": 1,
-    "data_ingestion_manager": {
-        "ingestors": {
-            "video": {
-                "streams": {
-                        "capture_streams": {
-                            "cam_serial1": {
-                                "video_src": "rtspsrc location=\"rtsp://<HOST IP ADDR>:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
-                                "resize_resolution": "1920x1080",
-                                "encoding": {
-                                    "type": "jpg",
-                                    "level": 95
-                                },
-                                "img_store_type": "inmemory",
-                                "poll_interval": 0.01
-                            },
-                            "cam_serial2": {
-                                "video_src": "rtspsrc location=\"rtsp://<HOST IP ADDR>:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
-                                "resize_resolution": "1920x1080",
-                                "encoding": {
-                                    "type": "jpg",
-                                    "level": 95
-                                },
-                                "img_store_type": "inmemory",
-                                "poll_interval": 0.01
-                        }
-                    }
-                }
-            }
-        }
-```
 
 
 > **Note**:
