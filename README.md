@@ -27,6 +27,7 @@ The sample configuration is available in [factory_usb.json](../docker_setup/conf
 
 If you are working with a hikvision ds2 RTSP camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
 The sample configuration is available in [factory_rtsp_hikvision_ds2.json](../docker_setup/config/factory_rtsp_hikvision_ds2.json).
+Please add the IP address of the RSTP camera in .env file to add it to no_proxy.
 
 If you are working with a stimulated RTSP stream generated using cvlc command , then put the stream in 'capture_streams' using the below gstreamer pipeline.
 The sample configuration is available in [factory_rtsp_cvlc.json](../docker_setup/config/factory_rtsp_cvlc.json).
@@ -38,7 +39,7 @@ If one wants to add multiple RTSP cameras, they can do so by having a json objec
 
 > **Note**:
 > In order to use the RTSP stream, the RTSP server must be started using VCL with the following command:
-`cvlc -vvv file://${HOME}/Videos/test_videos/pcb_d2000.avi --sout '#gather:rtp{sdp=rtsp://:8554/}' --loop --sout-keep`
+`cvlc -vvv file://${HOME}/Videos/test_videos/pcb_d2000.avi --sout '#gather:rtp{sdp=rtsp://localhost:8554/}' --loop --sout-keep`
 Please ensure the `pcb_d2000.avi` video file must be at ~/Videos/test_videos/ on your system where the RTSP server will be started.
 
 Gstreamer mediaSDK decoding commands requires there to be a parser and then the the decoder "h265parse ! mhevcdec".
