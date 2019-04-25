@@ -341,8 +341,20 @@ class VideoIngestion:
                     width, height = config["resize_resolution"].split("x")
                     frame = self.frame_resize(frame, config)
 
+                if self.profiling is True:
+                    ret = dp.add_fields("ts_vi_fr_encode_entry",
+                                        float(time.time()*1000))
+                    assert ret is not False, "Adding of \
+                        ts_vi_fr_encode_entry to DataPoint Failed"
+
                 if encoding is not None:
                     frame = self.frame_encode(frame, config)
+
+                if self.profiling is True:
+                    ret = dp.add_fields("ts_vi_fr_encode_exit",
+                                        float(time.time()*1000))
+                    assert ret is not False, "Adding of \
+                        ts_vi_fr_encode_exit to DataPoint Failed"
 
                 if self.profiling is True:
                     ret = dp.add_fields("ts_vi_fr_store_entry",
