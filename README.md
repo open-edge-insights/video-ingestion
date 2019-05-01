@@ -4,13 +4,12 @@ This module injests the video data from a file or a basler/RTSP camera and sends
 This is the reference for all the algorithms used in IEI
 
 ## Configuration
-[factory_video_file.json](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/blob/master/docker_setup/config/factory_video_file.json)
-is the configuration file where algorithm related configurations have been made with the following entires:
+The trigger algorithm configurations used for video ingestion are to be described in the "triggers" section of the configuration file for the corresponding input methods mentioned below:
 
 ### 1.Basler Camera:
 
 If you are working with a Basler camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
-The sample configurations is available in [factory_basler.json](../docker_setup/config/factory_basler.json).
+The sample configurations is available in [factory_basler.json](../docker_setup/config/algo_config/factory_basler.json).
 
 Note: In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file
 for camera mode. If multiple cameras are connected and the serial parameter is not specified then the source plugin by default connects to camera with device_index=0.
@@ -21,20 +20,20 @@ Example Pipeline to connect to basler camera with serial number 22573664 :
 ### 2.USB Camera:
 
 To work with USB Camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
-The sample configuration is available in [factory_usb.json](../docker_setup/config/factory_usb.json).
+The sample configuration is available in [factory_usb.json](../docker_setup/config/algo_config/factory_usb.json).
 
 ### 3.RTSP Camera:
 
 If you are working with a hikvision ds2 RTSP camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
-The sample configuration is available in [factory_rtsp_hikvision_ds2.json](../docker_setup/config/factory_rtsp_hikvision_ds2.json).
+The sample configuration is available in [factory_rtsp_hikvision_ds2.json](../docker_setup/config/algo_config/factory_rtsp_hikvision_ds2.json).
 Please add the IP address of the RSTP camera in .env file to add it to no_proxy.
 
 If you are working with a stimulated RTSP stream generated using cvlc command , then put the stream in 'capture_streams' using the below gstreamer pipeline.
-The sample configuration is available in [factory_rtsp_cvlc.json](../docker_setup/config/factory_rtsp_cvlc.json).
+The sample configuration is available in [factory_rtsp_cvlc.json](../docker_setup/config/algo_config/factory_rtsp_cvlc.json).
 
 ### Multiple camera configuration for RTSP cameras
 
-If one wants to add multiple RTSP cameras, they can do so by having a json object for `capture_streams` key with each key under this being a `serial number` of the camera and the json object it is pointing to, has all the configuration details for that camera. For reference, one can use [factory_mutli_cam.json](../docker_setup/config/factory_multi_cam.json) and do the necessary tweaks.
+If one wants to add multiple RTSP cameras, they can do so by having a json object for `capture_streams` key with each key under this being a `serial number` of the camera and the json object it is pointing to, has all the configuration details for that camera. For reference, one can use [factory_mutli_cam.json](../docker_setup/config/algo_config/factory_multi_cam.json) and do the necessary tweaks.
 
 
 > **Note**:
@@ -83,6 +82,7 @@ classifier is not correct, then the classifier will fail to be loaded.
 | Classifier | Reference |
 | :--------: | :-----------: |
 | pcbdemo     | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/tree/master/algos/dpm/classification/classifiers/pcbdemo) |
+| classification_sample     | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/tree/master/algos/dpm/classification/classifiers/classification_sample) |
 
 ### Ingestion
 

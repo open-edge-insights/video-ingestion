@@ -411,7 +411,7 @@ def parse_args():
     """Parse command line arguments
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='factory_video_file.json',
+    parser.add_argument('--config', default='factory_pcbdemo.json',
                         help='JSON configuration file')
     parser.add_argument('--log', choices=LOG_LEVELS.keys(), default='INFO',
                         help='Logging level (df: INFO)')
