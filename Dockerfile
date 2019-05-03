@@ -37,9 +37,9 @@ RUN apt-get -y install libjpeg8-dev libtiff5-dev libjasper-dev libpng12-dev
 RUN apt-get -y install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
 RUN apt-get -y install libxvidcore-dev libx264-dev
 RUN apt-get -y install libsm6 libxext6 libxrender-dev
-RUN apt-get -y install libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+RUN apt-get -y install libgstreamer1.0-0 gstreamer1.0-plugins-base \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libudev-dev libwayland-dev libglfw3-dev \
-    libgles2-mesa-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-bad
+    libgles2-mesa-dev libgstreamer-plugins-bad1.0-dev
 RUN apt-get -y install git
 RUN apt-get -y install dh-autoreconf
 RUN apt-get -y  install autoconf libtool libdrm-dev xorg xorg-dev openbox libx11-dev libgl1-mesa-glx libgl1-mesa-dev
@@ -101,14 +101,6 @@ RUN sed -i "s/libmfx.a/libmfx.so/" gstreamer-media-SDK/cmake/FindMediaSDK.cmake
 RUN cd /opt/intel/mediasdk/lib/ && mkdir lin_x64 && cd lin_x64 && ln -s ../* .
 RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j8 && make install
 
-# Adding capabilities to install basler source plugin
-RUN apt-get -y install automake
-ADD basler-source-plugin ./basler-source-plugin
-RUN cd basler-source-plugin && ./autogen.sh && make && make install
-RUN cd basler-source-plugin && \
-    cp ./plugins/libgstpylonsrc.la /usr/lib/x86_64-linux-gnu/gstreamer-1.0/ && \
-    cp ./plugins/.libs/libgstpylonsrc.so /usr/lib/x86_64-linux-gnu/gstreamer-1.0/
-
 # Adding cert dirs
 RUN mkdir -p /etc/ssl/imagestore
 
@@ -127,6 +119,13 @@ RUN mkdir -p /etc/ssl/ca
 ENV PYTHONPATH ${PYTHONPATH}:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/
 
 RUN chown -R ${IEI_UID} /etc/ssl/
+
+# Adding Gstreamer Plugin Installation Dependencies
+RUN apt-get -y install automake gstreamer1.0-tools
+ADD basler-source-plugin ./basler-source-plugin
+ADD VideoIngestion/install_gstreamerplugins.sh .
+RUN chmod 777 install_gstreamerplugins.sh . 
+RUN ./install_gstreamerplugins.sh ${IEI_UID} /IEI
 
 # Set graphics driver ownership
 RUN rm /usr/lib/x86_64-linux-gnu/libva.so
