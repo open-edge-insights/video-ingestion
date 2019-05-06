@@ -22,6 +22,39 @@ Example Pipeline to connect to basler camera with serial number 22573664 :
 To work with USB Camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
 The sample configuration is available in [factory_usb.json](../docker_setup/config/algo_config/factory_usb.json).
 
+In case multiple USB cameras are connected specify the camera using the `device` property in the configuration file.
+
+Example configuration to work with two USB cameras,
+
+```
+"data_ingestion_manager": {
+        "ingestors": {
+            "video": {
+                "streams": {
+                    "capture_streams": {
+                        "cam_serial1": {
+                            "video_src": "v4l2src device=/dev/video0 ! videoconvert ! appsink",
+                            "encoding": {
+                                "type": "jpg",
+                                "level": 95
+                            },
+                            "img_store_type": "inmemory_persistent"
+                        },
+                        "cam_serial2": {
+                            "video_src": "v4l2src device=/dev/video1 ! videoconvert ! appsink",
+                            "encoding": {
+                                "type": "jpg",
+                                "level": 95
+                            },
+                            "img_store_type": "inmemory_persistent"
+                        }
+                    }
+                }
+            }
+        }
+    }
+```
+
 ### 3.RTSP Camera:
 
 If you are working with a hikvision ds2 RTSP camera, then put the stream in 'capture_streams' using the below gstreamer pipeline.
