@@ -326,7 +326,13 @@ class VideoIngestion:
             storage = config.get('img_store_type', 'inmemory')
 
             # Get the video frame info.
-            height, width, channels = frame.shape
+            if len(frame.shape) < 3:
+                height, width = frame.shape
+                channels = 1
+            elif len(frame.shape) == 3:
+                height, width, channels = frame.shape
+            else:
+                self.log.error("frame shape not supported")
             # Add the video buffer handle, info to the datapoint.
             dp = self.DataInLib.init_data_point()
             # TODO: This should go away once we have identified proper input

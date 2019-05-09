@@ -33,11 +33,16 @@ ingestor is not correct, then the ingestor will fail to be loaded.
 
         ---
         **Note**:
-        In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file
+        * In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file
         for camera mode. If multiple cameras are connected and the serial parameter is not specified then the source plugin by default connects to camera with device_index=0.
 
-        Example Pipeline to connect to basler camera with serial number 22573664 :
-        `"capture_streams":"pylonsrc serial=22573664 imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+            Example Pipeline to connect to basler camera with serial number 22573664 :
+            `"capture_streams":"pylonsrc serial=22573664 imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+
+        * To work with monochrome Basler camera, please change the image format to `mono8` in the Pipeline.
+
+            Example Pipeline to connect to monochrome basler camera with serial number 22773747 :
+            `"capture_streams":"pylonsrc serial=22773747 imageformat=mono8 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
         ---
 
