@@ -96,7 +96,6 @@ class VideoIngestion:
         self.dil_ev = threading.Event()
 
         self.triggers = []
-        self.cam_triggers = {}
         self.config = config
 
         self.profiling = bool(strtobool(os.environ['PROFILING']))
@@ -131,8 +130,8 @@ class VideoIngestion:
                         # supported ingestors
                         prev_trigger = self._init_trigger(triggers[0],
                                                           register=True)
+                        prev_trigger.set_name(camera_sn)
 
-                        self.cam_triggers.update({camera_sn: prev_trigger})
                         prev_name = triggers[0]
 
                         # Load the rest of the trigger pipeline
@@ -153,13 +152,6 @@ class VideoIngestion:
                         # Register the callback with last trigger.
                         prev_trigger.register_trigger_callback(
                             lambda data: self._on_trigger(prev_name, data))
-                else:
-                    # Only the single trigger.
-                    for camera_sn in cameras_sn:
-                        trigger = self._init_trigger(triggers, register=True)
-                        trigger.register_trigger_callback(
-                            lambda data: self._on_trigger(triggers, data))
-                        self.cam_triggers.update({camera_sn: trigger})
             else:
                 for i in ['video', 'video_file']:
                     if self.DataInMgr.has_ingestor(i):
@@ -264,16 +256,15 @@ class VideoIngestion:
             pending = self.trigger_ex._work_queue.qsize()
             if pending < self.config.trigger_threads:
                 trigger, ingestor, data, filtering = self.trigger_queue.get()
-                cam_sn = data[0]
-                self.log.debug('Trigger {0} for cam_sn: {1}'.format(
-                    self.cam_triggers.get(cam_sn), cam_sn))
+                self.log.debug('Trigger {0} for camera_sn: {1}'.format(
+                    trigger, trigger.get_name()))
                 if filtering:
                     fut = self.trigger_ex.submit(
                             self._on_filter_trigger_data, ingestor,
-                            self.cam_triggers.get(cam_sn), data)
+                            trigger, data)
                 else:
                     fut = self.trigger_ex.submit(
-                        self.cam_triggers.get(cam_sn).process_data,
+                        trigger.process_data,
                         ingestor, data)
                 fut.add_done_callback(self._on_trigger_done)
             else:
