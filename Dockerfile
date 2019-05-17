@@ -96,6 +96,19 @@ RUN sed -i "s/libmfx.a/libmfx.so/" gstreamer-media-SDK/cmake/FindMediaSDK.cmake
 RUN cd /opt/intel/mediasdk/lib/ && mkdir lin_x64 && cd lin_x64 && ln -s ../* . 
 RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j8 && make install
 
+# Adding Gstreamer Plugin Installation Dependencies
+RUN apt-get -y install automake gstreamer1.0-tools
+ADD basler-source-plugin ./basler-source-plugin
+ADD VideoIngestion/install_gstreamerplugins.sh .
+RUN chmod 777 install_gstreamerplugins.sh . 
+RUN ./install_gstreamerplugins.sh ${IEI_UID} /IEI
+
+# Set graphics driver ownership
+RUN rm /usr/lib/x86_64-linux-gnu/libva.so && \
+    ln -s /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 /usr/lib/x86_64-linux-gnu/libva.so && \
+    chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 && \
+    chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so
+
 # Adding cert dirs
 RUN mkdir -p /etc/ssl/imagestore
 
@@ -114,19 +127,6 @@ RUN mkdir -p /etc/ssl/ca
 ENV PYTHONPATH ${PYTHONPATH}:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/
 
 RUN chown -R ${IEI_UID} /etc/ssl/
-
-# Adding Gstreamer Plugin Installation Dependencies
-RUN apt-get -y install automake gstreamer1.0-tools
-ADD basler-source-plugin ./basler-source-plugin
-ADD VideoIngestion/install_gstreamerplugins.sh .
-RUN chmod 777 install_gstreamerplugins.sh . 
-RUN ./install_gstreamerplugins.sh ${IEI_UID} /IEI
-
-# Set graphics driver ownership
-RUN rm /usr/lib/x86_64-linux-gnu/libva.so && \
-    ln -s /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 /usr/lib/x86_64-linux-gnu/libva.so && \
-    chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 && \
-    chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so
 
 ENTRYPOINT ["python3.6", "VideoIngestion.py", "--log-dir", "/IEI/video_ingestion_logs"]
 HEALTHCHECK NONE
