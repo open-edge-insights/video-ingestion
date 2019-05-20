@@ -4,29 +4,23 @@ FROM ia_pybase:$IEI_VERSION
 LABEL description="VideoIngestion image"
 
 ARG IEI_UID
+ENV PYTHONPATH ${PYTHONPATH}:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/
 RUN useradd -r -u ${IEI_UID} -G video ieiuser
 
-# Adding basler camera's essentials by referring it's repo's README
+# Adding basler camera's essentials by referring it's repo's README and Removing unwanted files
 RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-5.1.0.12682-x86_64.tar.gz && \
     tar xvf pylon-5.1.0.12682-x86_64.tar.gz && \
     cd pylon-5.1.0.12682-x86_64 && \
     pip3.6 install numpy==1.14.5 && \
     pip3.6 install setuptools==40.7.3 && \
-    tar -C /opt -zxf pylonSDK-5.1.0.12682-x86_64.tar.gz
-
-# Removing unwanted files
-RUN rm -rf pylon-5.1.0.12682-x86_64.tar.gz && \
+    tar -C /opt -zxf pylonSDK-5.1.0.12682-x86_64.tar.gz && \
+    rm -rf pylon-5.1.0.12682-x86_64.tar.gz && \
     rm -rf pylon-5.1.0.12682-x86_64/pylonSDK-5.1.0.12682-x86_64.tar.gz
 
-RUN apt-get update
-
 # Installing python boost dependencies
-RUN apt-get install -y libboost-python-dev
+RUN apt-get update && \
+    apt-get install -y libboost-python-dev
 
-# Installing dependent python modules
-ADD VideoIngestion/vi_requirements.txt .
-RUN pip3.6 install -r vi_requirements.txt && \
-    rm -rf vi_requirements.txt
 
 ENV PYLON_CAMEMU 1
 # Adding gstreamer capabilities
@@ -52,7 +46,7 @@ RUN wget -O opencv.zip https://github.com/Itseez/opencv/archive/${OPENCV_VERSION
 RUN unzip opencv.zip
 RUN mkdir opencv-${OPENCV_VERSION}/build && cd opencv-${OPENCV_VERSION}/build && cmake -DCMAKE_BUILD_TYPE=Release -DPYTHON3_EXECUTABLE=`which python3.6` \
 	-DPYTHON_DEFAULT_EXECUTABLE=`which python3.6` -DENABLE_PRECOMPILED_HEADERS=OFF -DCMAKE_CXX_FLAGS=-std=c++11 -D WITH_GSTREAMER=ON ..
-RUN cd opencv-${OPENCV_VERSION}/build && make -j6
+RUN cd opencv-${OPENCV_VERSION}/build && make -j8
 RUN cd opencv-${OPENCV_VERSION}/build && make install
 # gmmlib
 RUN git clone https://github.com/intel/gmmlib.git && cd gmmlib && mkdir build && cd build && cmake .. && make -j8 && make install
@@ -63,7 +57,7 @@ RUN cd /opt/src && \
     unzip libva-master.zip && \
     cd libva-master && \
     ./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu && \
-    make -j2 && \
+    make -j8 && \
     make install
 
 RUN cd /opt/src && \
@@ -71,7 +65,7 @@ RUN cd /opt/src && \
     tar xf ccache-3.2.8.tar.bz2 && \
     cd ccache-3.2.8 && \
     ./configure --prefix=/usr && \
-    make && \
+    make -j8 && \
     make install
 
 RUN mkdir -p /usr/lib/ccache && \
@@ -98,8 +92,8 @@ RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j8 &&
 
 # Adding Gstreamer Plugin Installation Dependencies
 RUN apt-get -y install automake gstreamer1.0-tools
-ADD basler-source-plugin ./basler-source-plugin
-ADD VideoIngestion/install_gstreamerplugins.sh .
+COPY basler-source-plugin ./basler-source-plugin
+COPY VideoIngestion/install_gstreamerplugins.sh .
 RUN chmod 777 install_gstreamerplugins.sh . 
 RUN ./install_gstreamerplugins.sh ${IEI_UID} /IEI
 
@@ -110,23 +104,24 @@ RUN rm /usr/lib/x86_64-linux-gnu/libva.so && \
     chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so
 
 # Adding cert dirs
-RUN mkdir -p /etc/ssl/imagestore
+RUN mkdir -p /etc/ssl/imagestore && \
+    mkdir -p /etc/ssl/ca && \
+    chown -R ${IEI_UID} /etc/ssl/
+
+# Installing dependent python modules
+COPY VideoIngestion/vi_requirements.txt .
+RUN pip3.6 install -r vi_requirements.txt && \
+    rm -rf vi_requirements.txt
 
 # Adding project depedency modules
-ADD DataAgent/__init__.py ./DataAgent/__init__.py
-ADD DataAgent ./DataAgent
-ADD DataIngestionLib ./DataIngestionLib
-ADD ImageStore ./ImageStore
-ADD Util ./Util
+COPY DataAgent/__init__.py ./DataAgent/__init__.py
+COPY DataAgent ./DataAgent
+COPY DataIngestionLib ./DataIngestionLib
+COPY ImageStore ./ImageStore
 # Adding VideoIngestion & test program
-ADD VideoIngestion/VideoIngestion.py .
-ADD VideoIngestion/test .
-ADD algos ./algos
-
-RUN mkdir -p /etc/ssl/ca
-ENV PYTHONPATH ${PYTHONPATH}:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/
-
-RUN chown -R ${IEI_UID} /etc/ssl/
+COPY VideoIngestion/VideoIngestion.py .
+COPY VideoIngestion/test .
+COPY algos ./algos
 
 ENTRYPOINT ["python3.6", "VideoIngestion.py", "--log-dir", "/IEI/video_ingestion_logs"]
 HEALTHCHECK NONE
