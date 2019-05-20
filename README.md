@@ -21,8 +21,8 @@ ingestor is not correct, then the ingestor will fail to be loaded.
 
     | Ingestor | Documentation |
     | :------: | :-----------: |
-    | video_file    | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/blob/master/algos/dpm/ingestion/video_file.py ) |
-    | video         | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/blob/master/algos/dpm/ingestion/video.py ) |
+    | video_file    | [Link](../algos/dpm/ingestion/video_file.py ) |
+    | video         | [Link](../algos/dpm/ingestion/video.py ) |
 
 * Supported cameras via gstreamer pipeline
 
@@ -135,8 +135,8 @@ It is important to note that if the specified trigger does not exist, then all t
 
     | Trigger | Reference |
     | :--------: | :-----------: |
-    | pcb_trigger     | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/tree/master/algos/dpm/triggers/pcb_triger.py)|
-    | bypass_trigger  | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/tree/master/algos/dpm/triggers/bypass_trigger.py)|
+    | pcb_trigger     | [Link](../algos/dpm/triggers/pcb_triger.py)|
+    | bypass_trigger  | [Link](../algos/dpm/triggers/bypass_trigger.py)|
 
 ### Classifiers
 
@@ -154,6 +154,6 @@ classifier is not correct, then the classifier will fail to be loaded.
 
     | Classifier | Reference |
     | :--------: | :-----------: |
-    | pcbdemo     | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/tree/master/algos/dpm/classification/classifiers/pcbdemo) |
-    | classification_sample     | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/tree/master/algos/dpm/classification/classifiers/classification_sample) |
-    | dummy     | [Link](https://gitlab.devtools.intel.com/Indu/IEdgeInsights/IEdgeInsights/tree/master/algos/dpm/classification/classifiers/dummy.py) |
+    | pcbdemo     | [Link](../algos/dpm/classification/classifiers/pcbdemo) |
+    | classification_sample     | [Link](../algos/dpm/classification/classifiers/classification_sample) |
+    | dummy     | [Link](../algos/dpm/classification/classifiers/dummy.py) |
