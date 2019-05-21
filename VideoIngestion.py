@@ -42,7 +42,7 @@ from algos.dpm.config import Configuration
 from distutils.util import strtobool
 
 MEASUREMENT_NAME = "stream1"
-MAX_BUFFERS = 10
+MAX_BUFFERS = 100
 
 
 class VideoIngestionError(Exception):
@@ -227,14 +227,9 @@ class VideoIngestion:
         """
         # TODO: Could probably optimize to not use entire executor thread for
         # this ingestor
-
-        for i in data:
-            if i is None:
-                break
-            # Unpacking the data
-            video_data = i
+        if data is not None:
             # Send the data through the trigger
-            trigger.process_data(ingestor, video_data)
+            trigger.process_data(ingestor, data)
 
     def _on_trigger(self, trigger, data):
         """Private method for handling the trigger start event, starting a
@@ -308,100 +303,97 @@ class VideoIngestion:
 
     def _data_ingest(self, data):
 
-        for res in data:
-            if res is None:
-                break
-            sample_num, user_data, (cam_sn, frame, config) = res
-            resolution = config.get('resize_resolution', None)
-            encoding = config.get('encoding', None)
-            storage = config.get('img_store_type', 'inmemory')
+        sample_num, user_data, (cam_sn, frame, config) = data
+        resolution = config.get('resize_resolution', None)
+        encoding = config.get('encoding', None)
+        storage = config.get('img_store_type', 'inmemory')
 
-            # Get the video frame info.
-            if len(frame.shape) < 3:
-                height, width = frame.shape
-                channels = 1
-            elif len(frame.shape) == 3:
-                height, width, channels = frame.shape
-            else:
-                self.log.error("frame shape not supported")
-            # Add the video buffer handle, info to the datapoint.
-            dp = self.DataInLib.init_data_point()
-            # TODO: This should go away once we have identified proper input
-            #       streams (this is for video file or video with just 1
-            #       single stream)
-            if "serial" not in cam_sn:
-                dp.set_measurement_name(MEASUREMENT_NAME)
-            else:
-                dp.set_measurement_name(cam_sn)
-            try:
-                if resolution is not None:
-                    width, height = config["resize_resolution"].split("x")
-                    frame = self.frame_resize(frame, config)
-
-                if self.profiling is True:
-                    ret = dp.add_fields("ts_vi_fr_encode_entry",
-                                        float(time.time()*1000))
-                    assert ret is not False, "Adding of \
-                        ts_vi_fr_encode_entry to DataPoint Failed"
-
-                if encoding is not None:
-                    frame = self.frame_encode(frame, config)
-
-                if self.profiling is True:
-                    ret = dp.add_fields("ts_vi_fr_encode_exit",
-                                        float(time.time()*1000))
-                    assert ret is not False, "Adding of \
-                        ts_vi_fr_encode_exit to DataPoint Failed"
-
-                if self.profiling is True:
-                    ret = dp.add_fields("ts_vi_fr_store_entry",
-                                        float(time.time()*1000))
-                    assert ret is not False, "Adding of \
-                        ts_vi_fr_store_entry to DataPoint Failed"
-
-                ret = dp.add_fields("vid-fr-" + storage, frame.tobytes(),
-                                    storage)
-                assert (ret is not False), 'Captured buffer could be added to\
-                    DataPoint'
-
-                if self.profiling is True:
-                    ret = dp.add_fields("ts_vi_fr_store_exit",
-                                        float(time.time()*1000))
-                    assert ret is not False, "Adding of \
-                        ts_vi_fr_store_exit to DataPoint Failed"
-
-            except Exception as e:
-                self.log.error(e)
-
-            ret = dp.add_fields("Width", float(width))
-            assert ret is not False, "Adding ofwidth to DataPoint Failed"
-            ret = dp.add_fields("Height", float(height))
-            assert ret is not False, "Adding of height to DataPoint Failed"
-            ret = dp.add_fields("Channels", float(channels))
-            assert ret is not False, "Adding of channels to DataPoint Failed"
-            ret = dp.add_fields("Cam_Sn", cam_sn)
-            assert ret is not False, "Adding of Camera SN to DataPoint Failed"
-            ret = dp.add_fields("Sample_num", sample_num)
-            assert ret is not False, "Adding of Sample Num to DataPoint Failed"
-            ret = dp.add_fields("user_data", user_data)
-            assert ret is not False, "Adding of user_data to DataPoint Failed"
-            if encoding is not None:
-                ret = dp.add_fields("encoding", config["encoding"]["type"])
-                assert ret is not False, "Adding of encoding to DataPoint\
-                     Failed"
+        # Get the video frame info.
+        if len(frame.shape) < 3:
+            height, width = frame.shape
+            channels = 1
+        elif len(frame.shape) == 3:
+            height, width, channels = frame.shape
+        else:
+            self.log.error("frame shape not supported")
+        # Add the video buffer handle, info to the datapoint.
+        dp = self.DataInLib.init_data_point()
+        # TODO: This should go away once we have identified proper input
+        #       streams (this is for video file or video with just 1
+        #       single stream)
+        if "serial" not in cam_sn:
+            dp.set_measurement_name(MEASUREMENT_NAME)
+        else:
+            dp.set_measurement_name(cam_sn)
+        try:
+            if resolution is not None:
+                width, height = config["resize_resolution"].split("x")
+                frame = self.frame_resize(frame, config)
 
             if self.profiling is True:
-                ret = dp.add_fields("ts_vi_influx_entry",
+                ret = dp.add_fields("ts_vi_fr_encode_entry",
                                     float(time.time()*1000))
                 assert ret is not False, "Adding of \
-                    ts_vi_influx_entry to DataPoint Failed"
+                    ts_vi_fr_encode_entry to DataPoint Failed"
 
-            try:
-                ret = self.DataInLib.save_data_point(dp)
-                assert ret is not False, "Saving of DataPoint Failed"
-            except Exception as e:
-                self.log.error(e)
-                os._exit(1)
+            if encoding is not None:
+                frame = self.frame_encode(frame, config)
+
+            if self.profiling is True:
+                ret = dp.add_fields("ts_vi_fr_encode_exit",
+                                    float(time.time()*1000))
+                assert ret is not False, "Adding of \
+                    ts_vi_fr_encode_exit to DataPoint Failed"
+
+            if self.profiling is True:
+                ret = dp.add_fields("ts_vi_fr_store_entry",
+                                    float(time.time()*1000))
+                assert ret is not False, "Adding of \
+                    ts_vi_fr_store_entry to DataPoint Failed"
+
+            ret = dp.add_fields("vid-fr-" + storage, frame.tobytes(),
+                                storage)
+            assert (ret is not False), 'Captured buffer could be added to\
+                DataPoint'
+
+            if self.profiling is True:
+                ret = dp.add_fields("ts_vi_fr_store_exit",
+                                    float(time.time()*1000))
+                assert ret is not False, "Adding of \
+                    ts_vi_fr_store_exit to DataPoint Failed"
+
+        except Exception as e:
+            self.log.error(e)
+
+        ret = dp.add_fields("Width", float(width))
+        assert ret is not False, "Adding ofwidth to DataPoint Failed"
+        ret = dp.add_fields("Height", float(height))
+        assert ret is not False, "Adding of height to DataPoint Failed"
+        ret = dp.add_fields("Channels", float(channels))
+        assert ret is not False, "Adding of channels to DataPoint Failed"
+        ret = dp.add_fields("Cam_Sn", cam_sn)
+        assert ret is not False, "Adding of Camera SN to DataPoint Failed"
+        ret = dp.add_fields("Sample_num", sample_num)
+        assert ret is not False, "Adding of Sample Num to DataPoint Failed"
+        ret = dp.add_fields("user_data", user_data)
+        assert ret is not False, "Adding of user_data to DataPoint Failed"
+        if encoding is not None:
+            ret = dp.add_fields("encoding", config["encoding"]["type"])
+            assert ret is not False, "Adding of encoding to DataPoint\
+                    Failed"
+
+        if self.profiling is True:
+            ret = dp.add_fields("ts_vi_influx_entry",
+                                float(time.time()*1000))
+            assert ret is not False, "Adding of \
+                ts_vi_influx_entry to DataPoint Failed"
+
+        try:
+            ret = self.DataInLib.save_data_point(dp)
+            assert ret is not False, "Saving of DataPoint Failed"
+        except Exception as e:
+            self.log.error(e)
+            os._exit(1)
 
 
 def parse_args():

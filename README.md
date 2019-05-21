@@ -101,6 +101,9 @@ ingestor is not correct, then the ingestor will fail to be loaded.
         > **Note**:
         > In order to use the RTSP stream, the RTSP server must be started using VCL with the following command:
         `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://localhost:8554/}' --loop --sout-keep`
+        
+        > In order to start RTSP server vlc must be installed using apt command. Please install vlc using the following commmand:
+        `sudo apt install vlc`
 
         Gstreamer MediaSDK decoding commands requires there to be a parser and then the decoder.
         Eg: parsers and decoders:
