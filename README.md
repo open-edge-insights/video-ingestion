@@ -39,6 +39,12 @@ ingestor is not correct, then the ingestor will fail to be loaded.
             Example Pipeline to connect to basler camera with serial number 22573664 :
             `"capture_streams":"pylonsrc serial=22573664 imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
+        * In case frame read is failing when multiple basler cameras are used, use the interpacketdelay property to increase the delay between the
+        transmission of each packet for the selected stream channel. Depending on the number of cameras used an appropriate delay can be set.
+
+            Example Pipeline to increase the interpacket delay to 3000 (default value for interpacket delay is 1500):
+            `"capture_streams":"pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
+
         * To work with monochrome Basler camera, please change the image format to `mono8` in the Pipeline.
 
             Example Pipeline to connect to monochrome basler camera with serial number 22773747 :
