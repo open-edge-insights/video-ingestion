@@ -158,7 +158,7 @@ class VideoIngestion:
                         self.DataInMgr.register_interest(
                                 i,
                                 lambda i, d: self._on_trigger(
-                                    None, [(1, 1, d)]))
+                                    None, (1, 1, d)))
 
     def _init_trigger(self, name, register=False):
         """Initialize trigger
@@ -302,7 +302,6 @@ class VideoIngestion:
         return frame
 
     def _data_ingest(self, data):
-
         sample_num, user_data, (cam_sn, frame, config) = data
         resolution = config.get('resize_resolution', None)
         encoding = config.get('encoding', None)
