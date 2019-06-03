@@ -24,6 +24,8 @@ ingestor is not correct, then the ingestor will fail to be loaded.
     | video_file    | [Link](../algos/dpm/ingestion/video_file.py ) |
     | video         | [Link](../algos/dpm/ingestion/video.py ) |
 
+* The `trigger_threads` key in the configuration file is the maximum number of threads that the thread pool executor class uses at most for the trigger  process and the data ingestion process. The maximum value for trigger_threads has been limited to `10` in VideoIngestion as beyond this the max limit  for the number of HTTP connection opened by influxdb is reached and urllib3(python's HTTP client) discards the connection and issues a warning.
+
 * Supported cameras via gstreamer pipeline
 
     * Basler Camera

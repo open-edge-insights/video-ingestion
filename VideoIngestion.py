@@ -42,7 +42,7 @@ from algos.dpm.config import Configuration
 from distutils.util import strtobool
 
 MEASUREMENT_NAME = "stream1"
-MAX_BUFFERS = 100
+MAX_BUFFERS = 10
 
 
 class VideoIngestionError(Exception):
@@ -82,6 +82,8 @@ class VideoIngestion:
         self.log.info('Initialize Data Ingestion Manager')
         self.DataInMgr = DataIngestionManager(config.data_ingestion_manager)
         self.log.info('Loading Triggers')
+        if config.trigger_threads > 10:
+            config.trigger_threads = 10
         self.trigger_ex = \
             ThreadPoolExecutor(max_workers=config.trigger_threads)
         self.pool_ex = \
