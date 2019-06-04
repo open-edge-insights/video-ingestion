@@ -92,7 +92,7 @@ RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j8 &&
 
 # Adding Gstreamer Plugin Installation Dependencies
 RUN apt-get -y install automake gstreamer1.0-tools
-COPY basler-source-plugin ./basler-source-plugin
+COPY external/basler-source-plugin ./basler-source-plugin
 COPY VideoIngestion/install_gstreamerplugins.sh .
 RUN chmod 777 install_gstreamerplugins.sh . 
 RUN ./install_gstreamerplugins.sh ${IEI_UID} /IEI
