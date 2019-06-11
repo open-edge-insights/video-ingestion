@@ -26,6 +26,27 @@ ingestor is not correct, then the ingestor will fail to be loaded.
 
 * The `trigger_threads` key in the configuration file is the maximum number of threads that the thread pool executor class uses at most for the trigger  process and the data ingestion process. The maximum value for trigger_threads has been limited to `10` in VideoIngestion as beyond this the max limit  for the number of HTTP connection opened by influxdb is reached and urllib3(python's HTTP client) discards the connection and issues a warning.
 
+* In case any lag is observed in the end-to-end flow when working with physical cameras, add the `poll_interval` key in the configuration file. The value
+for `poll_interval` is taken as `seconds`. Use appropriate `poll_interval` value depending on the CPU clock speed.
+Example configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 seconds)
+
+```
+    "streams": {
+            "capture_streams": {
+                "cam_serial1": {
+                    "video_src": "pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink",
+                    "encoding": {
+                        "type": "jpg",
+                        "level": 100
+                    },
+                    "img_store_type": "inmemory_persistent",
+                    "poll_interval": 0.2
+                }
+            }
+        }
+
+```
+
 * Supported cameras via gstreamer pipeline
 
     * Basler Camera
