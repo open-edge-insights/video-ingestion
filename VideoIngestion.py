@@ -42,7 +42,6 @@ from algos.dpm.config import Configuration
 from distutils.util import strtobool
 
 MEASUREMENT_NAME = "stream1"
-MAX_BUFFERS = 10
 
 
 class VideoIngestionError(Exception):
@@ -90,11 +89,11 @@ class VideoIngestion:
             ThreadPoolExecutor(max_workers=config.trigger_threads)
 
         self.trigger_thread = threading.Thread(target=self.trigger_process)
-        self.trigger_queue = queue.Queue(maxsize=MAX_BUFFERS)
+        self.trigger_queue = queue.Queue(maxsize=config.queue_size)
         self.trigger_ev = threading.Event()
 
         self.dil_thread = threading.Thread(target=self.dil_process)
-        self.dil_queue = queue.Queue(maxsize=MAX_BUFFERS)
+        self.dil_queue = queue.Queue(maxsize=config.queue_size)
         self.dil_ev = threading.Event()
 
         self.triggers = []

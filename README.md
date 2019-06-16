@@ -26,15 +26,29 @@ ingestor is not correct, then the ingestor will fail to be loaded.
 
 * The `trigger_threads` key in the configuration file is the maximum number of threads that the thread pool executor class uses at most for the trigger  process and the data ingestion process. The maximum value for trigger_threads has been limited to `10` in VideoIngestion as beyond this the max limit  for the number of HTTP connection opened by influxdb is reached and urllib3(python's HTTP client) discards the connection and issues a warning.
 
-* In case any lag is observed in the end-to-end flow when working with physical cameras, add the `poll_interval` key in the configuration file. The value
-for `poll_interval` is taken as `seconds`. Use appropriate `poll_interval` value depending on the CPU clock speed.
-Example configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 seconds)
+* The `poll_interval` in the configuration file which is taken as `seconds`, sets the ingestion speed of frames from camera. Essentially it determines the number of ingested frames from camera per second i.e., fps read from camera.
+
+* The `queue_size` in the configuration file is the maximum size for the `trigger queue` and `dil (data ingestion lib) queue`. The frames captured by the camera will pass through the trigger_queue and dil queue, i.e., frames will enter the trigger_queue and output of the trigger_queue will then be the input of dil queue. Then frames are taken out from the dil queue for processing.
+
+* In case any lag is observed in the end-to-end flow when working with physical cameras, set the appropriate values for `poll_interval`, `trigger_threads` and `queue_size` in configuration file.
+    * Use appropriate `poll_interval` value depending on the CPU clock speed.
+        **_Example_** configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 seconds)
+
+    * Increase the `trigger_threads` accordingly(maximum is 10).
+        **_Example_** `trigger_threads : 10`
+
+    * Based on the priority between the delay of the frames received and the dropping of frames, user can select the `queue_size` in the configuration file.
+        * If dropping frames are tolerable but delay should be minimal, then `queue_size` should be set to minimal number.
+            **_Example_** `queue_size : 2`
+        * If certain delay (around 10 seconds) is tolerable but frames should not be dropped, then `queue_size` should be   set accordingly. **REMEMBER** : Increasing the `queue_size` will increase the delay.
+            **_Example_** `queue_size : 10` 
+    
 
 ```
     "streams": {
             "capture_streams": {
                 "cam_serial1": {
-                    "video_src": "pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink",
+                    "video_src": "pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink drop=TRUE max-buffers=10",
                     "encoding": {
                         "type": "jpg",
                         "level": 100
@@ -91,7 +105,7 @@ Example configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 secon
                         "streams": {
                             "capture_streams": {
                                 "cam_serial1": {
-                                    "video_src": "v4l2src device=/dev/video0 ! videoconvert ! appsink",
+                                    "video_src": "v4l2src device=/dev/video0 ! videoconvert ! appsink drop=TRUE max-buffers=10",
                                     "encoding": {
                                         "type": "jpg",
                                         "level": 95
@@ -99,7 +113,7 @@ Example configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 secon
                                     "img_store_type": "inmemory_persistent"
                                 },
                                 "cam_serial2": {
-                                    "video_src": "v4l2src device=/dev/video1 ! videoconvert ! appsink",
+                                    "video_src": "v4l2src device=/dev/video1 ! videoconvert ! appsink drop=TRUE max-buffers=10",
                                     "encoding": {
                                         "type": "jpg",
                                         "level": 95
