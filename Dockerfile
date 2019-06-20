@@ -114,6 +114,7 @@ RUN pip3.6 install -r vi_requirements.txt && \
     rm -rf vi_requirements.txt
 
 # Adding project depedency modules
+COPY Util/ ./Util/
 COPY DataAgent/__init__.py ./DataAgent/__init__.py
 COPY DataAgent ./DataAgent
 COPY DataIngestionLib ./DataIngestionLib
