@@ -1,6 +1,6 @@
 # Video Ingestion Module
 
-This module injests the video data from a file or a basler/RTSP/USB camera using gstreamer pipeline and stores the frame blob in in ImageStore and fram metadata in influx using DataIngestionLib.
+This module ingests the video data from a file or a basler/RTSP/USB camera using gstreamer pipeline and stores the frame blob in ImageStore and frame metadata in influx using DataIngestionLib.
 
 This is the reference for all the algorithms used in IEI
 
@@ -30,7 +30,9 @@ ingestor is not correct, then the ingestor will fail to be loaded.
 
 * The `queue_size` in the configuration file is the maximum size for the `trigger queue` and `dil (data ingestion lib) queue`. The frames captured by the camera will pass through the trigger_queue and dil queue, i.e., frames will enter the trigger_queue and output of the trigger_queue will then be the input of dil queue. Then frames are taken out from the dil queue for processing.
 
-* In case any lag is observed in the end-to-end flow when working with physical cameras, set the appropriate values for `poll_interval`, `trigger_threads` and `queue_size` in configuration file.
+* The `vi_queue_size` in the configuration file is the maximum size for the the queue added to continuously read from gstreamer's appsink.
+
+* In case any lag is observed in the end-to-end flow when working with physical cameras, set the appropriate values for `poll_interval`, `trigger_threads`, `queue_size` and `vi_queue_size` in configuration file.
     * Use appropriate `poll_interval` value depending on the CPU clock speed.
         **_Example_** configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 seconds)
 
