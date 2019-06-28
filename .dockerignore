@@ -5,7 +5,7 @@ docker_setup/
 FactoryControlApp/
 kapacitor/
 licenses/
-StreamManager/
+InfluxDBConnector/
 StreamSubLib/
 Telegraf/
 test_videos/
