@@ -6,6 +6,8 @@ This is the reference for all the algorithms used in IEI
 
 ## Configuration
 
+All the camera/video file configuration files are available for reference at [docker_setup/config/algo_config](../docker_setup/config/algo_config)
+
 ### Ingestion
 
 The ingestion portion of the configuration represents the different ingestors
@@ -34,34 +36,17 @@ ingestor is not correct, then the ingestor will fail to be loaded.
 
 * In case any lag is observed in the end-to-end flow when working with physical cameras, set the appropriate values for `poll_interval`, `trigger_threads`, `queue_size` and `vi_queue_size` in configuration file.
     * Use appropriate `poll_interval` value depending on the CPU clock speed.
-        **_Example_** configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 seconds)
+        **Example:** configuration for basler camera with `poll_interval: 0.2` (i.e 0.2 seconds)
 
     * Increase the `trigger_threads` accordingly(maximum is 10).
-        **_Example_** `trigger_threads : 10`
+    **Example:** `trigger_threads : 10`
 
     * Based on the priority between the delay of the frames received and the dropping of frames, user can select the `queue_size` in the configuration file.
         * If dropping frames are tolerable but delay should be minimal, then `queue_size` should be set to minimal number.
-            **_Example_** `queue_size : 2`
+            **Example:**  `queue_size : 2`
         * If certain delay (around 10 seconds) is tolerable but frames should not be dropped, then `queue_size` should be   set accordingly. **REMEMBER** : Increasing the `queue_size` will increase the delay.
-            **_Example_** `queue_size : 10` 
-    
+            **Example:** `queue_size : 10` 
 
-```
-    "streams": {
-            "capture_streams": {
-                "cam_serial1": {
-                    "video_src": "pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink drop=TRUE max-buffers=10",
-                    "encoding": {
-                        "type": "jpg",
-                        "level": 100
-                    },
-                    "img_store_type": "inmemory_persistent",
-                    "poll_interval": 0.2
-                }
-            }
-        }
-
-```
 
 * Supported cameras via gstreamer pipeline
 
@@ -75,20 +60,25 @@ ingestor is not correct, then the ingestor will fail to be loaded.
         * In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file
         for camera mode. If multiple cameras are connected and the serial parameter is not specified then the source plugin by default connects to camera with device_index=0.
 
-            Example Pipeline to connect to basler camera with serial number 22573664 :
-            `"capture_streams":"pylonsrc serial=22573664 imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+            Example Pipeline to connect to basler GigE camera with serial number 22573664 :
+            `"capture_streams":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
         * In case frame read is failing when multiple basler cameras are used, use the interpacketdelay property to increase the delay between the
         transmission of each packet for the selected stream channel. Depending on the number of cameras used an appropriate delay can be set.
 
-            Example Pipeline to increase the interpacket delay to 3000 (default value for interpacket delay is 1500):
-            `"capture_streams":"pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
+            Example Pipeline to connect to basler GigE camera and increase the interpacket delay to 3000 (default value for interpacket delay is 1500):
+            `"capture_streams":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
 
         * To work with monochrome Basler camera, please change the image format to `mono8` in the Pipeline.
 
-            Example Pipeline to connect to monochrome basler camera with serial number 22773747 :
-            `"capture_streams":"pylonsrc serial=22773747 imageformat=mono8 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+            Example Pipeline to connect to monochrome basler GigE camera with serial number 22773747 :
+            `"capture_streams":"pylonsrc serial=22773747 imageformat=mono8 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
+        * To work with Basler's USB camera, please change the image format accordingly and also use `exposureUsb` parameter to set the exposure manually in the Pipeline.
+
+            Example Pipeline to connect to monochrome basler USB camera with exposure set to 3250 :
+            `"capture_streams":"pylonsrc imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+            
         ---
 
     * USB Camera
@@ -107,7 +97,7 @@ ingestor is not correct, then the ingestor will fail to be loaded.
                         "streams": {
                             "capture_streams": {
                                 "cam_serial1": {
-                                    "video_src": "v4l2src device=/dev/video0 ! videoconvert ! appsink drop=TRUE max-buffers=10",
+                                    "video_src": "v4l2src device=/dev/video0 ! videoconvert ! appsink",
                                     "encoding": {
                                         "type": "jpg",
                                         "level": 95
@@ -115,7 +105,7 @@ ingestor is not correct, then the ingestor will fail to be loaded.
                                     "img_store_type": "inmemory_persistent"
                                 },
                                 "cam_serial2": {
-                                    "video_src": "v4l2src device=/dev/video1 ! videoconvert ! appsink drop=TRUE max-buffers=10",
+                                    "video_src": "v4l2src device=/dev/video1 ! videoconvert ! appsink",
                                     "encoding": {
                                         "type": "jpg",
                                         "level": 95
