@@ -16,9 +16,9 @@ cd gst-plugins-good/ && git clone https://gitlab.freedesktop.org/gstreamer/commo
 
 echo "Switching Plugin Branch to Gstreamer Version : " $gstreamer_version
 git checkout $gstreamer_version
-cd gst-plugins-good/chown -R $1 ../gst-plugins-good/
-echo "Generating Libraries"
+cd $WORK_DIR/gst-plugins-good/ && chown -R $1 ../gst-plugins-good/
 
+echo "Generating Libraries"
 ./autogen.sh --disable-gtk-doc
 
 echo "Installing V4l2Src Plugin"
