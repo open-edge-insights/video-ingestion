@@ -61,7 +61,7 @@ class Publisher:
         Publishes the data i.e. [topic, metadata, frame] to zmq
         """
         context = zmq.Context()
-        socket = context.socket(zmq.PUB)
+        self.socket = context.socket(zmq.PUB)
         topics = os.environ['PUB_TOPICS'].split(",")
 
         # Keeping the logic of being able to publish to multiple topics
@@ -72,9 +72,9 @@ class Publisher:
                 address = os.environ["{}_cfg".format(topic)].split(",")
                 mode = address[0].lower()
                 if "tcp" in mode:
-                    socket.bind("tcp://{}".format(address[1]))
+                    self.socket.bind("tcp://{}".format(address[1]))
                 elif "ipc" in mode:
-                    socket.bind("ipc://{}".format("{0}{1}".format(
+                    self.socket.bind("ipc://{}".format("{0}{1}".format(
                         "/var/run/eis/", address[1])))
         except Exception as ex:
             self.log.exception(ex)
@@ -108,7 +108,7 @@ class Publisher:
                 metaData = json.dumps(metadata)
                 data = [topic.encode(), metaData.encode(), frame]
 
-                socket.send_multipart(data, copy=False)
+                self.socket.send_multipart(data, copy=False)
             except Exception as ex:
                 self.log.exception('Error while publishing data: {}'.format(ex))
             self.log.debug("Published data: {}".format(data))
@@ -144,6 +144,7 @@ class Publisher:
         """
         Stops the publisher thread
         """
+        self.socket .close()
         self.stop_ev.set()
 
     def join(self):

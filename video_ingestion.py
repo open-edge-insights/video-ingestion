@@ -30,7 +30,6 @@ import signal
 import logging
 import argparse
 from distutils.util import strtobool
-from concurrent.futures import ThreadPoolExecutor
 from publisher import Publisher
 from ingestor import Ingestor
 from libs.base_filter import load_filter
@@ -54,7 +53,6 @@ class VideoIngestion:
             VideoIngestion object
         """
         self.log = logging.getLogger(__name__)
-        self.dev_mode = os.environ["DEV_MODE"]
         self.profiling = bool(strtobool(os.environ['PROFILING']))
         self.dev_mode = bool(strtobool(os.environ["DEV_MODE"]))
         self.app_name = os.environ["APP_NAME"]
@@ -90,7 +88,7 @@ class VideoIngestion:
     def start(self):
         """Start Video Ingestion.
         """
-        self.log.info('Starting video ingestion')
+        self.log.info('=======Starting {}======='.format(self.app_name))
         self.filter_input_queue = queue.Queue(
             maxsize=self.filter_config["input_queue_size"])
         self.filter_output_queue = queue.Queue(
@@ -98,25 +96,34 @@ class VideoIngestion:
 
         self.publisher = Publisher(self.filter_output_queue)
         self.publisher.start()
-
+        
         self.filter = load_filter(
             self.filter_name, self.filter_config, self.filter_input_queue, self.filter_output_queue)
         self.filter.start()
-
+                
         self.ingestor = Ingestor(self.ingestor_config, self.filter_input_queue)
         self.ingestor.start()
+        self.log.info('=======Started {}======='.format(self.app_name))
 
     def stop(self):
         """ Stop the Video Ingestion.
         """
-        self.log.info('Exiting from Video Ingestion')
+        self.log.info('=======Stopping {}======='.format(self.app_name))
         self.ingestor.stop()
         self.filter.stop()
         self.publisher.stop()
+        self.log.info('=======Stopped {}======='.format(self.app_name))
 
     def onChangeConfigCB(self, key, value):
         """
-        Callback Method to be called by etcd
+        Callback method to be called by etcd
+
+        Parameters:
+        ----------
+        key: str
+            etcd key
+        value: str
+            etcd value
         """
         # TODO: To be added:
         # 1. Add logic to control restart of filter/ingestor or publisher
@@ -180,8 +187,6 @@ def main():
 
     log = configure_logging(args.log.upper(), logFileName, args.log_dir,
                             __name__)
-
-    log.info("=============== STARTING video_ingestion ===============")
 
     vi = VideoIngestion()
 

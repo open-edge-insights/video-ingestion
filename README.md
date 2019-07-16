@@ -109,7 +109,7 @@ Sample configuration for filters used:
         "input_queue_size": 10,
         "output_queue_size": 10,
         "max_workers": 5,
-        "training_mode": false,
+        "training_mode": "false",
         "n_total_px": 300000,
         "n_left_px": 1000,
         "n_right_px": 1000
@@ -121,9 +121,10 @@ Sample configuration for filters used:
         "input_queue_size": 10,
         "output_queue_size": 10,
         "max_workers": 5,
-        "training_mode": false
+        "training_mode": "false"
     }
    ```
+3. No filter (For this configuration, please take off the )
 
 [TODO: Add filter releated configurations details]
 

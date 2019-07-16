@@ -136,7 +136,7 @@ class Filter(BaseFilter):
         thread_id = threading.get_ident()
         self.log.info("Filter thread ID: {} started...".format(thread_id))
 
-        while True:
+        while not self.stop_event.is_set():
             data = self.input_queue.get()
             topic = data[0]
             frame = data[2]
