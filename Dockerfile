@@ -4,7 +4,6 @@ FROM ia_pybase:$IEI_VERSION
 LABEL description="VideoIngestion image"
 
 ARG IEI_UID
-ENV PYTHONPATH ${PYTHONPATH}:./DataAgent/da_grpc/protobuff/py:./DataAgent/da_grpc/protobuff/py/pb_internal:./ImageStore/protobuff/py/
 RUN useradd -r -u ${IEI_UID} -G video ieiuser
 
 # Adding basler camera's essentials by referring it's repo's README and Removing unwanted files
@@ -20,7 +19,6 @@ RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon
 # Installing python boost dependencies
 RUN apt-get update && \
     apt-get install -y libboost-python-dev
-
 
 ENV PYLON_CAMEMU 1
 # Adding gstreamer capabilities
@@ -103,27 +101,17 @@ RUN rm /usr/lib/x86_64-linux-gnu/libva.so && \
     chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 && \
     chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so
 
-# Adding cert dirs
-RUN mkdir -p /etc/ssl/imagestore && \
-    mkdir -p /etc/ssl/ca && \
-    chown -R ${IEI_UID} /etc/ssl/
-
 # Installing dependent python modules
 COPY VideoIngestion/vi_requirements.txt .
 RUN pip3.6 install -r vi_requirements.txt && \
-    rm -rf vi_requirements.txt
+    rm -rf vi_requirements.txt 
 
 # Adding project depedency modules
-COPY Util/ ./Util/
-COPY DataAgent/__init__.py ./DataAgent/__init__.py
-COPY DataAgent ./DataAgent
-COPY DataIngestionLib ./DataIngestionLib
-COPY ImageStore ./ImageStore
-# Adding VideoIngestion & test program
-COPY VideoIngestion/VideoIngestion.py .
-COPY VideoIngestion/test .
-COPY algos ./algos
+COPY libs/ ./libs
+COPY VideoIngestion/ ./VideoIngestion
 
-ENTRYPOINT ["python3.6", "VideoIngestion.py", "--log-dir", "/IEI/video_ingestion_logs"]
+ENV PYTHONPATH ${PYTHONPATH}:.
+
+ENTRYPOINT ["python3.6", "VideoIngestion/video_ingestion.py"]
 HEALTHCHECK NONE
 

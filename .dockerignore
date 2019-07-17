@@ -15,7 +15,6 @@ test_videos/
 **/*.md
 **/*.mp4
 **/*.avi
-**/*.json
 **/*.pyc
 **/*.tar
 **/*.log
