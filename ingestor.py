@@ -47,7 +47,7 @@ class Ingestor:
         self.log = logging.getLogger(__name__)
         self.ingestor_queue = ingestor_queue
         self.video_src = ingestor_config['video_src']
-        self.topic = os.environ['PUB_TOPICS'].split(",")[0]
+        self.topic = os.environ['PubTopics'].split(",")[0]
         self.poll_interval = ingestor_config.get('poll_interval', None)
         self.stop_ev = threading.Event()
         self.loop_video = ingestor_config.get("loop_video", None)

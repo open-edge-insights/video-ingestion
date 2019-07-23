@@ -55,7 +55,7 @@ class VideoIngestion:
         self.log = logging.getLogger(__name__)
         self.profiling = bool(strtobool(os.environ['PROFILING']))
         self.dev_mode = bool(strtobool(os.environ["DEV_MODE"]))
-        self.app_name = os.environ["APP_NAME"]
+        self.app_name = os.environ["AppName"]
         conf = {
             "endpoint": "localhost:2379",
             "certFile": "",

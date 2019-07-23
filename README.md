@@ -20,7 +20,8 @@ The high level logical flow of VideoIngestion pipeline is as below:
 ## Configuration
 
 All the VideoIngestion module configurations (ingestor and filter) are added 
-into etcd (distributed key-value data store) under `/VideoIngestion/` tree.
+into etcd (distributed key-value data store) under `AppName` as mentioned in the
+service definition in docker-compose.
 
 ### Ingestor config
 
@@ -93,13 +94,13 @@ Sample Ingestor configuration for each of the video sources below:
     }
    ```
 
-[TODO: Add camera releated configurations and update the possible values for 
+[TODO: Add camera related configurations and update the possible values for 
 each of the keys used above]
 
 ### Filter config
 
-The Filter(user defined function) responsible for doing pre-processing of the 
-video frames uses the filter congiruation to do the selection of key frames
+The Filter (user defined function) is responsible for doing pre-processing of the 
+video frames. It uses the filter congiruation to do the selection of key frames
 (frames of interest for further processing)
 
 Sample configuration for filters used:
@@ -124,43 +125,14 @@ Sample configuration for filters used:
         "training_mode": "false"
     }
    ```
-3. No filter (For this configuration, please take off the )
 
-[TODO: Add filter releated configurations details]
+[TODO: Add filter related configuration details]
 
 
 ## Installation
 
-* Run etcd daemon as container
-
-    Below script starts `etcd` as a container
-    ```
-    $ ./test/start_etcd_container.sh
-    ```
-
-* Add pre-loaded EIS data to etcd store
-
-    Below script adds [etcd_pre_load.json](test/etcd_pre_load.json) into `etcd`.
-    All the configuration gets stored under '/VideoIngestion/` 
-
-    1. Install `etcd3-python`
-       
-        ```
-        $ export PY_ETCD3_VERSION=cdc4c48bde88a795230a02aa574df84ed9ccfa52
-        $ git clone https://github.com/kragniz/python-etcd3 && \
-          cd python-etcd3 && \
-          git checkout ${PY_ETCD3_VERSION} && \
-          python3.6 setup.py install && \
-          cd .. && \
-          rm -rf python-etcd3
-        
-        ```
-    2. Add pre-loaded json data to etcd
-       
-        ```
-         $ cd test
-         $ python3.6 etcd_put.py
-        ```
+* Follow [Etcd/README.md](../Etcd/README.md) to have EIS pre-loaded data in
+  etcd
 
 * Run VideoIngestion
 
@@ -169,9 +141,10 @@ Sample configuration for filters used:
     1. Build and Run VideoIngestion as container
         ```
         $ cd [repo]/docker_setup
+        $ ln -sf VideoIngestion/.dockerignore ../.dockerignore
         $ docker-compose up --build ia_video_ingestion
         ```
-    2. Update EIS VideoIngestion data in `etcd` and see if VideoIngestion    
-       picks it up automatically without any container restarts
+    2. Update EIS VideoIngestion keys(ingestor and filter) in `etcd` and see 
+       if it picks it up automatically without any container restarts
 
 
