@@ -30,11 +30,11 @@ import signal
 import logging
 import argparse
 from distutils.util import strtobool
-from publisher import Publisher
 from ingestor import Ingestor
 from libs.base_filter import load_filter
 from libs.log import configure_logging, LOG_LEVELS
 from libs.ConfigManager.etcd.py.etcd_client import EtcdCli
+from publisher import Publisher
 
 # Etcd paths
 INGESTOR_KEY_PATH = "/ingestor"
@@ -89,10 +89,11 @@ class VideoIngestion:
         """Start Video Ingestion.
         """
         self.log.info('=======Starting {}======='.format(self.app_name))
+        queue_size = self.filter_config["queue_size"]
         self.filter_input_queue = queue.Queue(
-            maxsize=self.filter_config["input_queue_size"])
+            maxsize=queue_size)
         self.filter_output_queue = queue.Queue(
-            maxsize=self.filter_config["output_queue_size"])
+            maxsize=queue_size)
 
         self.publisher = Publisher(self.filter_output_queue)
         self.publisher.start()
@@ -148,8 +149,8 @@ class VideoIngestion:
                 self.ingestor_name = key.split("/")[3]
                 self.ingestor_config = json.loads(value) # ingestor json config
         except:
-            pass
-
+            self.log.exception(ex)
+        
         self.stop()
         self.start()
 

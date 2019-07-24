@@ -24,13 +24,13 @@ import os
 import numpy as np
 import time
 import threading
-import argparse
 import json
 import cv2
 import uuid
 import os
 import logging
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 class Publisher:
 
@@ -46,41 +46,50 @@ class Publisher:
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
         self.stop_ev = threading.Event()
-        self.sockets = []
-
+    
     def start(self):
         """
-        Starts the publisher thread
-        """
-        self.log.info("=====Starting publisher thread======")
-        self.thread = threading.Thread(target=self.publish)
-        self.thread.setDaemon(True)
-        self.thread.start()
-
-    def publish(self):
-        """
-        Publishes the data i.e. [topic, metadata, frame] to zmq
+        Starts the publisher thread(s)
         """
         context = zmq.Context()
-        self.socket = context.socket(zmq.PUB)
+        socket = context.socket(zmq.PUB)
         topics = os.environ['PubTopics'].split(",")
+        self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
+        self.sockets = []
+        for topic in topics:
+            topic_cfg = os.environ["{}_cfg".format(topic)].split(",")
+            self.publisher_threadpool.submit(self.publish, socket, topic,
+                                              topic_cfg)
 
-        # Keeping the logic of being able to publish to multiple topics
-        # with each publish happening on different/same bind socket
-        # address as per the ENV configuration
+    def publish(self, socket, topic, topic_cfg):
+        """
+        Send the data to the publish topic
+        Parameters:
+        ----------
+        socket: ZMQ socket
+            socket instance
+        topic: str
+            topic name
+        topic_cfg: str
+            topic config
+        """
+        thread_id = threading.get_ident()
+        self.log.info("Publisher thread ID: {} started" +  \
+                     " with topic: {} and topic_cfg: {}...".format(thread_id,
+                     topic, topic_cfg))
+
+        mode = topic_cfg[0].lower()
         try:
-            for topic in topics:
-                address = os.environ["{}_cfg".format(topic)].split(",")
-                mode = address[0].lower()
-                if "tcp" in mode:
-                    self.socket.bind("tcp://{}".format(address[1]))
-                elif "ipc" in mode:
-                    self.socket.bind("ipc://{}".format("{0}{1}".format(
-                        "/var/run/eis/", address[1])))
-                self.sockets.append(self.socket)
+            if "tcp" in mode:
+                socket.bind("tcp://{}".format(topic_cfg[1]))
+            elif "ipc" in mode:
+                socket.bind("ipc://{}".format(topic_cfg[1]))
+            self.sockets.append(socket)            
         except Exception as ex:
             self.log.exception(ex)
 
+        self.log.info("Publishing to topic: {}...".format(topic))
+        
         while not self.stop_ev.is_set():
             try:
                 data = self.filter_output_queue.get()
@@ -103,18 +112,20 @@ class Publisher:
                 metadata['height'] = height
                 metadata['width'] = width
                 metadata['channel'] = channel
-                # imgHandle field will be used by the ImageStore
+                # img_handle field will be used by the ImageStore
                 # container to add the `frame blob` as value with
-                # `imgHandle` as key into ImageStore DB
-                metadata['imgHandle'] = str(uuid.uuid1())[:8]
-                metaData = json.dumps(metadata).encode()
-                data = [topic.encode(), metaData, frame]
-                if self.socket._closed is False:
-                    self.socket.send_multipart(data, copy=False)
+                # `img_handle` as key into ImageStore DB
+                metadata['img_handle'] = str(uuid.uuid1())[:8]
+                metaData = json.dumps(metadata)
+                data = [topic.encode(), metaData.encode(), frame]
+
+                socket.send_multipart(data, copy=False)
             except Exception as ex:
                 self.log.exception('Error while publishing data: {}'.format(ex))
             self.log.debug("Published data: {}".format(data))
-        self.log.info("=====Stopped publisher thread======")
+        self.log.info("Publisher thread ID: {} stopped" +  \
+                      " with topic: {} and topic_cfg: {}...".format(thread_id,
+                      topic, topic_cfg))
 
     def encode(self,frame):
         if self.encoding["type"] == "jpg":
@@ -151,9 +162,4 @@ class Publisher:
             if socket._closed == "False":
                 self.log.error("Unable to close socket connection")
         self.stop_ev.set()
-
-    def join(self):
-        """
-        Blocks until the publisher thread stops running
-        """
-        self.thread.join()
+        self.publisher_threadpool.shutdown(wait=False)
