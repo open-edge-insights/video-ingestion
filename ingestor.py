@@ -36,7 +36,6 @@ class Ingestor:
 
     def __init__(self, ingestor_config, ingestor_queue):
         """Constructor
-            
         Parameters
         ----------
         ingestor_config : dict
@@ -58,7 +57,7 @@ class Ingestor:
         """
         Starts the ingestor thread
         """
-        self.log.info("=====Starting ingsestor thread======") 
+        self.log.info("=====Starting ingsestor thread======")
         self.thread = threading.Thread(target=self.run)
         self.thread.setDaemon(True)
         self.thread.start()
@@ -68,10 +67,10 @@ class Ingestor:
         To connect to a camera or a video source
         """
         if self.video_src is not None:
+            self.log.info("initializing cv2 videocapture")
             cap = cv2.VideoCapture(self.video_src)
             if cap.isOpened() is False:
                 cap.release()
-                return None    
             return cap
         else:
             self.log.error("Invalid video source: {}".format(self.video_src))
@@ -80,16 +79,14 @@ class Ingestor:
         """
         To read frames from a camera or video source
         """
+        camFailCount = 0
         cap =  self.connect()
-        if cap is None:
-            self.log.error("Fail to read camera, Not Retrying,\
-                           Please Check Camera ingestor_config")
-        
         while not self.stop_ev.is_set():
             try:
                 ret, frame = cap.read()
                 if not ret:
-                    self.loop_video = self.loop_video.lower()
+                    if self.loop_video is not None:
+                        self.loop_video = self.loop_video.lower()
                     if self.loop_video == "true":
                         cap.release()
                         cap = cv2.VideoCapture(self.video_src)
@@ -113,12 +110,12 @@ class Ingestor:
                         self.log.exception('Exception: {}'.format(ex))
                     camFailCount = 0
             except Exception as ex:
-                self.log.exception('Excetption: {}'.format(ex))
+                self.log.exception('Exception: {}'.format(ex))
                 try:
                     camConnRetry = MAX_CAM_CONN_RETRY
                     while(camConnRetry):
-                        self.log.info('Attempting to reconnect to camera with \
-                                      iteration:%s', camConnRetry)
+                        self.log.info("Attempting to reconnect to camera with\
+                                      iteration:%s", camConnRetry)
                         cap.release()
                         cap = self.connect()
                         if cap is not None:
@@ -133,8 +130,10 @@ class Ingestor:
                     self.log.error(ex)
                     break
             if self.poll_interval is not None:
-                time.sleep(self.poll_interval)                   
+                time.sleep(self.poll_interval)
+        cap.release()
         self.log.info("=====Stopped ingestor thread======")
+
 
     def stop(self):
         """
@@ -147,4 +146,4 @@ class Ingestor:
         Blocks until the ingestor thread stops running
         """
         self.thread.join()
-   
+

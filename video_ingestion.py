@@ -96,11 +96,11 @@ class VideoIngestion:
 
         self.publisher = Publisher(self.filter_output_queue)
         self.publisher.start()
-        
+
         self.filter = load_filter(
             self.filter_name, self.filter_config, self.filter_input_queue, self.filter_output_queue)
         self.filter.start()
-                
+
         self.ingestor = Ingestor(self.ingestor_config, self.filter_input_queue)
         self.ingestor.start()
         self.log.info('=======Started {}======='.format(self.app_name))
@@ -128,10 +128,6 @@ class VideoIngestion:
         # TODO: To be added:
         # 1. Add logic to control restart of filter/ingestor or publisher
         #    alone based on the config change instead of restarting all threads.
-        # 2. Fix the issue of thread pool not shutting down properly
-        # 3. Socket close in publisher isn't working, so the publish after
-        #    config change isn't working (see address bind issue but publish is 
-        #    happening and subscriber doesn't receive stuck)
         self.log.info("{}:{}".format(key, value))
         try:
             if "_filter" in value:
@@ -140,7 +136,7 @@ class VideoIngestion:
                 self.filter_name = value
                 self.filter_config = json.loads(filter_config)
             elif "_filter" in key:
-                self.filter_name = key
+                self.filter_name = key.split("/")[3]
                 self.filter_config = json.loads(value) # filter json config
 
             if "_ingestor" in value:
@@ -149,11 +145,11 @@ class VideoIngestion:
                 self.ingestor_name = value
                 self.ingestor_config = json.loads(ingestor_config)
             elif "_ingestor" in key:
-                self.ingestor_name = key
+                self.ingestor_name = key.split("/")[3]
                 self.ingestor_config = json.loads(value) # ingestor json config
         except:
             pass
-        
+
         self.stop()
         self.start()
 

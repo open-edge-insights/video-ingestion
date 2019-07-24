@@ -46,12 +46,13 @@ class Publisher:
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
         self.stop_ev = threading.Event()
+        self.sockets = []
 
     def start(self):
         """
         Starts the publisher thread
         """
-        self.log.info("=====Starting publisher thread======") 
+        self.log.info("=====Starting publisher thread======")
         self.thread = threading.Thread(target=self.publish)
         self.thread.setDaemon(True)
         self.thread.start()
@@ -76,13 +77,14 @@ class Publisher:
                 elif "ipc" in mode:
                     self.socket.bind("ipc://{}".format("{0}{1}".format(
                         "/var/run/eis/", address[1])))
+                self.sockets.append(self.socket)
         except Exception as ex:
             self.log.exception(ex)
-        
+
         while not self.stop_ev.is_set():
             try:
                 data = self.filter_output_queue.get()
-                topic = data[0] 
+                topic = data[0]
                 metadata = data[1]
                 frame = data[2]
 
@@ -105,14 +107,14 @@ class Publisher:
                 # container to add the `frame blob` as value with
                 # `imgHandle` as key into ImageStore DB
                 metadata['imgHandle'] = str(uuid.uuid1())[:8]
-                metaData = json.dumps(metadata)
-                data = [topic.encode(), metaData.encode(), frame]
-
-                self.socket.send_multipart(data, copy=False)
+                metaData = json.dumps(metadata).encode()
+                data = [topic.encode(), metaData, frame]
+                if self.socket._closed is False:
+                    self.socket.send_multipart(data, copy=False)
             except Exception as ex:
                 self.log.exception('Error while publishing data: {}'.format(ex))
             self.log.debug("Published data: {}".format(data))
-        self.log.info("=====Stopped publisher thread======")     
+        self.log.info("=====Stopped publisher thread======")
 
     def encode(self,frame):
         if self.encoding["type"] == "jpg":
@@ -131,10 +133,10 @@ class Publisher:
                 self.log.info("PNG Encoding value must be between 0-9")
         else:
             self.log.info(self.encoding["type"] + "is not supported")
-        return frame    
+        return frame
 
 
-    def resize(self,frame):    
+    def resize(self,frame):
         width, height = self.resolution.split("x")
         frame = cv2.resize(frame, (int(width), int(height)),
                            interpolation=cv2.INTER_AREA)
@@ -144,7 +146,10 @@ class Publisher:
         """
         Stops the publisher thread
         """
-        self.socket .close()
+        for socket in self.sockets:
+            socket.close()
+            if socket._closed == "False":
+                self.log.error("Unable to close socket connection")
         self.stop_ev.set()
 
     def join(self):
@@ -152,4 +157,3 @@ class Publisher:
         Blocks until the publisher thread stops running
         """
         self.thread.join()
-   
