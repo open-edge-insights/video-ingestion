@@ -45,14 +45,13 @@ class Publisher:
         """
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
-        self.stop_ev = threading.Event()
     
     def start(self):
         """
         Starts the publisher thread(s)
         """
-        context = zmq.Context()
-        socket = context.socket(zmq.PUB)
+        self.context = zmq.Context()
+        socket = self.context.socket(zmq.PUB)
         topics = os.environ['PubTopics'].split(",")
         self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
         self.sockets = []
@@ -74,7 +73,7 @@ class Publisher:
             topic config
         """
         thread_id = threading.get_ident()
-        self.log.info("Publisher thread ID: {} started" +  \
+        self.log.info("Publisher thread ID started" +  \
                      " with topic: {} and topic_cfg: {}...".format(thread_id,
                      topic, topic_cfg))
 
@@ -90,7 +89,7 @@ class Publisher:
 
         self.log.info("Publishing to topic: {}...".format(topic))
         
-        while not self.stop_ev.is_set():
+        while True:
             try:
                 data = self.filter_output_queue.get()
                 topic = data[0]
@@ -122,8 +121,8 @@ class Publisher:
                 socket.send_multipart(data, copy=False)
             except Exception as ex:
                 self.log.exception('Error while publishing data: {}'.format(ex))
-            self.log.debug("Published data: {}".format(data))
-        self.log.info("Publisher thread ID: {} stopped" +  \
+            self.log.debug("Published data: {}".format(data[0:2]))
+        self.log.info("Publisher thread ID stopped" +  \
                       " with topic: {} and topic_cfg: {}...".format(thread_id,
                       topic, topic_cfg))
 
@@ -157,9 +156,12 @@ class Publisher:
         """
         Stops the publisher thread
         """
-        for socket in self.sockets:
-            socket.close()
-            if socket._closed == "False":
-                self.log.error("Unable to close socket connection")
-        self.stop_ev.set()
-        self.publisher_threadpool.shutdown(wait=False)
+        try:
+            self.publisher_threadpool.shutdown(wait=False)
+            for socket in self.sockets:
+                socket.close()
+                if socket._closed == "False":
+                    self.log.error("Unable to close socket connection")
+            self.context.term()
+        except Exception as ex:
+            self.log.exception(ex)
