@@ -23,7 +23,6 @@ import logging
 import cv2
 import numpy as np
 from libs.base_filter import BaseFilter
-import threading
 
 
 class Filter(BaseFilter):
@@ -56,16 +55,12 @@ class Filter(BaseFilter):
         """Runs video frames from filter input queue and adds only the key 
         frames to filter output queue based on the filter logic used
         """
-        thread_id = threading.get_ident()
-        self.log.info("Filter thread ID: {} started...".format(thread_id))
         while True:
-            data = self.input_queue.get()
+            metadata, frame = self.input_queue.get()
             if self.training_mode is True:
                 self.count = self.count + 1
-                cv2.imwrite("./frames/"+str(self.count)+".png", data[1])
+                cv2.imwrite("./frames/"+str(self.count)+".numpy", frame)
             else:
                 # Sending Frames to Store
-                self.log.debug("Sending frame. Thread id: {}".format(threading.get_ident()))
-                self.send_data(data)
-        self.log.info("Filter thread ID: {} exited...".format(thread_id))
-        
+                self.log.debug("Sending frame")
+                self.send_data((metadata, frame))

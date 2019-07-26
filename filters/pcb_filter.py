@@ -23,7 +23,6 @@ import logging
 import cv2
 import numpy as np
 from libs.base_filter import BaseFilter
-import threading
 
 """Visual trigger for PCB anomaly detection.
 """
@@ -133,25 +132,18 @@ class Filter(BaseFilter):
         """Runs video frames from filter input queue and adds only the key 
         frames to filter output queue based on the filter logic used
         """
-        thread_id = threading.get_ident()
-        self.log.info("Filter thread ID: {} started...".format(thread_id))
-
         while True:
-            data = self.input_queue.get()
-            topic = data[0]
-            frame = data[2]
+            metadata, frame = self.input_queue.get()
 
             if self.training_mode is True:
                 self.count = self.count + 1
                 cv2.imwrite("./frames/"+str(self.count)+".numpy", frame)
             else:
                 if self.filter_lock is False:
-                    if self._check_frame(data[2]) is True:
+                    if self._check_frame(frame) is True:
                         self.log.debug("Sending frame")
-                        metadata = data[1]
                         metadata["user_data"] = 1
-                        data[1] = metadata
-                        self.send_data(data)
+                        self.send_data((metadata, frame))
                         self.filter_lock = True
                         # Re-initialize frame count during trigger lock to 0
                         self.lock_frame_count = 0
@@ -165,5 +157,5 @@ class Filter(BaseFilter):
                         # Clear trigger lock after timeout
                         # period (measured in frame count here)
                         self.filter_lock = False
-        self.log.info("Filter thread ID: {} exited...".format(thread_id))
+        
         

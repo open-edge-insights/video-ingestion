@@ -73,9 +73,8 @@ class Publisher:
             topic config
         """
         thread_id = threading.get_ident()
-        self.log.info("Publisher thread ID started" +  \
-                     " with topic: {} and topic_cfg: {}...".format(thread_id,
-                     topic, topic_cfg))
+        log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
+        self.log.info(log_msg.format(thread_id, "started", topic, topic_cfg))
 
         mode = topic_cfg[0].lower()
         try:
@@ -91,11 +90,8 @@ class Publisher:
         
         while True:
             try:
-                data = self.filter_output_queue.get()
-                topic = data[0]
-                metadata = data[1]
-                frame = data[2]
-
+                metadata, frame = self.filter_output_queue.get()
+                                
                 self.encoding = metadata["encoding"]
                 self.resolution = metadata["resolution"]
 
@@ -115,16 +111,16 @@ class Publisher:
                 # container to add the `frame blob` as value with
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
-                metaData = json.dumps(metadata)
-                data = [topic.encode(), metaData.encode(), frame]
-
-                socket.send_multipart(data, copy=False)
+                
+                metadata_encoded = json.dumps(metadata).encode()
+                socket.send_multipart([topic.encode(), metadata_encoded, frame],
+                                      copy=False)
+                self.log.debug("Published data: metadata: {}".format(metadata))
             except Exception as ex:
                 self.log.exception('Error while publishing data: {}'.format(ex))
-            self.log.debug("Published data: {}".format(data[0:2]))
-        self.log.info("Publisher thread ID stopped" +  \
-                      " with topic: {} and topic_cfg: {}...".format(thread_id,
-                      topic, topic_cfg))
+            
+        log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
+        self.log.info(log_msg.format(thread_id, "stopped", topic, topic_cfg))
 
     def encode(self,frame):
         if self.encoding["type"] == "jpg":

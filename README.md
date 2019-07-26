@@ -2,20 +2,21 @@
 
 This module ingests video frames from a video source like video file or 
 basler/RTSP/USB camera using gstreamer pipeline and publishes the 
-`[topic, metadata, frame_blob]` to ZMQ bus.
+`(topic, metadata,frame)` tuple to ZMQ bus.
 
 The high level logical flow of VideoIngestion pipeline is as below:
 1. VideoIngestion main program reads the ingestor and filter configuration
-2. After reading, it starts the zmq publisher thread, filter (single
-   or multiple threads per filter configuration) and ingestor thread
-   based on ingestor configuration. It exits whenever an exception occurs
+2. After reading the config, it starts the zmq publisher thread, single/multiple
+   filter threads per filter configuration and ingestor thread
+   based on ingestor configuration. It exits whenever an exception occurs during
+   this startup sequence.
 3. Ingestor thread reads from the ingestor configuration and adds
    data to ingestor queue
 4. Based on the filter configuration, single or multiple filter
-   threads consume ingestor queue and adds the key frames data to
-   publisher queue
+   threads consume ingestor queue and passes only the key frames with its 
+   metadata to publisher queue
 5. Publisher thread reads from the publisher queue and publishes it
-   to the ZMQ bus
+   over the ZMQ bus
     
 ## Configuration
 
@@ -144,7 +145,17 @@ Sample configuration for filters used:
         $ ln -sf VideoIngestion/.dockerignore ../.dockerignore
         $ docker-compose up --build ia_video_ingestion
         ```
-    2. Update EIS VideoIngestion keys(ingestor and filter) in `etcd` and see 
-       if it picks it up automatically without any container restarts
-
-
+    2. Update EIS VideoIngestion keys(ingestor and filter) in `etcd` using UI's
+       like `EtcdKeeper` or programmatically and see if it picks it up 
+       automatically without any container restarts. The important keys here
+       would be `ingestor_name` and `filter_name` which would allow one to
+       choose the available ingestor and filter configs. So whenever the values
+       of above keys or the values of the ones that are pointed by them change, the 
+       VI pipeline restarts automatically.
+       Eg: <br>
+       
+       **Sample Etcd config:**
+       ```
+       "/../ingestor_name" : "pcb_video_file_ingestor"
+       "/../pcb_video_file_ingestor": {...}
+       ```

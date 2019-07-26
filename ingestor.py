@@ -103,9 +103,9 @@ class Ingestor:
                             'encoding': self.encoding,
                             'resolution': self.resolution
                         }
-                        data = [self.topic, metadata, frame]
-                        self.log.debug("Data added to ingestor queue...")
-                        self.ingestor_queue.put(data)
+                        self.ingestor_queue.put((metadata, frame))
+                        self.log.debug("Data: {} added to ingestor queue".format(
+                            metadata))
                     except Exception as ex:
                         self.log.exception('Exception: {}'.format(ex))
                     camFailCount = 0

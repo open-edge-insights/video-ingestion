@@ -57,7 +57,6 @@ class VideoIngestion:
         self.dev_mode = bool(strtobool(os.environ["DEV_MODE"]))
         self.app_name = os.environ["AppName"]
         conf = {
-            "endpoint": "localhost:2379",
             "certFile": "",
             "keyFile": "",
             "trustFile": ""
@@ -74,9 +73,9 @@ class VideoIngestion:
         self.filter_config = self.etcd_cli.GetConfig("/{0}{1}/{2}".format(
             self.app_name, FILTER_KEY_PATH, self.filter_name))
 
-        self.log.debug('ingestor_name: {}, ingestor_config: {}'.format(
+        self.log.info('ingestor_name: {}, ingestor_config: {}'.format(
             self.ingestor_name, self.ingestor_config))
-        self.log.debug('filter_name: {}, filter_config: {}'.format(
+        self.log.info('filter name: {}, filter config: {}'.format(
             self.filter_name, self.filter_config))
 
         self.ingestor_config = json.loads(self.ingestor_config)
