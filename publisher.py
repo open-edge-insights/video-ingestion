@@ -32,9 +32,10 @@ import logging
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
+
 class Publisher:
 
-    def __init__ (self, filter_output_queue):
+    def __init__(self, filter_output_queue):
         """Constructor
 
         Parameters
@@ -45,7 +46,7 @@ class Publisher:
         """
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
-    
+
     def start(self):
         """
         Starts the publisher thread(s)
@@ -58,7 +59,7 @@ class Publisher:
         for topic in topics:
             topic_cfg = os.environ["{}_cfg".format(topic)].split(",")
             self.publisher_threadpool.submit(self.publish, socket, topic,
-                                              topic_cfg)
+                                             topic_cfg)
 
     def publish(self, socket, topic, topic_cfg):
         """
@@ -82,16 +83,17 @@ class Publisher:
                 socket.bind("tcp://{}".format(topic_cfg[1]))
             elif "ipc" in mode:
                 socket.bind("ipc://{}".format(topic_cfg[1]))
-            self.sockets.append(socket)            
+            self.sockets.append(socket)
         except Exception as ex:
             self.log.exception(ex)
+            raise ex
 
         self.log.info("Publishing to topic: {}...".format(topic))
-        
+
         while True:
             try:
                 metadata, frame = self.filter_output_queue.get()
-                                
+
                 self.encoding = metadata["encoding"]
                 self.resolution = metadata["resolution"]
 
@@ -111,14 +113,14 @@ class Publisher:
                 # container to add the `frame blob` as value with
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
-                
+
                 metadata_encoded = json.dumps(metadata).encode()
-                socket.send_multipart([topic.encode(), metadata_encoded, frame],
-                                      copy=False)
+                data = [topic.encode(), metadata_encoded, frame]
+                socket.send_multipart(data, copy=False)
                 self.log.debug("Published data: metadata: {}".format(metadata))
             except Exception as ex:
-                self.log.exception('Error while publishing data: {}'.format(ex))
-            
+                self.log.exception('Error while publishing data:{}'.format(ex))
+
         log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
         self.log.info(log_msg.format(thread_id, "stopped", topic, topic_cfg))
 
@@ -140,7 +142,6 @@ class Publisher:
         else:
             self.log.info(self.encoding["type"] + "is not supported")
         return frame
-
 
     def resize(self,frame):
         width, height = self.resolution.split("x")

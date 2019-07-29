@@ -73,48 +73,54 @@ class VideoIngestion:
         self.filter_config = self.etcd_cli.GetConfig("/{0}{1}/{2}".format(
             self.app_name, FILTER_KEY_PATH, self.filter_name))
 
+        self.ingestor_config = json.loads(self.ingestor_config)
+        self.filter_config = json.loads(self.filter_config)
+
+        self.etcd_cli.RegisterDirWatch("/{0}/".format(self.app_name)
+            , self._on_change_config_callback)
+
+    def _print_config(self):
         self.log.info('ingestor_name: {}, ingestor_config: {}'.format(
             self.ingestor_name, self.ingestor_config))
         self.log.info('filter name: {}, filter config: {}'.format(
             self.filter_name, self.filter_config))
 
-        self.ingestor_config = json.loads(self.ingestor_config)
-        self.filter_config = json.loads(self.filter_config)
-
-        self.etcd_cli.RegisterDirWatch("/{0}/".format(self.app_name)
-            , self.onChangeConfigCB)
-
     def start(self):
         """Start Video Ingestion.
         """
-        self.log.info('=======Starting {}======='.format(self.app_name))
+        log_msg = "======={} {}======="
+        self.log.info(log_msg.format("Starting", self.app_name))
+
+        self._print_config()
+
         queue_size = self.filter_config["queue_size"]
-        self.filter_input_queue = queue.Queue(
+        filter_input_queue = queue.Queue(
             maxsize=queue_size)
-        self.filter_output_queue = queue.Queue(
+        filter_output_queue = queue.Queue(
             maxsize=queue_size)
 
-        self.publisher = Publisher(self.filter_output_queue)
+        self.publisher = Publisher(filter_output_queue)
         self.publisher.start()
 
         self.filter = load_filter(
-            self.filter_name, self.filter_config, self.filter_input_queue, self.filter_output_queue)
+            self.filter_name, self.filter_config, filter_input_queue, filter_output_queue)
         self.filter.start()
 
-        self.ingestor = Ingestor(self.ingestor_config, self.filter_input_queue)
+        self.ingestor = Ingestor(self.ingestor_config, filter_input_queue)
         self.ingestor.start()
-        self.log.info('=======Started {}======='.format(self.app_name))
+        self.log.info(log_msg.format("Started", self.app_name))
 
     def stop(self):
         """ Stop the Video Ingestion.
         """
-        self.log.info('=======Stopping {}======='.format(self.app_name))
+        log_msg = "======={} {}======="
+        self.log.info(log_msg.format("Stopping", self.app_name))
         self.ingestor.stop()
         self.filter.stop()
         self.publisher.stop()
-        self.log.info('=======Stopped {}======='.format(self.app_name))
+        self.log.info(log_msg.format("Stopped", self.app_name))
 
-    def onChangeConfigCB(self, key, value):
+    def _on_change_config_callback(self, key, value):
         """
         Callback method to be called by etcd
 
@@ -147,9 +153,8 @@ class VideoIngestion:
             elif "_ingestor" in key:
                 self.ingestor_name = key.split("/")[3]
                 self.ingestor_config = json.loads(value) # ingestor json config
-        except:
+        except Exception as ex:
             self.log.exception(ex)
-        
         self.stop()
         self.start()
 
