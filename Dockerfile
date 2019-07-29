@@ -39,7 +39,7 @@ RUN wget -O cmake.sh https://github.com/Kitware/CMake/releases/download/v3.13.1/
     ln -s /opt/cmake/bin/cmake /usr/bin/cmake
 
 # Installing opencv
-ENV OPENCV_VERSION 3.4.3
+ENV OPENCV_VERSION 4.1.1
 RUN wget -O opencv.zip https://github.com/Itseez/opencv/archive/${OPENCV_VERSION}.zip
 RUN unzip opencv.zip
 RUN mkdir opencv-${OPENCV_VERSION}/build && cd opencv-${OPENCV_VERSION}/build && cmake -DCMAKE_BUILD_TYPE=Release -DPYTHON3_EXECUTABLE=`which python3.6` \
