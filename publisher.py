@@ -7,8 +7,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in 
+# all copies or substantial portions of the Software.
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -73,25 +73,17 @@ class Publisher:
         topic_cfg: str
             topic config
         """
-        thread_id = threading.get_ident()
-        log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
-        self.log.info(log_msg.format(thread_id, "started", topic, topic_cfg))
-
-        mode = topic_cfg[0].lower()
         try:
-            if "tcp" in mode:
-                socket.bind("tcp://{}".format(topic_cfg[1]))
-            elif "ipc" in mode:
-                socket.bind("ipc://{}".format(topic_cfg[1]))
-            self.sockets.append(socket)
-        except Exception as ex:
-            self.log.exception(ex)
-            raise ex
+            thread_id = threading.get_ident()
+            log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
+            self.log.info(log_msg.format(thread_id, "started", topic, topic_cfg))
 
-        self.log.info("Publishing to topic: {}...".format(topic))
+            mode = topic_cfg[0].lower()
+            self._bind_to_socket(mode, socket, topic_cfg)
 
-        while True:
-            try:
+            self.log.info("Publishing to topic: {}...".format(topic))
+
+            while True:
                 metadata, frame = self.filter_output_queue.get()
 
                 self.encoding = metadata["encoding"]
@@ -118,13 +110,28 @@ class Publisher:
                 data = [topic.encode(), metadata_encoded, frame]
                 socket.send_multipart(data, copy=False)
                 self.log.debug("Published data: metadata: {}".format(metadata))
-            except Exception as ex:
-                self.log.exception('Error while publishing data:{}'.format(ex))
 
-        log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
-        self.log.info(log_msg.format(thread_id, "stopped", topic, topic_cfg))
+            log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
+            self.log.info(log_msg.format(thread_id, "stopped", topic, topic_cfg))
+        except Exception as ex:
+            self.log.exception('Error while publishing data:{}'.format(ex))
+            self.sockets.pop(len(self.sockets) - 1)
+            self.log.info("Rebinding to socket...")
+            # Below re-bind logic is to get aroud with "Socket opertion
+            # on non-socket" issue
+            self._bind_to_socket(mode, socket, topic_cfg)
 
-    def encode(self,frame):
+    def _bind_to_socket(self, mode, socket, topic_cfg):
+        try:
+            if "tcp" in mode:
+                socket.bind("tcp://{}".format(topic_cfg[1]))
+            elif "ipc" in mode:
+                socket.bind("ipc://{}".format(topic_cfg[1]))
+            self.sockets.append(socket)
+        except Exception as ex:
+            raise ex
+
+    def encode(self, frame):
         if self.encoding["type"] == "jpg":
             if self.encoding["level"] in range(0, 101):
                 result, frame = cv2.imencode('.jpg', frame,
@@ -143,7 +150,7 @@ class Publisher:
             self.log.info(self.encoding["type"] + "is not supported")
         return frame
 
-    def resize(self,frame):
+    def resize(self, frame):
         width, height = self.resolution.split("x")
         frame = cv2.resize(frame, (int(width), int(height)),
                            interpolation=cv2.INTER_AREA)

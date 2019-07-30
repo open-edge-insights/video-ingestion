@@ -43,7 +43,7 @@ class Filter(BaseFilter):
             input queue for filter
         output_queue : Queue
             output queue of filter
-        
+
         Returns
         -------
         Filter object
@@ -68,7 +68,7 @@ class Filter(BaseFilter):
         self.training_mode = filter_config.get("training_mode", False)
         self.count = 0
 
-    
+
     def _check_frame(self, frame):
         """Determines if the given frame is the key frame of interest for
         further processing or not
@@ -77,7 +77,7 @@ class Filter(BaseFilter):
         ----------
         frame : numpy array
             frame blob
-        
+
         Returns
         -------
         True if the given frame is a key frame, else False
@@ -106,7 +106,7 @@ class Filter(BaseFilter):
                 (n_left < self.n_left_px) & \
                     (n_right < self.n_right_px):
                 # Find the PCB contour
-                im, contours, hier = cv2.findContours(thresh.copy(),
+                contours, hier = cv2.findContours(thresh.copy(),
                                                       cv2.RETR_EXTERNAL,
                                                       cv2.CHAIN_APPROX_NONE)
                 if len(contours) != 0:
@@ -129,7 +129,7 @@ class Filter(BaseFilter):
         return False
 
     def on_data(self):
-        """Runs video frames from filter input queue and adds only the key 
+        """Runs video frames from filter input queue and adds only the key
         frames to filter output queue based on the filter logic used
         """
         while True:
@@ -157,5 +157,4 @@ class Filter(BaseFilter):
                         # Clear trigger lock after timeout
                         # period (measured in frame count here)
                         self.filter_lock = False
-        
-        
+
