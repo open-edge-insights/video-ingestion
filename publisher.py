@@ -7,7 +7,7 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in 
+# The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -31,6 +31,7 @@ import os
 import logging
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+import eis.msgbus as mb
 
 
 class Publisher:
@@ -46,6 +47,9 @@ class Publisher:
         """
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
+        self.stop_ev = threading.Event()
+        self.resolution = None
+        self.encoding = None
 
     def start(self):
         """
@@ -59,7 +63,7 @@ class Publisher:
         for topic in topics:
             topic_cfg = os.environ["{}_cfg".format(topic)].split(",")
             self.publisher_threadpool.submit(self.publish, socket, topic,
-                                             topic_cfg)
+                                              topic_cfg)
 
     def publish(self, socket, topic, topic_cfg):
         """
@@ -73,31 +77,47 @@ class Publisher:
         topic_cfg: str
             topic config
         """
-        try:
-            thread_id = threading.get_ident()
-            log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
-            self.log.info(log_msg.format(thread_id, "started", topic, topic_cfg))
 
-            mode = topic_cfg[0].lower()
-            self._bind_to_socket(mode, socket, topic_cfg)
+        if "zmq_ipc" == topic_cfg[0]:
+            addr = topic_cfg[1]
+            config= {
+                        "type": topic_cfg[0],
+                        "socket_dir": addr
+                    }
 
-            self.log.info("Publishing to topic: {}...".format(topic))
+        elif "zmq_tcp" == topic_cfg[0]:
+            addr = topic_cfg[1].split(":")
+            host, port = addr
+            config = {
+                        "type": topic_cfg[0],
+                        "zmq_tcp_publish": {
+                            "host": host,
+                            "port": int(port)
+                        }
+                    }
 
-            while True:
+        self.msgbus = mb.MsgbusContext(config)
+        self.publisher = self.msgbus.new_publisher(topic)
+
+        thread_id = threading.get_ident()
+        log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
+        self.log.info(log_msg.format(thread_id, "started", topic, topic_cfg))
+        self.log.info("Publishing to topic: {}...".format(topic))
+
+        while not self.stop_ev.is_set():
+            try:
                 metadata, frame = self.filter_output_queue.get()
-
-                self.encoding = metadata["encoding"]
-                self.resolution = metadata["resolution"]
-
+                if "resolution" in metadata:
+                    self.resolution = metadata["resolution"]
+                if "encoding_type" and "encoding_level" in metadata:
+                    self.encoding = {"type": metadata["encoding_type"],
+                                     "level": metadata["encoding_level"]}
                 if self.resolution is not None:
                     width, height = self.resolution.split("x")
                     frame = self.resize(frame)
-
                 height, width, channel = frame.shape
-
-                if self.encoding is not None:
+                if "encoding_type" and "encoding_level" in metadata:
                     frame = self.encode(frame)
-
                 metadata['height'] = height
                 metadata['width'] = width
                 metadata['channel'] = channel
@@ -105,31 +125,11 @@ class Publisher:
                 # container to add the `frame blob` as value with
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
-
-                metadata_encoded = json.dumps(metadata).encode()
-                data = [topic.encode(), metadata_encoded, frame]
-                socket.send_multipart(data, copy=False)
-                self.log.debug("Published data: metadata: {}".format(metadata))
-
-            log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
-            self.log.info(log_msg.format(thread_id, "stopped", topic, topic_cfg))
-        except Exception as ex:
-            self.log.exception('Error while publishing data:{}'.format(ex))
-            self.sockets.pop(len(self.sockets) - 1)
-            self.log.info("Rebinding to socket...")
-            # Below re-bind logic is to get aroud with "Socket opertion
-            # on non-socket" issue
-            self._bind_to_socket(mode, socket, topic_cfg)
-
-    def _bind_to_socket(self, mode, socket, topic_cfg):
-        try:
-            if "tcp" in mode:
-                socket.bind("tcp://{}".format(topic_cfg[1]))
-            elif "ipc" in mode:
-                socket.bind("ipc://{}".format(topic_cfg[1]))
-            self.sockets.append(socket)
-        except Exception as ex:
-            raise ex
+                self.publisher.publish((metadata, frame.tobytes()))
+            except Exception as ex:
+                self.log.exception('Error while publishing data:{}'.format(ex))
+                log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
+                self.log.info(log_msg.format(thread_id, "stopped", topic, topic_cfg))
 
     def encode(self, frame):
         if self.encoding["type"] == "jpg":

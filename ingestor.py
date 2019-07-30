@@ -99,10 +99,12 @@ class Ingestor:
                         raise Exception("Too many fails. Retry Connection")
                 else:
                     try:
-                        metadata = {
-                            'encoding': self.encoding,
-                            'resolution': self.resolution
-                        }
+                        metadata = {}
+                        if self.encoding:
+                            metadata['encoding_type'] = self.encoding['type']
+                            metadata['encoding_level'] =  self.encoding['level']
+                        if self.resolution:
+                            metadata['resolution'] = self.resolution
                         self.ingestor_queue.put((metadata, frame))
                         self.log.debug("Data: {} added to ingestor queue".format(
                             metadata))
