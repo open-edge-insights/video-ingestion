@@ -7,8 +7,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -28,9 +28,12 @@ import time
 import uuid
 import os
 import logging
+from libs.common.py.util import get_topics_from_env,\
+                                get_messagebus_config_from_env
 
 MAX_CAM_FAIL_COUNT = 10
 MAX_CAM_CONN_RETRY = 5
+
 
 class Ingestor:
 
@@ -46,7 +49,8 @@ class Ingestor:
         self.log = logging.getLogger(__name__)
         self.ingestor_queue = ingestor_queue
         self.video_src = ingestor_config['video_src']
-        self.topic = os.environ['PubTopics'].split(",")[0]
+        topics = get_topics_from_env("pub")
+        self.topic = topics[0]
         self.poll_interval = ingestor_config.get('poll_interval', None)
         self.stop_ev = threading.Event()
         self.loop_video = ingestor_config.get("loop_video", None)
@@ -80,7 +84,7 @@ class Ingestor:
         To read frames from a camera or video source
         """
         camFailCount = 0
-        cap =  self.connect()
+        cap = self.connect()
         while not self.stop_ev.is_set():
             try:
                 ret, frame = cap.read()
@@ -102,12 +106,12 @@ class Ingestor:
                         metadata = {}
                         if self.encoding:
                             metadata['encoding_type'] = self.encoding['type']
-                            metadata['encoding_level'] =  self.encoding['level']
+                            metadata['encoding_level'] = self.encoding['level']
                         if self.resolution:
                             metadata['resolution'] = self.resolution
                         self.ingestor_queue.put((metadata, frame))
-                        self.log.debug("Data: {} added to ingestor queue".format(
-                            metadata))
+                        self.log.debug("Data: {} added to ingestor\
+                                       queue".format(metadata))
                     except Exception as ex:
                         self.log.exception('Exception: {}'.format(ex))
                     camFailCount = 0
@@ -136,7 +140,6 @@ class Ingestor:
         cap.release()
         self.log.info("=====Stopped ingestor thread======")
 
-
     def stop(self):
         """
         Stops the ingestor thread
@@ -148,4 +151,3 @@ class Ingestor:
         Blocks until the ingestor thread stops running
         """
         self.thread.join()
-
