@@ -8,8 +8,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -56,11 +56,11 @@ class VideoIngestion:
             "trustFile": ""
         }
         cfg_mgr = ConfigManager()
-        self.etcd_cli = cfg_mgr.get_config_client("etcd", conf)
+        self.config_client = cfg_mgr.get_config_client("etcd", conf)
         self._read_ingestor_filter_config()
 
-        self.etcd_cli.RegisterDirWatch("/{0}/".format(self.app_name)
-                                       , self._on_change_config_callback)
+        self.config_client.RegisterDirWatch("/{0}/".format(self.app_name),
+                                       self._on_change_config_callback)
 
     def _print_config(self):
         self.log.info('ingestor_config: {}'.format(self.ingestor_config))
@@ -70,7 +70,7 @@ class VideoIngestion:
 
     def _read_ingestor_filter_config(self):
         CONFIG_KEY_PATH = "/config"
-        self.config = self.etcd_cli.GetConfig("/{0}{1}".format(
+        self.config = self.config_client.GetConfig("/{0}{1}".format(
                       self.app_name, CONFIG_KEY_PATH))
 
         self.config = json.loads(self.config)
@@ -102,7 +102,8 @@ class VideoIngestion:
         else:
             filter_output_queue = filter_input_queue  # for `no filter` config
 
-        self.publisher = Publisher(filter_output_queue)
+        self.publisher = Publisher(filter_output_queue,
+                                   self.config_client, self.dev_mode)
         self.publisher.start()
 
         if self.filter_name:

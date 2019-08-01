@@ -30,14 +30,13 @@ import os
 import logging
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
-from libs.common.py.util import get_topics_from_env,\
-                                get_messagebus_config_from_env
+from libs.common.py.util import Util
 import eis.msgbus as mb
 
 
 class Publisher:
 
-    def __init__(self, filter_output_queue):
+    def __init__(self, filter_output_queue, config_client, dev_mode):
         """Constructor
 
         Parameters
@@ -45,42 +44,53 @@ class Publisher:
         filter_output_queue : Queue
             Input queue for publisher (has [topic, metadata, keyframe] data
             entries)
+        config_client : Class Object
+            Used to get keys value from ETCD.
+        dev_mode : Boolean
+            To check whether it is running in production mode or development
+            mode
         """
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
         self.stop_ev = threading.Event()
         self.resolution = None
         self.encoding = None
+        self.config_client = config_client
+        self.dev_mode = dev_mode
 
     def start(self):
         """
         Starts the publisher thread(s)
         """
-        topics = get_topics_from_env("pub")
+        topics = Util.get_topics_from_env("pub")
         self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
+        subscribers = os.environ['Subscribers'].split(",")
         for topic in topics:
-            topic_cfg = get_messagebus_config_from_env(topic, "pub")
-            self.publisher_threadpool.submit(self.publish, topic,
-                                             topic_cfg)
+            msgbus_cfg = Util.get_messagebus_config(topic, "pub",
+                                                    subscribers,
+                                                    self.config_client,
+                                                    self.dev_mode)
 
-    def publish(self, topic, config):
+            self.publisher_threadpool.submit(self.publish, topic,
+                                             msgbus_cfg)
+
+    def publish(self, topic, msgbus_cfg):
         """
         Send the data to the publish topic
         Parameters:
         ----------
         topic: str
             topic name
-        config: str
-            topic config
+        msgbus_cfg: str
+            topic msgbus_cfg
         """
-        # TODO: Need to have same msgbus context when multiple topics are
-        # being published to same endpoint
-        msgbus = mb.MsgbusContext(config)
+
+        msgbus = mb.MsgbusContext(msgbus_cfg)
         publisher = msgbus.new_publisher(topic)
 
         thread_id = threading.get_ident()
-        log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
-        self.log.info(log_msg.format(thread_id, "started", topic, config))
+        log_msg = "Thread ID: {} {} with topic:{} and msgbus_cfg:{}"
+        self.log.info(log_msg.format(thread_id, "started", topic, msgbus_cfg))
         self.log.info("Publishing to topic: {}...".format(topic))
 
         try:
@@ -90,7 +100,7 @@ class Publisher:
                     self.resolution = metadata["resolution"]
                 if "encoding_type" and "encoding_level" in metadata:
                     self.encoding = {"type": metadata["encoding_type"],
-                                    "level": metadata["encoding_level"]}
+                                     "level": metadata["encoding_level"]}
                 if self.resolution is not None:
                     width, height = self.resolution.split("x")
                     frame = self.resize(frame)
@@ -105,13 +115,14 @@ class Publisher:
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
                 publisher.publish((metadata, frame.tobytes()))
-                self.log.debug("Published data: {} on topic: {} with config: {}\
-                               ...".format(metadata, topic, config))
+                self.log.debug("Published data: {} on topic: {} with \
+                               config: {}...".format(metadata, topic,
+                                                     msgbus_cfg))
         except Exception as ex:
             self.log.exception('Error while publishing data:{}'.format(ex))
         finally:
             publisher.close()
-        self.log.info(log_msg.format(thread_id, "stopped", topic, config))
+        self.log.info(log_msg.format(thread_id, "stopped", topic, msgbus_cfg))
 
     def encode(self, frame):
         if self.encoding["type"] == "jpg":
