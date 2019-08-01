@@ -110,6 +110,7 @@ class Publisher:
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
                 self.publisher.publish((metadata, frame.tobytes()))
+                self.log.debug("Published data: {}".format(metadata))
             except Exception as ex:
                 self.log.exception('Error while publishing data:{}'.format(ex))
                 log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
@@ -146,6 +147,7 @@ class Publisher:
         Stops the publisher thread
         """
         try:
+            self.stop_ev.set()
             self.publisher_threadpool.shutdown(wait=False)
             for socket in self.sockets:
                 socket.close()

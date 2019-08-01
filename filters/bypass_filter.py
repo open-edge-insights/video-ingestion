@@ -41,7 +41,7 @@ class Filter(BaseFilter):
             input queue for filter
         output_queue : Queue
             output queue of filter
-       
+
         Returns
         -------
         Filter object
@@ -52,7 +52,7 @@ class Filter(BaseFilter):
         self.count = 0
 
     def on_data(self):
-        """Runs video frames from filter input queue and adds only the key 
+        """Runs video frames from filter input queue and adds only the key
         frames to filter output queue based on the filter logic used
         """
         while True:

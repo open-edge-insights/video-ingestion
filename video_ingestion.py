@@ -36,12 +36,6 @@ from libs.log import configure_logging, LOG_LEVELS
 from libs.ConfigManager.etcd.py.etcd_client import EtcdCli
 from publisher import Publisher
 
-# Etcd paths
-INGESTOR_KEY_PATH = "/ingestor"
-INGESTOR_NAME_PATH = INGESTOR_KEY_PATH + "/ingestor_name"
-FILTER_KEY_PATH = "/filter"
-FILTER_NAME_PATH = FILTER_KEY_PATH + "/filter_name"
-
 
 class VideoIngestion:
 
@@ -61,29 +55,31 @@ class VideoIngestion:
             "keyFile": "",
             "trustFile": ""
         }
-
         self.etcd_cli = EtcdCli(conf)
-        self.ingestor_name = self.etcd_cli.GetConfig("/{0}{1}".format(
-            self.app_name, INGESTOR_NAME_PATH))
-        self.ingestor_config = self.etcd_cli.GetConfig("/{0}{1}/{2}".format(
-            self.app_name, INGESTOR_KEY_PATH, self.ingestor_name))
-
-        self.filter_name = self.etcd_cli.GetConfig("/{0}{1}".format(
-            self.app_name, FILTER_NAME_PATH))
-        self.filter_config = self.etcd_cli.GetConfig("/{0}{1}/{2}".format(
-            self.app_name, FILTER_KEY_PATH, self.filter_name))
-
-        self.ingestor_config = json.loads(self.ingestor_config)
-        self.filter_config = json.loads(self.filter_config)
+        self._read_ingestor_filter_config()
 
         self.etcd_cli.RegisterDirWatch("/{0}/".format(self.app_name)
-            , self._on_change_config_callback)
+                                       , self._on_change_config_callback)
 
     def _print_config(self):
-        self.log.info('ingestor_name: {}, ingestor_config: {}'.format(
-            self.ingestor_name, self.ingestor_config))
-        self.log.info('filter name: {}, filter config: {}'.format(
-            self.filter_name, self.filter_config))
+        self.log.info('ingestor_config: {}'.format(self.ingestor_config))
+        if self.filter_name:
+            self.log.info('filter name: {} filter config: {}'.format(
+                      self.filter_name, self.filter_config))
+
+    def _read_ingestor_filter_config(self):
+        CONFIG_KEY_PATH = "/config"
+        self.config = self.etcd_cli.GetConfig("/{0}{1}".format(
+                      self.app_name, CONFIG_KEY_PATH))
+
+        self.config = json.loads(self.config)
+        self.queue_size = 10  # default queue size for `no filter` config
+        self.ingestor_config = self.config["ingestor"]
+        try:
+            self.filter_config = self.config["filter"]
+            self.filter_name = self.filter_config["name"]
+        except KeyError:
+            self.filter_name = None
 
     def start(self):
         """Start Video Ingestion.
@@ -93,18 +89,27 @@ class VideoIngestion:
 
         self._print_config()
 
-        queue_size = self.filter_config["queue_size"]
         filter_input_queue = queue.Queue(
-            maxsize=queue_size)
-        filter_output_queue = queue.Queue(
-            maxsize=queue_size)
+                                maxsize=self.queue_size)
+
+        if self.filter_name:
+            queue_size = self.filter_config["queue_size"]
+            filter_input_queue = queue.Queue(
+                                    maxsize=queue_size)
+            filter_output_queue = queue.Queue(
+                                    maxsize=queue_size)
+        else:
+            filter_output_queue = filter_input_queue  # for `no filter` config
 
         self.publisher = Publisher(filter_output_queue)
         self.publisher.start()
 
-        self.filter = load_filter(
-            self.filter_name, self.filter_config, filter_input_queue, filter_output_queue)
-        self.filter.start()
+        if self.filter_name:
+            self.filter = load_filter(self.filter_config["name"],
+                                      self.filter_config,
+                                      filter_input_queue,
+                                      filter_output_queue)
+            self.filter.start()
 
         self.ingestor = Ingestor(self.ingestor_config, filter_input_queue)
         self.ingestor.start()
@@ -116,7 +121,9 @@ class VideoIngestion:
         log_msg = "======={} {}======="
         self.log.info(log_msg.format("Stopping", self.app_name))
         self.ingestor.stop()
-        self.filter.stop()
+        if self.filter_name:
+            self.log.info("filter_name: {}".format(self.filter_name))
+            self.filter.stop()
         self.publisher.stop()
         self.log.info(log_msg.format("Stopped", self.app_name))
 
@@ -131,32 +138,14 @@ class VideoIngestion:
         value: str
             etcd value
         """
-        # TODO: To be added:
-        # 1. Add logic to control restart of filter/ingestor or publisher
-        #    alone based on the config change instead of restarting all threads.
         self.log.info("{}:{}".format(key, value))
         try:
-            if "_filter" in value:
-                filter_config = self.etcd_cli.GetConfig("/{0}{1}/{2}".format(
-                    self.app_name, FILTER_KEY_PATH, value))
-                self.filter_name = value
-                self.filter_config = json.loads(filter_config)
-            elif "_filter" in key:
-                self.filter_name = key.split("/")[3]
-                self.filter_config = json.loads(value) # filter json config
-
-            if "_ingestor" in value:
-                ingestor_config = self.etcd_cli.GetConfig("/{0}{1}/{2}".format(
-                    self.app_name, INGESTOR_KEY_PATH, value))
-                self.ingestor_name = value
-                self.ingestor_config = json.loads(ingestor_config)
-            elif "_ingestor" in key:
-                self.ingestor_name = key.split("/")[3]
-                self.ingestor_config = json.loads(value) # ingestor json config
+            self._read_ingestor_filter_config()
+            self.stop()
+            self.start()
         except Exception as ex:
             self.log.exception(ex)
-        self.stop()
-        self.start()
+
 
 def parse_args():
     """Parse command line arguments

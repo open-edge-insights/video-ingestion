@@ -1,8 +1,8 @@
-# VideoIngestion Module
+# `VideoIngestion Module`
 
-This module ingests video frames from a video source like video file or 
-basler/RTSP/USB camera using gstreamer pipeline and publishes the 
-`(topic, metadata,frame)` tuple to ZMQ bus.
+This module ingests video frames from a video source like video file or
+basler/RTSP/USB camera using gstreamer pipeline and publishes the
+`(metadata, frame)` tuple to ZMQ bus.
 
 The high level logical flow of VideoIngestion pipeline is as below:
 1. VideoIngestion main program reads the ingestor and filter configuration
@@ -13,26 +13,55 @@ The high level logical flow of VideoIngestion pipeline is as below:
 3. Ingestor thread reads from the ingestor configuration and adds
    data to ingestor queue
 4. Based on the filter configuration, single or multiple filter
-   threads consume ingestor queue and passes only the key frames with its 
+   threads consume ingestor queue and passes only the key frames with its
    metadata to publisher queue
 5. Publisher thread reads from the publisher queue and publishes it
    over the ZMQ bus
-    
-## Configuration
 
-All the VideoIngestion module configurations (ingestor and filter) are added 
-into etcd (distributed key-value data store) under `AppName` as mentioned in the
-service definition in docker-compose.
+## `Configuration`
 
-### Ingestor config
+All the VideoIngestion module configuration are added into etcd (distributed
+key-value data store) under `AppName` as mentioned in the
+environment section of this app's service definition in docker-compose.
 
-Gstreamer based pipeline is supported for reading from basler/rtsp/usb 
-cameras.using OpenCV directly to read from the video file. We are calling 
-these different video sources.
+If `AppName` is `VideoIngestion`, then the app's config would look like as below
+ for `/VideoIngestion/config` key with `ingestor` and `filter` configs in Etcd:
+```
+{
+        "ingestor": {
+            "video_src": "./test_videos/pcb_d2000.avi",
+            "encoding": {
+                "type": "jpg",
+                "level": 100
+            },
+            "loop_video": "true"
+        },
+        "filter": {
+            "name": "pcb_filter",
+            "queue_size": 10,
+            "max_workers": 5,
+            "training_mode": "false",
+            "n_total_px": 300000,
+            "n_left_px": 1000,
+            "n_right_px": 1000
+        }
+}
+```
 
-Sample Ingestor configuration for each of the video sources below:
-1. Video file (No Gstreamer pipeline involved before reading from OpenCV read
-   API)
+> **NOTE**: The above `ingestor` and `filter` config correspond to PCB demo
+> usecase
+
+
+### `Ingestor config`
+
+Gstreamer based pipeline is supported for reading from basler/rtsp/usb
+cameras through OpenCV.
+
+Sample Ingestor configuration(forms the `ingestor` value in app's config) for
+each of the video sources below:
+
+1. **Video file** (No Gstreamer pipeline involved before reading from OpenCV
+   read API)
    ```
    {
         "video_src": "./test_videos/pcb_d2000.avi",
@@ -40,12 +69,14 @@ Sample Ingestor configuration for each of the video sources below:
             "type": "jpg",
             "level": 100
         },
-        "resolution": "1280x720",
         "loop_video": "true"
    }
-
    ```
-2. Basler camera
+   **NOTE**: Change the "video_src" to classification sample
+             `./test_videos/classification_vid.avi` for classification sample
+             use case with `Bypass filter`
+
+2. **Basler camera**
    ```
     {
         "video_src": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink",
@@ -53,11 +84,39 @@ Sample Ingestor configuration for each of the video sources below:
             "type": "jpg",
             "level": 100
         },
-        "resolution": "1280x720",
-        "poll_interval": 0.2        
+        "poll_interval": 0.2
     }
    ```
-3. RTSP cvlc based camera simulation
+   --------
+   **NOTE**:
+   * In case multiple Basler cameras are connected use serial parameter to
+     specify the camera to be used in the gstreamer pipeline in the video
+     config file for camera mode. If multiple cameras are connected and the
+     `serial` parameter is not specified then the source plugin by default
+     connects to camera with device_index=0.
+
+     **Eg**: `video_src` value to connect to basler camera with
+     serial number `22573664`:
+     `"video_src":"pylonsrc serial=22573664 imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+
+   * In case frame read is failing when multiple basler cameras are used, use
+     the `interpacketdelay` property to increase the delay between the
+     transmission of each packet for the selected stream channel.
+     Depending on the number of cameras, use an appropriate delay can be set.
+
+     **Eg**: `video_src` value to increase the interpacket delay to 3000(default
+     value for interpacket delay is 1500):
+     `"video_src":"pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
+
+   * To work with monochrome Basler camera, please change the
+     image format to `mono8` in the Pipeline.
+
+     **Eg**:`video_src` value to connect to monochrome basler camera with serial
+     number 22773747 :
+     `"video_src":"pylonsrc serial=22773747 imageformat=mono8 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+
+    ---
+3. **RTSP cvlc based camera simulation**
    ```
     {
         "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
@@ -65,11 +124,18 @@ Sample Ingestor configuration for each of the video sources below:
             "type": "jpg",
             "level": 100
         },
-        "resolution": "1280x720",
-        "poll_interval": 0.2        
+        "poll_interval": 0.2
     }
    ```
-4. RTSP
+   ------
+   **NOTE**:
+   * Install VLC if not installed already: `sudo apt install vlc`
+   * In order to use the RTSP stream from cvlc, the RTSP server
+     must be started using VLC with the following command:
+     `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://localhost:8554/}' --loop --sout-keep`
+   ------
+
+4. **RTSP camera**
    ```
     {
         "video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
@@ -77,12 +143,25 @@ Sample Ingestor configuration for each of the video sources below:
             "type": "jpg",
             "level": 100
         },
-        "resolution": "1280x720",
-        "poll_interval": 0.2        
+        "poll_interval": 0.2
     }
 
    ```
-5. USB
+   ------
+   **NOTE**:
+   * For working both with simulated RTSP server via cvlc or direct streaming
+     from RTSP camera, we can use the below Gstreamer MediaSDK parsers and
+     decoders based on the input stream type
+     **Eg**: parsers and decoders:
+      * parseh264parse !  mfx264dec
+      * h265parse ! mfxhevcdec
+      * mfxmpegvideoparse ! mfxmpeg2dec
+     **NOTE**: If running on older systems where we don't have hardware media
+     decoders, the above parsers and decoders may not work. In those cases,
+     one can use `h24parse | avdec_h2 4` which is a software decoder.
+   ------
+
+5. **USB camera**
    ```
     {
         "video_src": "v4l2src! videoconvert ! appsink",
@@ -90,26 +169,48 @@ Sample Ingestor configuration for each of the video sources below:
             "type": "jpg",
             "level": 100
         },
-        "resolution": "1280x720",
-        "poll_interval": 0.2        
+        "poll_interval": 0.2
     }
    ```
+   -------
+   **NOTE**:
+   * In case, multiple USB cameras are connected specify the
+     camera using the `device` property in the configuration file.
+     Eg:
+     `"video_src": "v4l2src device=/dev/video0 ! videoconvert ! appsink"`
+   -------
 
-[TODO: Add camera related configurations and update the possible values for 
-each of the keys used above]
+#### `Detailed description on each of the keys used`
 
-### Filter config
+|  Key	| Description 	| Possible Values  	| Required/Optional	|
+|---	|---	|---	|---	|
+|  video_src 	|   Video source	| Video file gstreamer pipeline 	|   Required	|
+|  encoding 	|   Encodes the video frame	|   Supported encoding types: `jpg` or `png`. For `jpg`, encoding level is between `0-100` and for `png`, it's `0-9` | Optional
+|  poll_interval	|  Unit is `seconds`. Sets the ingestion speed of frames from camera. Essentially it determines the number of ingested frames from camera per second i.e., fps read from camera 	| floating number  	| Optional  	|
+|  resolution	|  Used for resizing of input frames | width x height	| Optional  	|
+|  loop_video	|  Would loop through the video file | "true" or "false"	| Optional (By default, it's false) |
 
-The Filter (user defined function) is responsible for doing pre-processing of the 
+
+### `Filter config`
+
+The Filter (user defined function) is responsible for doing pre-processing of the
 video frames. It uses the filter congiruation to do the selection of key frames
-(frames of interest for further processing)
+(frames of interest for further processing).
 
-Sample configuration for filters used:
-1. PCB filter
+Please note if no `filter` key is in the app's config, then it's has good has
+running the VI(VideoIngestion) pipeline without any filter thread/s.
+
+Sample configuration(forms the `filter` value in app's config) for filters used:
+1. **PCB filter**
+
+   Works well with all PCB video file ingestors. To work with physical camera,
+   proper setup is required with good lighting conditions. Proper training and
+   tweaking filter and classifier logic may be required.
    ```
+
     {
-        "input_queue_size": 10,
-        "output_queue_size": 10,
+        "name": "pcb_filter",
+        "queue_size": 10,
         "max_workers": 5,
         "training_mode": "false",
         "n_total_px": 300000,
@@ -117,20 +218,39 @@ Sample configuration for filters used:
         "n_right_px": 1000
     }
    ```
-2. Bypass filter
+2. **Bypass filter**
+
+   Works well with PCB or sample classfication video file ingestor.
    ```
     {
-        "input_queue_size": 10,
-        "output_queue_size": 10,
+        "name": "bypass_filter",
+        "queue_size": 10,
         "max_workers": 5,
         "training_mode": "false"
     }
    ```
 
-[TODO: Add filter related configuration details]
+**Sample filters code**
 
 
-## Installation
+|  File	| Description 	| Link  	|
+|---	|---	|---	|
+| base_filter.py | Base class for all filters | [Link](..libs/base_filter.py) |
+| pcb_filter.py  | PCB Demo filter | [Link](filters/pcb_filter.py) |
+| bypass_filter.py | Bypass filter | [Link](filters/bypass_filter.py) |
+
+#### `Detailed description on each of the keys used`
+
+|  Key	| Description 	| Possible Values  	| Required/Optional	|
+|---	|---	|---	|---	|
+|  name 	|   File name of the filter	| "pcb_filter" or "bypass_filter" |   Required	|
+|  queue_size 	|   Determines the size of the input and output filter queue	| any value that suits the platform	resources |   Required	|
+|  max_workers 	|   Number of threads to perform filter operation	|   any value that suits the platform resources  | Required |
+|  training_mode |  If "true", used to capture images for training and building model purpose	| "true" or "false"  	| Optional (By default, it's false) |
+
+**Note**: The other keys used are specific to filter usecase
+
+## `Installation`
 
 * Follow [Etcd/README.md](../Etcd/README.md) to have EIS pre-loaded data in
   etcd
@@ -145,17 +265,6 @@ Sample configuration for filters used:
         $ ln -sf VideoIngestion/.dockerignore ../.dockerignore
         $ docker-compose up --build ia_video_ingestion
         ```
-    2. Update EIS VideoIngestion keys(ingestor and filter) in `etcd` using UI's
-       like `EtcdKeeper` or programmatically and see if it picks it up 
-       automatically without any container restarts. The important keys here
-       would be `ingestor_name` and `filter_name` which would allow one to
-       choose the available ingestor and filter configs. So whenever the values
-       of above keys or the values of the ones that are pointed by them change, the 
-       VI pipeline restarts automatically.
-       Eg: <br>
-       
-       **Sample Etcd config:**
-       ```
-       "/../ingestor_name" : "pcb_video_file_ingestor"
-       "/../pcb_video_file_ingestor": {...}
-       ```
+    2. Update EIS VideoIngestion config key value in `etcd` using UI's
+       like `EtcdKeeper` or programmatically and see if it picks it up
+       automatically without any container restarts.
