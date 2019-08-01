@@ -197,8 +197,11 @@ The Filter (user defined function) is responsible for doing pre-processing of th
 video frames. It uses the filter congiruation to do the selection of key frames
 (frames of interest for further processing).
 
-Please note if no `filter` key is in the app's config, then it's has good has
-running the VI(VideoIngestion) pipeline without any filter thread/s.
+------
+**NOTE**: Please note if no `filter` key is in the app's config, then it's as
+          good has running the VI(VideoIngestion) pipeline without any
+          filter thread/s.
+------
 
 Sample configuration(forms the `filter` value in app's config) for filters used:
 1. **PCB filter**

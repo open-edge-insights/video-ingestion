@@ -18,7 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import zmq
 import sys
 import os
 import numpy as np
@@ -57,45 +56,41 @@ class Publisher:
         """
         Starts the publisher thread(s)
         """
-        self.context = zmq.Context()
-        socket = self.context.socket(zmq.PUB)
         topics = get_topics_from_env("pub")
         self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
-        self.sockets = []
         for topic in topics:
             topic_cfg = get_messagebus_config_from_env(topic, "pub")
-            self.publisher_threadpool.submit(self.publish, socket, topic,
+            self.publisher_threadpool.submit(self.publish, topic,
                                              topic_cfg)
 
-    def publish(self, socket, topic, config):
+    def publish(self, topic, config):
         """
         Send the data to the publish topic
         Parameters:
         ----------
-        socket: ZMQ socket
-            socket instance
         topic: str
             topic name
         config: str
             topic config
         """
-
-        self.msgbus = mb.MsgbusContext(config)
-        self.publisher = self.msgbus.new_publisher(topic)
+        # TODO: Need to have same msgbus context when multiple topics are
+        # being published to same endpoint
+        msgbus = mb.MsgbusContext(config)
+        publisher = msgbus.new_publisher(topic)
 
         thread_id = threading.get_ident()
         log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
         self.log.info(log_msg.format(thread_id, "started", topic, config))
         self.log.info("Publishing to topic: {}...".format(topic))
 
-        while not self.stop_ev.is_set():
-            try:
+        try:
+            while not self.stop_ev.is_set():
                 metadata, frame = self.filter_output_queue.get()
                 if "resolution" in metadata:
                     self.resolution = metadata["resolution"]
                 if "encoding_type" and "encoding_level" in metadata:
                     self.encoding = {"type": metadata["encoding_type"],
-                                     "level": metadata["encoding_level"]}
+                                    "level": metadata["encoding_level"]}
                 if self.resolution is not None:
                     width, height = self.resolution.split("x")
                     frame = self.resize(frame)
@@ -109,13 +104,14 @@ class Publisher:
                 # container to add the `frame blob` as value with
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
-                self.publisher.publish((metadata, frame.tobytes()))
-                self.log.debug("Published data: {}".format(metadata))
-            except Exception as ex:
-                self.log.exception('Error while publishing data:{}'.format(ex))
-                log_msg = "Thread ID: {} {} with topic:{} and topic_cfg:{}"
-                self.log.info(log_msg.format(thread_id, "stopped",
-                                             topic, config))
+                publisher.publish((metadata, frame.tobytes()))
+                self.log.debug("Published data: {} on topic: {} with config: {}\
+                               ...".format(metadata, topic, config))
+        except Exception as ex:
+            self.log.exception('Error while publishing data:{}'.format(ex))
+        finally:
+            publisher.close()
+        self.log.info(log_msg.format(thread_id, "stopped", topic, config))
 
     def encode(self, frame):
         if self.encoding["type"] == "jpg":
@@ -149,10 +145,5 @@ class Publisher:
         try:
             self.stop_ev.set()
             self.publisher_threadpool.shutdown(wait=False)
-            for socket in self.sockets:
-                socket.close()
-                if socket._closed == "False":
-                    self.log.error("Unable to close socket connection")
-            self.context.term()
         except Exception as ex:
             self.log.exception(ex)

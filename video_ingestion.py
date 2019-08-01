@@ -75,10 +75,10 @@ class VideoIngestion:
         self.config = json.loads(self.config)
         self.queue_size = 10  # default queue size for `no filter` config
         self.ingestor_config = self.config["ingestor"]
-        try:
-            self.filter_config = self.config["filter"]
-            self.filter_name = self.filter_config["name"]
-        except KeyError:
+        self.filter_config = self.config.get("filter", None)
+        if self.filter_config:
+            self.filter_name = self.filter_config.get("name", None)
+        else:
             self.filter_name = None
 
     def start(self):
@@ -121,7 +121,7 @@ class VideoIngestion:
         log_msg = "======={} {}======="
         self.log.info(log_msg.format("Stopping", self.app_name))
         self.ingestor.stop()
-        if self.filter_name:
+        if hasattr(self, "filter"):
             self.log.info("filter_name: {}".format(self.filter_name))
             self.filter.stop()
         self.publisher.stop()
