@@ -33,7 +33,7 @@ from distutils.util import strtobool
 from ingestor import Ingestor
 from libs.base_filter import load_filter
 from libs.log import configure_logging, LOG_LEVELS
-from libs.ConfigManager.etcd.py.etcd_client import EtcdCli
+from libs.ConfigManager import ConfigManager
 from publisher import Publisher
 
 
@@ -55,7 +55,8 @@ class VideoIngestion:
             "keyFile": "",
             "trustFile": ""
         }
-        self.etcd_cli = EtcdCli(conf)
+        cfg_mgr = ConfigManager()
+        self.etcd_cli = cfg_mgr.get_config_client("etcd", conf)
         self._read_ingestor_filter_config()
 
         self.etcd_cli.RegisterDirWatch("/{0}/".format(self.app_name)
