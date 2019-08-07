@@ -19,93 +19,272 @@ RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon
 
 # Installing python boost dependencies
 RUN apt-get update && \
-    apt-get install -y libboost-python-dev
+    apt-get install -y libboost-python-dev unzip
 
 ENV PYLON_CAMEMU 1
 # Adding gstreamer capabilities
-ENV TERM xterm
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get -y install curl unzip vim wget gcc libjpeg8-dev libtiff5-dev libpng-dev \
-    libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev \
-    libsm6 libxext6 libxrender-dev libgstreamer1.0-0 gstreamer1.0-plugins-base \
-    libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libudev-dev libwayland-dev libglfw3-dev \
-    libgles2-mesa-dev libgstreamer-plugins-bad1.0-dev git dh-autoreconf autoconf libtool libdrm-dev \
-    xorg xorg-dev openbox libx11-dev libgl1-mesa-glx libgl1-mesa-dev
+ENV TERM=xterm \
+    DEBIAN_FRONTEND=noninteractive
 RUN apt -y remove cmake
-#Install cmake
-RUN wget -O cmake.sh https://github.com/Kitware/CMake/releases/download/v3.13.1/cmake-3.13.1-Linux-x86_64.sh && \
-    chmod 777 cmake.sh && \
-    mkdir /opt/cmake && \
-    ./cmake.sh --skip-license --prefix=/opt/cmake && \
-    ln -s /opt/cmake/bin/cmake /usr/bin/cmake
 
-# Installing opencv
-ENV OPENCV_VERSION 4.1.1
-RUN wget -O opencv.zip https://github.com/Itseez/opencv/archive/${OPENCV_VERSION}.zip
-RUN unzip opencv.zip
-RUN mkdir opencv-${OPENCV_VERSION}/build && cd opencv-${OPENCV_VERSION}/build && cmake -DCMAKE_BUILD_TYPE=Release -DPYTHON3_EXECUTABLE=`which python3.6` \
-	-DPYTHON_DEFAULT_EXECUTABLE=`which python3.6` -DENABLE_PRECOMPILED_HEADERS=OFF -DCMAKE_CXX_FLAGS=-std=c++11 -D WITH_GSTREAMER=ON ..
-RUN cd opencv-${OPENCV_VERSION}/build && make -j$(nproc)
-RUN cd opencv-${OPENCV_VERSION}/build && make install
-# gmmlib
-RUN git clone https://github.com/intel/gmmlib.git && cd gmmlib && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
-# libva
-RUN mkdir /opt/src
-RUN cd /opt/src && \
-    curl -o libva-master.zip -sSL https://github.com/intel/libva/archive/master.zip && \
-    unzip libva-master.zip && \
-    cd libva-master && \
-    ./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu && \
+# COMMON BUILD TOOLS
+RUN apt-get install -y build-essential \
+    autoconf make pciutils cpio libtool lsb-release \
+    ca-certificates pkg-config bison flex libcurl4-gnutls-dev zlib1g-dev
+
+# Install automake, use version 1.14 on CentOS
+ARG AUTOMAKE_VER=1.14
+ARG AUTOMAKE_REPO=https://ftp.gnu.org/pub/gnu/automake/automake-${AUTOMAKE_VER}.tar.xz
+    RUN apt-get install -y -q automake
+
+# Build NASM
+ARG NASM_VER=2.13.03
+ARG NASM_REPO=https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VER}/nasm-${NASM_VER}.tar.bz2
+RUN wget ${NASM_REPO} && \
+    tar -xaf nasm* && \
+    cd nasm-${NASM_VER} && \
+    ./autogen.sh && \
+    ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu && \
     make -j$(nproc) && \
     make install
 
-RUN cd /opt/src && \
-    curl -sSLO https://www.samba.org/ftp/ccache/ccache-3.2.8.tar.bz2 && \
-    tar xf ccache-3.2.8.tar.bz2 && \
-    cd ccache-3.2.8 && \
-    ./configure --prefix=/usr && \
+# Build YASM
+ARG YASM_VER=1.3.0
+ARG YASM_REPO=https://www.tortall.net/projects/yasm/releases/yasm-${YASM_VER}.tar.gz
+RUN wget -O - ${YASM_REPO} | tar xz && \
+    cd yasm-${YASM_VER} && \
+    sed -i "s/) ytasm.*/)/" Makefile.in && \
+    ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu && \
     make -j$(nproc) && \
     make install
 
-RUN mkdir -p /usr/lib/ccache && \
-    cd /usr/lib/ccache && \
-    ln -sf /usr/bin/ccache gcc && \
-    ln -sf /usr/bin/ccache g++ && \
-    ln -sf /usr/bin/ccache cc && \
-    ln -sf /usr/bin/ccache c++ && \
-    ln -sf /usr/bin/ccache clang && \
-    ln -sf /usr/bin/ccache clang++ && \
-    ln -sf /usr/bin/ccache clang-4.0 && \
-    ln -sf /usr/bin/ccache clang++-4.0
-ENV PATH /usr/lib/ccache:$PATH
-# VAAPI driver
-RUN git clone https://github.com/intel/media-driver.git && cd media-driver && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
-# Media SDK
-RUN git clone https://github.com/Intel-Media-SDK/MediaSDK.git msdk && cd msdk && mkdir build && cd build && cmake -DENABLE_OPENCL=OFF .. && make -j$(nproc) && make install
-# gstreamer-media-sdk
-RUN git clone https://github.com/intel/gstreamer-media-SDK.git 
-RUN sed -i "/^[ ]*parsers/i    /opt/intel/mediasdk/include/mfx" gstreamer-media-SDK/CMakeLists.txt 
-RUN sed -i "s/libmfx.a/libmfx.so/" gstreamer-media-SDK/cmake/FindMediaSDK.cmake 
-RUN cd /opt/intel/mediasdk/lib/ && mkdir lin_x64 && cd lin_x64 && ln -s ../* . 
-RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
+# Build x264
+ARG X264_VER=stable
+ARG X264_REPO=https://github.com/mirror/x264
+
+RUN git clone ${X264_REPO} && \
+    cd x264 && \
+    git checkout ${X264_VER} && \
+    ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu --enable-shared && \
+    make -j$(nproc) && \
+    make install DESTDIR="/home/build" && \
+    make install
+
+# Build x265
+ARG X265_VER=2.9
+ARG X265_REPO=https://github.com/videolan/x265/archive/${X265_VER}.tar.gz
+
+RUN apt-get install -y libnuma-dev
+
+RUN wget -O - ${X265_REPO} | tar xz && mv x265-${X265_VER} x265 && \
+    cd x265/build/linux && \
+    cmake -DBUILD_SHARED_LIBS=ON -DENABLE_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr -DLIB_INSTALL_DIR=/usr/lib/x86_64-linux-gnu ../../source && \
+    make -j$(nproc) && \
+    make install DESTDIR="/home/build" && \
+    make install
+
+# Fetch SVT-HEVC
+ARG SVT_HEVC_VER=20a47b0d904e9d99e089d93d7c33af92788cbfdb
+ARG SVT_HEVC_REPO=https://github.com/intel/SVT-HEVC
+
+RUN git clone ${SVT_HEVC_REPO} && \
+    cd SVT-HEVC/Build/linux && \
+    git checkout ${SVT_HEVC_VER} && \
+    mkdir -p ../../Bin/Release && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu -DCMAKE_ASM_NASM_COMPILER=yasm ../.. && \
+    make -j$(nproc) && \
+    make install DESTDIR=/home/build && \
+    make install
+
+# Build libdrm
+ARG LIBDRM_VER=2.4.96
+ARG LIBDRM_REPO=https://dri.freedesktop.org/libdrm/libdrm-${LIBDRM_VER}.tar.gz
+
+RUN apt-get install -y libpciaccess-dev
+
+RUN wget -O - ${LIBDRM_REPO} | tar xz && \
+    cd libdrm-${LIBDRM_VER} && \
+    ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu && \
+    make -j$(nproc) && \
+    make install DESTDIR=/home/build && \
+    make install ;
+
+RUN apt-get install -y libx11-dev \
+    xorg-dev \
+    libgl1-mesa-dev \
+    openbox
+
+# Build Intel(R) Media SDK
+ARG MSDK_REPO=https://github.com/Intel-Media-SDK/MediaSDK/releases/download/intel-mediasdk-19.1.0/MediaStack.tar.gz
+
+RUN wget -O - ${MSDK_REPO} | tar xz && \
+    cd MediaStack && \
+    cp -r opt/ /home/build && \
+    cp -r etc/ /home/build && \
+    cp -a opt/. /opt/ && \
+    cp -a etc/. /opt/ && \
+    ldconfig
+
+ENV LIBVA_DRIVERS_PATH=/opt/intel/mediasdk/lib64
+ENV LIBVA_DRIVER_NAME=iHD
+ENV PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/intel/mediasdk/lib64/pkgconfig
+ENV GST_VAAPI_ALL_DRIVERS=1
+ENV LIBRARY_PATH=/usr/lib
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/mediasdk/lib64
+
+# clinfo needs to be installed after build directory is copied over
+RUN mkdir neo && cd neo && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-core_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-opencl_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb && \
+    dpkg -i *.deb && \
+    dpkg-deb -x intel-gmmlib_18.4.1_amd64.deb /home/build/ && \
+    dpkg-deb -x intel-igc-core_18.50.1270_amd64.deb /home/build/ && \
+    dpkg-deb -x intel-igc-opencl_18.50.1270_amd64.deb /home/build/ && \
+    dpkg-deb -x intel-opencl_19.04.12237_amd64.deb /home/build/ && \
+    dpkg-deb -x intel-ocloc_19.04.12237_amd64.deb /home/build/
+
+RUN apt-get install -y \
+    libusb-1.0-0-dev \
+    libboost-all-dev \
+    libgtk-3-dev \
+    python-yaml
+
+# Build the gstreamer core
+ARG GST_VER=1.16.0
+ARG GST_REPO=https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-${GST_VER}.tar.xz
+
+RUN apt-get install -y libglib2.0-dev \
+    gobject-introspection \
+    libgirepository1.0-dev \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    autopoint
+
+RUN wget -O - ${GST_REPO} | tar xJ && \
+    cd gstreamer-${GST_VER} && \
+    ./autogen.sh \
+    --prefix=/usr \
+    --libdir=/usr/lib/x86_64-linux-gnu \
+    --libexecdir=/usr/lib/x86_64-linux-gnu \
+    --enable-shared \
+    --enable-introspection \
+    --disable-examples  \
+    --disable-gtk-doc && \
+    make -j $(nproc) && \
+    make install DESTDIR=/home/build && \
+    make install;
+
+RUN apt-get install -y libxrandr-dev \
+    libegl1-mesa-dev \
+    bison \
+    flex \
+    libudev-dev
+
+# Build the gstreamer plugin base
+ARG GST_PLUGIN_BASE_REPO=https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-${GST_VER}.tar.xz
+
+RUN apt-get install -y libxv-dev \
+    libvisual-0.4-dev \
+    libtheora-dev \
+    libglib2.0-dev \
+    libasound2-dev \
+    libcdparanoia-dev \
+    libgl1-mesa-dev \
+    libpango1.0-dev
+
+RUN wget -O - ${GST_PLUGIN_BASE_REPO} | tar xJ && \
+    cd gst-plugins-base-${GST_VER} && \
+    ./autogen.sh \
+    --prefix=/usr \
+    --libdir=/usr/lib/x86_64-linux-gnu \
+    --libexecdir=/usr/lib/x86_64-linux-gnu \
+    --enable-introspection \
+    --enable-shared \
+    --disable-examples  \
+    --disable-gtk-doc && \
+    make -j $(nproc) && \
+    make install DESTDIR=/home/build && \
+    make install
+
+# Build the gstreamer plugin bad set
+ARG GST_PLUGIN_BAD_REPO=https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-${GST_VER}.tar.xz
+
+RUN apt-get install -y libssl-dev
+
+RUN wget -O - ${GST_PLUGIN_BAD_REPO} | tar xJ && \
+    cd gst-plugins-bad-${GST_VER} && \
+    ./autogen.sh \
+    --prefix=/usr \
+    --libdir=/usr/lib/x86_64-linux-gnu \
+    --libexecdir=/usr/lib/x86_64-linux-gnu \
+    --enable-shared \
+    --disable-examples  \
+    --disable-gtk-doc && \
+    cd gst-libs/gst/codecparsers/ && make && make install DESTDIR=/home/build && make install && cd ../../../ \
+    cd gst/videoparsers && make && make install DESTDIR=/home/build && make install
 
 # Adding Gstreamer Plugin Installation Dependencies
-RUN apt-get -y install automake gstreamer1.0-tools
+RUN apt-get -y install automake
 COPY basler-source-plugin ./basler-source-plugin
 COPY install_gstreamerplugins.sh .
-RUN chmod 777 install_gstreamerplugins.sh . 
+RUN chmod 777 install_gstreamerplugins.sh .
 RUN ./install_gstreamerplugins.sh ${EIS_UID} /EIS
 
-# Set graphics driver ownership
-RUN rm /usr/lib/x86_64-linux-gnu/libva.so && \
-    ln -s /usr/lib/x86_64-linux-gnu/libva.so.2.600.0 /usr/lib/x86_64-linux-gnu/libva.so && \
-    chown ${EIS_UID} /usr/lib/x86_64-linux-gnu/libva.so.2.600.0 && \
-    chown ${EIS_UID} /usr/lib/x86_64-linux-gnu/libva.so
+# Build gstreamer plugin for svt
+RUN cd SVT-HEVC/gstreamer-plugin && \
+    cmake . && \
+    make -j$(nproc) && \
+    make install DESTDIR=/home/build && \
+    make install
+
+# Build gstreamer plugin vaapi
+ARG GST_PLUGIN_VAAPI_REPO=https://gstreamer.freedesktop.org/src/gstreamer-vaapi/gstreamer-vaapi-${GST_VER}.tar.xz
+
+RUN wget -O - ${GST_PLUGIN_VAAPI_REPO} | tar xJ && \
+    cd gstreamer-vaapi-${GST_VER} && \
+     ./autogen.sh \
+        --prefix=/usr \
+        --libdir=/usr/local/lib/gstreamer-1.0 \
+        --libexecdir=/usr/local/lib/gstreamer-1.0 \
+        --libdir=/usr/lib/x86_64-linux-gnu \
+        --libexecdir=/usr/lib/x86_64-linux-gnu \
+        --enable-shared \
+        --disable-examples \
+        --disable-gtk-doc  && \
+     make -j $(nproc) && \
+     make install DESTDIR=/home/build && \
+     make install
+
+RUN apt-get install -y \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev
+
+RUN apt-get install -y gtk-doc-tools
+
+ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
+
+# OpenVINO install
+RUN apt-get install -y libpng-dev \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libglib2.0-dev \
+    cpio \
+    lsb-release
+
+ENV HOME /EIS
+COPY l_openvino_toolkit*  ${HOME}/openvino_toolkit/
+RUN cd ${HOME}/openvino_toolkit && \
+    sed -i -e 's/^ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
+    ./install.sh -s silent.cfg --ignore-cpu
 
 # Installing dependent python modules
 COPY vi_requirements.txt .
 RUN pip3.6 install -r vi_requirements.txt && \
-    rm -rf vi_requirements.txt 
+    rm -rf vi_requirements.txt
 
 ENV PYTHONPATH ${PYTHONPATH}:.
 
@@ -138,7 +317,5 @@ ENV DEBIAN_FRONTEND="noninteractive" \
 
 # Adding project depedency modules
 COPY . ./VideoIngestion/
-
-ENTRYPOINT ["python3.6", "VideoIngestion/video_ingestion.py"]
+ENTRYPOINT ["VideoIngestion/vi_start.sh"]
 HEALTHCHECK NONE
-

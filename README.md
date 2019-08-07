@@ -139,7 +139,7 @@ each of the video sources below:
 3. **RTSP cvlc based camera simulation**
    ```
     {
-        "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
+        "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink",
         "encoding": {
             "type": "jpg",
             "level": 100
@@ -158,7 +158,7 @@ each of the video sources below:
 4. **RTSP camera**
    ```
     {
-        "video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! mfxdecode ! videoconvert ! appsink",
+        "video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink",
         "encoding": {
             "type": "jpg",
             "level": 100
@@ -185,7 +185,7 @@ each of the video sources below:
 5. **USB camera**
    ```
     {
-        "video_src": "v4l2src! videoconvert ! appsink",
+        "video_src": "v4l2src ! videoconvert ! appsink",
         "encoding": {
             "type": "jpg",
             "level": 100

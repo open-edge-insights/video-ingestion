@@ -8,17 +8,16 @@
 
 gstreamer_version=$(gst-inspect-1.0 --version | grep -Po "(?<=GStreamer )([0-9]|\.)*(?=\s|$)")
 WORK_DIR=$2
-
 echo "Building Gstreamer Plugins For Gstreamer Version : " $gstreamer_version
 echo "Cloning Good Plugins"
 cd $WORK_DIR && git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-good.git
 
-#Cloning Common gstreamer dependency file for Gstreamer 
+# Cloning Common gstreamer dependency file for Gstreamer 
 cd gst-plugins-good/ && git clone https://gitlab.freedesktop.org/gstreamer/common.git
 
 echo "Switching Plugin Branch to Gstreamer Version : " $gstreamer_version
 git checkout $gstreamer_version
-cd $WORK_DIR/gst-plugins-good/ && chown -R $1 ../gst-plugins-good/
+cd $WORK_DIR/gst-plugins-good/
 
 echo "Generating Libraries"
 set +e
@@ -39,15 +38,17 @@ cd $WORK_DIR/gst-plugins-good/gst/udp && make && make install
 
 echo "Cloning Bad Plugins"
 cd $WORK_DIR && git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-bad.git
-#Cloning Common gstreamer dependency file for Gstreamer 
+# Cloning Common gstreamer dependency file for Gstreamer 
 cd gst-plugins-bad/ && git clone https://gitlab.freedesktop.org/gstreamer/common.git
 
 echo "Switching Plugin Branch to Gstreamer Version : " $gstreamer_version
-git checkout $gstreamer_version && chown -R $1 ../gst-plugins-bad/
+git checkout $gstreamer_version
+
+cd $WORK_DIR/gst-plugins-bad/
 echo "Generating Libraries"
 set +e
 autoreconf -i
-./autogen.sh --disable-gtk-doc
+./autogen.sh --disable-gtk-doc --libexecdir=/usr/local/lib/gstreamer-1.0 --libdir=/usr/local/lib/gstreamer-1.0 --enable-shared 
 set -e
 
 echo "Installing RTSP Dependent Codecs"
