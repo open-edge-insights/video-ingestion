@@ -4,7 +4,8 @@ FROM ia_pybase:$IEI_VERSION
 LABEL description="VideoIngestion image"
 
 ARG IEI_UID
-RUN useradd -r -u ${IEI_UID} -G video ieiuser
+ARG IEI_USER_NAME
+RUN useradd -r -u ${IEI_UID} -G video ${IEI_USER_NAME}
 
 # Adding basler camera's essentials by referring it's repo's README and Removing unwanted files
 RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-5.1.0.12682-x86_64.tar.gz && \
