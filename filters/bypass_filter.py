@@ -55,7 +55,7 @@ class Filter(BaseFilter):
         """Runs video frames from filter input queue and adds only the key
         frames to filter output queue based on the filter logic used
         """
-        while True:
+        while not self.stop_ev.is_set():
             metadata, frame = self.input_queue.get()
             if self.training_mode is True:
                 self.count = self.count + 1

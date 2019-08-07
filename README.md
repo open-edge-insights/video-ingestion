@@ -182,13 +182,13 @@ each of the video sources below:
 
 #### `Detailed description on each of the keys used`
 
-|  Key	| Description 	| Possible Values  	| Required/Optional	|
-|---	|---	|---	|---	|
-|  video_src 	|   Video source	| Video file gstreamer pipeline 	|   Required	|
-|  encoding 	|   Encodes the video frame	|   Supported encoding types: `jpg` or `png`. For `jpg`, encoding level is between `0-100` and for `png`, it's `0-9` | Optional
-|  poll_interval	|  Unit is `seconds`. Sets the ingestion speed of frames from camera. Essentially it determines the number of ingested frames from camera per second i.e., fps read from camera 	| floating number  	| Optional  	|
-|  resolution	|  Used for resizing of input frames | width x height	| Optional  	|
-|  loop_video	|  Would loop through the video file | "true" or "false"	| Optional (By default, it's false) |
+|  Key	        | Description 	                        | Possible Values  	                                            | Required/Optional	|
+|---	        |---	                                |---	                                                        |---	            |
+|  video_src    |  Video source                         | Video file or gstreamer based pipeline 	                    | Required 	        |
+|  encoding     |  Encodes the video frame	            | Supported encoding types: `jpg` or `png`. For `jpg`,encoding level is between `0-100` and or `png`, it's `0-9`)                                   | Optional          |
+|  poll_interval|  Determines fps read rate from camera | floating number  	                                            | Optional  	    |
+|  resolution	|  Used for resizing of input frames    | width x height	                                            | Optional  	    |
+|  loop_video	|  Would loop through the video file    | "true" or "false"	(By default, it's false)                    | Optional          |
 
 
 ### `Filter config`
@@ -236,20 +236,20 @@ Sample configuration(forms the `filter` value in app's config) for filters used:
 **Sample filters code**
 
 
-|  File	| Description 	| Link  	|
-|---	|---	|---	|
-| base_filter.py | Base class for all filters | [Link](..libs/base_filter.py) |
-| pcb_filter.py  | PCB Demo filter | [Link](filters/pcb_filter.py) |
-| bypass_filter.py | Bypass filter | [Link](filters/bypass_filter.py) |
+|  File	           | Description 	            | Link  	                       |
+|---	           |---	                        |---	                           |
+| base_filter.py   | Base class for all filters | [Link](..libs/base_filter.py)    |
+| pcb_filter.py    | PCB Demo filter            | [Link](filters/pcb_filter.py)    |
+| bypass_filter.py | Bypass filter              | [Link](filters/bypass_filter.py) |
 
 #### `Detailed description on each of the keys used`
 
-|  Key	| Description 	| Possible Values  	| Required/Optional	|
-|---	|---	|---	|---	|
-|  name 	|   File name of the filter	| "pcb_filter" or "bypass_filter" |   Required	|
-|  queue_size 	|   Determines the size of the input and output filter queue	| any value that suits the platform	resources |   Required	|
-|  max_workers 	|   Number of threads to perform filter operation	|   any value that suits the platform resources  | Required |
-|  training_mode |  If "true", used to capture images for training and building model purpose	| "true" or "false"  	| Optional (By default, it's false) |
+|  Key	        | Description 	                                                    | Possible Values  	                      | Required/Optional |
+|---	        |---	                                                            |---	                                  |---	              |
+|  name 	    |   File name of the filter	| "pcb_filter" or "bypass_filter"       | Required	                              |                   |
+|  queue_size 	|   Determines the size of the input and output filter queue	    | any value that suits platform resources |   Required	      |
+|  max_workers 	|   Number of threads to perform filter operation                   | any value that suits platform resources                                                                                                               (Not more than 5 * number of cpu cores) |   Required        |
+|  training_mode|  If "true", used to capture images for training and building model| "true" or "false" (default is false)    |   Optional        |
 
 **Note**: The other keys used are specific to filter usecase
 

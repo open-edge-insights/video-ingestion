@@ -7,8 +7,8 @@
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -132,7 +132,7 @@ class Filter(BaseFilter):
         """Runs video frames from filter input queue and adds only the key
         frames to filter output queue based on the filter logic used
         """
-        while True:
+        while not self.stop_ev.is_set():
             metadata, frame = self.input_queue.get()
 
             if self.training_mode is True:
