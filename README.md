@@ -255,8 +255,7 @@ Sample configuration(forms the `filter` value in app's config) for filters used:
 
 ## `Installation`
 
-* Follow [Etcd/README.md](../Etcd/README.md) to have EIS pre-loaded data in
-  etcd
+* Follow [provision/README.md](../docker_setup/provision/README.md) for EIS provisioning
 
 * Run VideoIngestion
 
@@ -268,6 +267,8 @@ Sample configuration(forms the `filter` value in app's config) for filters used:
         $ ln -sf VideoIngestion/.dockerignore ../.dockerignore
         $ docker-compose up --build ia_video_ingestion
         ```
-    2. Update EIS VideoIngestion config key value in `etcd` using UI's
+    2. Update EIS VideoIngestion config key value in `etcd` using UI
        like `EtcdKeeper` or programmatically and see if it picks it up
        automatically without any container restarts.
+
+       **NOTE**: The dynamic config update is still WIP.
