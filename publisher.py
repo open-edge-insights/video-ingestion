@@ -37,18 +37,17 @@ import eis.msgbus as mb
 class Publisher:
 
     def __init__(self, filter_output_queue, config_client, dev_mode):
-        """Constructor
+        """Publisher will get the filtered data from the filter queue and
+           send it to EIS Message Bus
 
-        Parameters
-        ----------
-        filter_output_queue : Queue
-            Input queue for publisher (has [topic, metadata, keyframe] data
-            entries)
-        config_client : Class Object
-            Used to get keys value from ETCD.
-        dev_mode : Boolean
-            To check whether it is running in production mode or development
-            mode
+        :param filter_output_queue: Input queue for publisher (has [topic,
+                                    metadata, keyframe] data entries)
+        :type filter_output_queue: queue
+        :param config_client: Used to get keys value from ETCD.
+        :type config_client: Class Object
+        :param dev_mode: To check whether it is running in production mode or
+                         development
+        :type dev_mode: Boolean
         """
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
@@ -59,8 +58,7 @@ class Publisher:
         self.dev_mode = dev_mode
 
     def start(self):
-        """
-        Starts the publisher thread(s)
+        """Starts the publisher thread(s)
         """
         topics = Util.get_topics_from_env("pub")
         self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
@@ -75,16 +73,13 @@ class Publisher:
                                              msgbus_cfg)
 
     def publish(self, topic, msgbus_cfg):
-        """
-        Send the data to the publish topic
-        Parameters:
-        ----------
-        topic: str
-            topic name
-        msgbus_cfg: str
-            topic msgbus_cfg
-        """
+        """Send the data to the publish topic
 
+        :param topic: Publishers's topic name
+        :type topic: str
+        :param msgbus_cfg: Topic msgbus_cfg
+        :type msgbus_cfg: str
+        """
         msgbus = mb.MsgbusContext(msgbus_cfg)
         publisher = msgbus.new_publisher(topic)
 
@@ -150,8 +145,7 @@ class Publisher:
         return frame
 
     def stop(self):
-        """
-        Stops the publisher thread
+        """Stops the publisher thread
         """
         try:
             self.stop_ev.set()

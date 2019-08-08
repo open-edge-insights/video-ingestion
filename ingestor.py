@@ -36,13 +36,14 @@ MAX_CAM_CONN_RETRY = 5
 class Ingestor:
 
     def __init__(self, ingestor_config, ingestor_queue):
-        """Constructor
-        Parameters
-        ----------
-        ingestor_config : dict
-            Configuration object for the video ingestor
-        ingestor_queue : queue
-            Ingestor Queue
+        """Ingestor module reads frames from the source(Video/Camera)
+        and sends them for filtering.
+
+        :param ingestor_config: Configuration object for the video ingestor
+        :type ingestor_config: dict
+        :param ingestor_queue: Frames are put into ingestor_queue after getting
+                               from ingestor
+        :type ingestor_queue: queue
         """
         self.log = logging.getLogger(__name__)
         self.ingestor_queue = ingestor_queue
@@ -56,8 +57,7 @@ class Ingestor:
         self.resolution = ingestor_config.get("resolution", None)
 
     def start(self):
-        """
-        Starts the ingestor thread
+        """Starts the ingestor thread
         """
         self.log.info("=====Starting ingsestor thread======")
         self.thread = threading.Thread(target=self.run)
@@ -65,8 +65,11 @@ class Ingestor:
         self.thread.start()
 
     def connect(self):
-        """
-        To connect to a camera or a video source
+        """Connect to a camera or a video source and create videoCapture
+        Object.
+
+        :return: Returns the frames read from camera or video
+        :rtype: VideoCapture Object
         """
         if self.video_src is not None:
             self.log.info("initializing cv2 videocapture")
@@ -78,8 +81,10 @@ class Ingestor:
             self.log.error("Invalid video source: {}".format(self.video_src))
 
     def run(self):
-        """
-        To read frames from a camera or video source
+        """To read frames from a camera or video source
+
+        :raises Exception: Fails to read frames from camera. Retry Connection.
+        :raises Exception: Re-Connection fails when exceeded the limit re-try.
         """
         camFailCount = 0
         cap = self.connect()
@@ -139,13 +144,11 @@ class Ingestor:
         self.log.info("=====Stopped ingestor thread======")
 
     def stop(self):
-        """
-        Stops the ingestor thread
+        """Stops the ingestor thread
         """
         self.stop_ev.set()
 
     def join(self):
-        """
-        Blocks until the ingestor thread stops running
+        """Blocks until the ingestor thread stops running
         """
         self.thread.join()

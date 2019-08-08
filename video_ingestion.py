@@ -40,11 +40,8 @@ from publisher import Publisher
 class VideoIngestion:
 
     def __init__(self):
-        """Constructor
-
-        Returns
-        -------
-            VideoIngestion object
+        """Get the frames from camera or video, filters and add the results
+        to the messagebus
         """
         self.log = logging.getLogger(__name__)
         self.profiling = bool(strtobool(os.environ['PROFILING']))
@@ -60,7 +57,7 @@ class VideoIngestion:
         self._read_ingestor_filter_config()
 
         self.config_client.RegisterDirWatch("/{0}/".format(self.app_name),
-                                       self._on_change_config_callback)
+                                            self._on_change_config_callback)
 
     def _print_config(self):
         self.log.info('ingestor_config: {}'.format(self.ingestor_config))
@@ -130,15 +127,12 @@ class VideoIngestion:
         self.log.info(log_msg.format("Stopped", self.app_name))
 
     def _on_change_config_callback(self, key, value):
-        """
-        Callback method to be called by etcd
+        """Callback method to be called by etcd
 
-        Parameters:
-        ----------
-        key: str
-            etcd key
-        value: str
-            etcd value
+        :param key: Etcd key
+        :type key: str
+        :param value: Etcd value
+        :type value: str
         """
         self.log.info("{}:{}".format(key, value))
         try:
@@ -151,6 +145,9 @@ class VideoIngestion:
 
 def parse_args():
     """Parse command line arguments
+
+    :return: Object of Argument Parser
+    :rtype: object
     """
     parser = argparse.ArgumentParser()
 
