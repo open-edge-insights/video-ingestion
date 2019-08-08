@@ -64,7 +64,7 @@ class Publisher:
         """
         topics = Util.get_topics_from_env("pub")
         self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
-        subscribers = os.environ['Subscribers'].split(",")
+        subscribers = os.environ['Clients'].split(",")
         for topic in topics:
             msgbus_cfg = Util.get_messagebus_config(topic, "pub",
                                                     subscribers,
