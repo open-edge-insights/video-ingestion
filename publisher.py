@@ -80,15 +80,15 @@ class Publisher:
         :param msgbus_cfg: Topic msgbus_cfg
         :type msgbus_cfg: str
         """
-        msgbus = mb.MsgbusContext(msgbus_cfg)
-        publisher = msgbus.new_publisher(topic)
-
-        thread_id = threading.get_ident()
-        log_msg = "Thread ID: {} {} with topic:{} and msgbus_cfg:{}"
-        self.log.info(log_msg.format(thread_id, "started", topic, msgbus_cfg))
-        self.log.info("Publishing to topic: {}...".format(topic))
-
+        publisher = None
         try:
+            msgbus = mb.MsgbusContext(msgbus_cfg)
+            publisher = msgbus.new_publisher(topic)
+
+            thread_id = threading.get_ident()
+            log_msg = "Thread ID: {} {} with topic:{} and msgbus_cfg:{}"
+            self.log.info(log_msg.format(thread_id, "started", topic, msgbus_cfg))
+            self.log.info("Publishing to topic: {}...".format(topic))
             while not self.stop_ev.is_set():
                 metadata, frame = self.filter_output_queue.get()
                 if "resolution" in metadata:
@@ -116,7 +116,8 @@ class Publisher:
         except Exception as ex:
             self.log.exception('Error while publishing data:{}'.format(ex))
         finally:
-            publisher.close()
+            if publisher is not None:
+                publisher.close()
         self.log.info(log_msg.format(thread_id, "stopped", topic, msgbus_cfg))
 
     def encode(self, frame):
