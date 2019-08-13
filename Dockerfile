@@ -1,11 +1,11 @@
 # Dockerfile for VideoIngestion
-ARG IEI_VERSION
-FROM ia_pybase:$IEI_VERSION
+ARG EIS_VERSION
+FROM ia_pybase:$EIS_VERSION
 LABEL description="VideoIngestion image"
 
-ARG IEI_UID
-ARG IEI_USER_NAME
-RUN useradd -r -u ${IEI_UID} -G video ${IEI_USER_NAME}
+ARG EIS_UID
+ARG EIS_USER_NAME
+RUN useradd -r -u ${EIS_UID} -G video ${EIS_USER_NAME}
 
 # Adding basler camera's essentials by referring it's repo's README and Removing unwanted files
 RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-5.1.0.12682-x86_64.tar.gz && \
@@ -91,25 +91,25 @@ RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j8 &&
 
 # Adding Gstreamer Plugin Installation Dependencies
 RUN apt-get -y install automake gstreamer1.0-tools
-COPY external/basler-source-plugin ./basler-source-plugin
-COPY VideoIngestion/install_gstreamerplugins.sh .
+COPY basler-source-plugin ./basler-source-plugin
+COPY install_gstreamerplugins.sh .
 RUN chmod 777 install_gstreamerplugins.sh . 
-RUN ./install_gstreamerplugins.sh ${IEI_UID} /IEI
+RUN ./install_gstreamerplugins.sh ${EIS_UID} /EIS
 
 # Set graphics driver ownership
 RUN rm /usr/lib/x86_64-linux-gnu/libva.so && \
     ln -s /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 /usr/lib/x86_64-linux-gnu/libva.so && \
-    chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 && \
-    chown ${IEI_UID} /usr/lib/x86_64-linux-gnu/libva.so
+    chown ${EIS_UID} /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 && \
+    chown ${EIS_UID} /usr/lib/x86_64-linux-gnu/libva.so
 
 # Installing dependent python modules
-COPY VideoIngestion/vi_requirements.txt .
+COPY vi_requirements.txt .
 RUN pip3.6 install -r vi_requirements.txt && \
     rm -rf vi_requirements.txt 
 
 # Adding project depedency modules
-COPY libs/ ./libs
-COPY VideoIngestion/ ./VideoIngestion
+
+COPY . ./VideoIngestion/
 
 ENV PYTHONPATH ${PYTHONPATH}:.
 
