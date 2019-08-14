@@ -52,6 +52,12 @@ class VideoIngestion:
             "keyFile": "",
             "trustFile": ""
         }
+        if not self.dev_mode:
+            conf = {
+                "certFile": "/run/secrets/etcd_VideoIngestion_cert",
+                "keyFile": "/run/secrets/etcd_VideoIngestion_key",
+                "trustFile": "/run/secrets/ca_etcd"
+            }
         cfg_mgr = ConfigManager()
         self.config_client = cfg_mgr.get_config_client("etcd", conf)
         self._read_ingestor_filter_config()
