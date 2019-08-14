@@ -49,7 +49,7 @@ class Publisher:
                          development
         :type dev_mode: Boolean
         """
-        self.log = logging.getLogger(__name__)
+        self.log = logging.getLogger('__main__')
         self.filter_output_queue = filter_output_queue
         self.stop_ev = threading.Event()
         self.resolution = None
