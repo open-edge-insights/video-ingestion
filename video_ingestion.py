@@ -165,22 +165,6 @@ def parse_args():
 def main():
     """Main method
     """
-    dev_mode = bool(strtobool(os.environ["DEV_MODE"]))
-    # Initializing Etcd to set env variables
-    conf = {
-            "certFile": "",
-            "keyFile": "",
-            "trustFile": ""
-        }
-    if not dev_mode:
-        conf = {
-            "certFile": "/run/secrets/etcd_FactoryControlApp_cert",
-            "keyFile": "/run/secrets/etcd_FactoryControlApp_key",
-            "trustFile": "/run/secrets/ca_etcd"
-        }
-    cfg_mgr = ConfigManager()
-    _ = cfg_mgr.get_config_client("etcd", conf)
-
     # Parse command line arguments
     args = parse_args()
 
