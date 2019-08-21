@@ -1,6 +1,6 @@
 # Dockerfile for VideoIngestion
 ARG EIS_VERSION
-FROM ia_pybase:$EIS_VERSION
+FROM ia_pybase:$EIS_VERSION as pybase
 LABEL description="VideoIngestion image"
 
 ARG EIS_UID
@@ -107,11 +107,36 @@ COPY vi_requirements.txt .
 RUN pip3.6 install -r vi_requirements.txt && \
     rm -rf vi_requirements.txt 
 
-# Adding project depedency modules
-
-COPY . ./VideoIngestion/
-
 ENV PYTHONPATH ${PYTHONPATH}:.
+
+FROM ia_common:$EIS_VERSION as common
+
+FROM pybase
+
+COPY --from=common /libs ${PY_WORK_DIR}/libs
+COPY --from=common /Util ${PY_WORK_DIR}/Util
+
+RUN cd ./libs/EISMessageBus && \
+    rm -rf build deps && \
+    mkdir build && \
+    cd build && \
+    cmake -DWITH_PYTHON=ON .. && \
+    make && \
+    make install
+
+ENV DEBIAN_FRONTEND "noninteractive" \
+    MFX_HOME "/opt/intel/mediasdk/" \
+    PKG_CONFIG_PATH "/opt/intel/mediasdk" \
+    LIBVA_DRIVERS_PATH "/usr/lib/x86_64-linux-gnu/dri/" \
+    LIBVA_DRIVER_NAME "iHD" \
+    LD_RUN_PATH "/usr/lib" \
+    LD_LIBRARY_PATH "/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
+    TERM "xterm" \
+    GST_PLUGIN_PATH "/usr/local/lib/gstreamer-1.0" \
+    GST_DEBUG "1"
+
+# Adding project depedency modules
+COPY . ./VideoIngestion/
 
 ENTRYPOINT ["python3.6", "VideoIngestion/video_ingestion.py"]
 HEALTHCHECK NONE
