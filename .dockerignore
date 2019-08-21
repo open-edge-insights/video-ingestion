@@ -1,6 +1,5 @@
 cert-tool/
 DataAnalytics/
-dist_libs/
 docker_setup/
 FactoryControlApp/
 kapacitor/
