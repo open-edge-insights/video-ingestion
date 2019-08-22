@@ -45,10 +45,10 @@ RUN wget -O opencv.zip https://github.com/Itseez/opencv/archive/${OPENCV_VERSION
 RUN unzip opencv.zip
 RUN mkdir opencv-${OPENCV_VERSION}/build && cd opencv-${OPENCV_VERSION}/build && cmake -DCMAKE_BUILD_TYPE=Release -DPYTHON3_EXECUTABLE=`which python3.6` \
 	-DPYTHON_DEFAULT_EXECUTABLE=`which python3.6` -DENABLE_PRECOMPILED_HEADERS=OFF -DCMAKE_CXX_FLAGS=-std=c++11 -D WITH_GSTREAMER=ON ..
-RUN cd opencv-${OPENCV_VERSION}/build && make -j8
+RUN cd opencv-${OPENCV_VERSION}/build && make -j$(nproc)
 RUN cd opencv-${OPENCV_VERSION}/build && make install
 # gmmlib
-RUN git clone https://github.com/intel/gmmlib.git && cd gmmlib && mkdir build && cd build && cmake .. && make -j8 && make install
+RUN git clone https://github.com/intel/gmmlib.git && cd gmmlib && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 # libva
 RUN mkdir /opt/src
 RUN cd /opt/src && \
@@ -56,7 +56,7 @@ RUN cd /opt/src && \
     unzip libva-master.zip && \
     cd libva-master && \
     ./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu && \
-    make -j8 && \
+    make -j$(nproc) && \
     make install
 
 RUN cd /opt/src && \
@@ -64,7 +64,7 @@ RUN cd /opt/src && \
     tar xf ccache-3.2.8.tar.bz2 && \
     cd ccache-3.2.8 && \
     ./configure --prefix=/usr && \
-    make -j8 && \
+    make -j$(nproc) && \
     make install
 
 RUN mkdir -p /usr/lib/ccache && \
@@ -79,15 +79,15 @@ RUN mkdir -p /usr/lib/ccache && \
     ln -sf /usr/bin/ccache clang++-4.0
 ENV PATH /usr/lib/ccache:$PATH
 # VAAPI driver
-RUN git clone https://github.com/intel/media-driver.git && cd media-driver && mkdir build && cd build && cmake .. && make -j8 && make install
+RUN git clone https://github.com/intel/media-driver.git && cd media-driver && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 # Media SDK
-RUN git clone https://github.com/Intel-Media-SDK/MediaSDK.git msdk && cd msdk && mkdir build && cd build && cmake -DENABLE_OPENCL=OFF .. && make -j8 && make install
+RUN git clone https://github.com/Intel-Media-SDK/MediaSDK.git msdk && cd msdk && mkdir build && cd build && cmake -DENABLE_OPENCL=OFF .. && make -j$(nproc) && make install
 # gstreamer-media-sdk
 RUN git clone https://github.com/intel/gstreamer-media-SDK.git 
 RUN sed -i "/^[ ]*parsers/i    /opt/intel/mediasdk/include/mfx" gstreamer-media-SDK/CMakeLists.txt 
 RUN sed -i "s/libmfx.a/libmfx.so/" gstreamer-media-SDK/cmake/FindMediaSDK.cmake 
 RUN cd /opt/intel/mediasdk/lib/ && mkdir lin_x64 && cd lin_x64 && ln -s ../* . 
-RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j8 && make install
+RUN cd gstreamer-media-SDK && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 
 # Adding Gstreamer Plugin Installation Dependencies
 RUN apt-get -y install automake gstreamer1.0-tools
