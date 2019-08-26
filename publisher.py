@@ -49,7 +49,7 @@ class Publisher:
                          development
         :type dev_mode: Boolean
         """
-        self.log = logging.getLogger('__main__')
+        self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
         self.stop_ev = threading.Event()
         self.resolution = None
@@ -87,7 +87,9 @@ class Publisher:
 
             thread_id = threading.get_ident()
             log_msg = "Thread ID: {} {} with topic:{} and msgbus_cfg:{}"
-            self.log.info(log_msg.format(thread_id, "started", topic, msgbus_cfg))
+            self.log.info(log_msg.format(thread_id, "started",
+                                         topic,
+                                         msgbus_cfg))
             self.log.info("Publishing to topic: {}...".format(topic))
             while not self.stop_ev.is_set():
                 metadata, frame = self.filter_output_queue.get()
