@@ -149,6 +149,7 @@ each of the video sources below:
    ```
    ------
    **NOTE**:
+   * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
    * For working both with simulated RTSP server via cvlc or direct streaming
      from RTSP camera, we can use the below Gstreamer MediaSDK parsers and
      decoders based on the input stream type
