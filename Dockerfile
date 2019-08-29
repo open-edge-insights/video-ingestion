@@ -124,16 +124,16 @@ RUN cd ./libs/EISMessageBus && \
     make && \
     make install
 
-ENV DEBIAN_FRONTEND "noninteractive" \
-    MFX_HOME "/opt/intel/mediasdk/" \
-    PKG_CONFIG_PATH "/opt/intel/mediasdk" \
-    LIBVA_DRIVERS_PATH "/usr/lib/x86_64-linux-gnu/dri/" \
-    LIBVA_DRIVER_NAME "iHD" \
-    LD_RUN_PATH "/usr/lib" \
-    LD_LIBRARY_PATH "/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
-    TERM "xterm" \
-    GST_PLUGIN_PATH "/usr/local/lib/gstreamer-1.0" \
-    GST_DEBUG "1"
+ENV DEBIAN_FRONTEND="noninteractive" \
+    MFX_HOME="/opt/intel/mediasdk/" \
+    PKG_CONFIG_PATH="/opt/intel/mediasdk" \
+    LIBVA_DRIVERS_PATH="/usr/lib/x86_64-linux-gnu/dri/" \
+    LIBVA_DRIVER_NAME="iHD" \
+    LD_RUN_PATH="/usr/lib" \
+    LD_LIBRARY_PATH="/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
+    TERM="xterm" \
+    GST_PLUGIN_PATH="/usr/local/lib/gstreamer-1.0" \
+    GST_DEBUG="1"
 
 # Adding project depedency modules
 COPY . ./VideoIngestion/

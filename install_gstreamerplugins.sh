@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 # Building & Making Gstreamer Good Plugins
 # This script helps to install the gstreamer plugins 
 # and removes the source code of plugins after installtion.
@@ -19,7 +21,10 @@ git checkout $gstreamer_version
 cd $WORK_DIR/gst-plugins-good/ && chown -R $1 ../gst-plugins-good/
 
 echo "Generating Libraries"
+set +e
+autoreconf -i
 ./autogen.sh --disable-gtk-doc
+set -e
 
 echo "Installing V4l2Src Plugin"
 # Installing v4l2src plugin 
@@ -40,14 +45,20 @@ cd gst-plugins-bad/ && git clone https://gitlab.freedesktop.org/gstreamer/common
 echo "Switching Plugin Branch to Gstreamer Version : " $gstreamer_version
 git checkout $gstreamer_version && chown -R $1 ../gst-plugins-bad/
 echo "Generating Libraries"
+set +e
+autoreconf -i
 ./autogen.sh --disable-gtk-doc
+set -e
 
 echo "Installing RTSP Dependent Codecs"
 cd $WORK_DIR/gst-plugins-bad/gst-libs/gst/codecparsers && make && make install
 cd $WORK_DIR/gst-plugins-bad/gst/videoparsers && make && make install
 
 echo "Installing Basler Plugin"
+set +e
+cd $WORK_DIR/basler-source-plugin && autoreconf -i 
 cd $WORK_DIR/basler-source-plugin && ./autogen.sh && make && make install
+set -e
 
 echo "Removing Plugin Sources"
 rm -rf $WORK_DIR/gst-plugins-bad/

@@ -115,6 +115,11 @@ each of the video sources below:
      number 22773747 :
      `"video_src":"pylonsrc serial=22773747 imageformat=mono8 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
+   * To work with USB Basler camera, please change the
+     image exposureGigE to exposureUsbGigE in the Pipeline.
+
+     `"video_src":"pylonsrc serial=22773747 imageformat=mono8 exposureUsbGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+
     ---
 3. **RTSP cvlc based camera simulation**
    ```
