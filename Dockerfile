@@ -133,7 +133,8 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LD_LIBRARY_PATH="/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
     TERM="xterm" \
     GST_PLUGIN_PATH="/usr/local/lib/gstreamer-1.0" \
-    GST_DEBUG="1"
+    GST_DEBUG="1" \
+    LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libxcb-dri3.so"
 
 # Adding project depedency modules
 COPY . ./VideoIngestion/
