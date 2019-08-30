@@ -25,7 +25,7 @@ ENV PYLON_CAMEMU 1
 # Adding gstreamer capabilities
 ENV TERM xterm
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get -y install curl unzip vim wget gcc libjpeg8-dev libtiff5-dev libjasper-dev libpng12-dev \
+RUN apt-get -y install curl unzip vim wget gcc libjpeg8-dev libtiff5-dev libpng-dev \
     libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev \
     libsm6 libxext6 libxrender-dev libgstreamer1.0-0 gstreamer1.0-plugins-base \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libudev-dev libwayland-dev libglfw3-dev \
@@ -98,8 +98,8 @@ RUN ./install_gstreamerplugins.sh ${EIS_UID} /EIS
 
 # Set graphics driver ownership
 RUN rm /usr/lib/x86_64-linux-gnu/libva.so && \
-    ln -s /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 /usr/lib/x86_64-linux-gnu/libva.so && \
-    chown ${EIS_UID} /usr/lib/x86_64-linux-gnu/libva.so.1.3900.0 && \
+    ln -s /usr/lib/x86_64-linux-gnu/libva.so.2.600.0 /usr/lib/x86_64-linux-gnu/libva.so && \
+    chown ${EIS_UID} /usr/lib/x86_64-linux-gnu/libva.so.2.600.0 && \
     chown ${EIS_UID} /usr/lib/x86_64-linux-gnu/libva.so
 
 # Installing dependent python modules
