@@ -23,6 +23,7 @@ import logging
 import cv2
 import numpy as np
 from libs.base_filter import BaseFilter
+import time
 
 
 class Filter(BaseFilter):
@@ -57,6 +58,10 @@ class Filter(BaseFilter):
         """
         while not self.stop_ev.is_set():
             metadata, frame = self.input_queue.get()
+
+            if self.profiling is True:
+                metadata['ts_vi_filter_entry'] = str(round(time.time()*1000))
+
             if self.training_mode is True:
                 self.count = self.count + 1
                 cv2.imwrite("./frames/"+str(self.count)+".numpy", frame)

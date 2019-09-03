@@ -31,6 +31,7 @@ import logging
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from libs.common.py.util import Util
+from distutils.util import strtobool
 import eis.msgbus as mb
 
 
@@ -56,6 +57,7 @@ class Publisher:
         self.encoding = None
         self.config_client = config_client
         self.dev_mode = dev_mode
+        self.profiling = bool(strtobool(os.environ['PROFILING_MODE']))
 
     def start(self):
         """Starts the publisher thread(s)
@@ -93,6 +95,12 @@ class Publisher:
             self.log.info("Publishing to topic: {}...".format(topic))
             while not self.stop_ev.is_set():
                 metadata, frame = self.filter_output_queue.get()
+
+                if self.profiling == True:
+                    ts_vi_entry = int(metadata['ts_vi_entry'])
+                    ts_vi_queue_exit = round(time.time()*1000)
+                    metadata['ts_vi_queue_wait'] = ts_vi_queue_exit - ts_vi_entry
+
                 if "resolution" in metadata:
                     self.resolution = metadata["resolution"]
                 if "encoding_type" and "encoding_level" in metadata:
@@ -106,8 +114,16 @@ class Publisher:
                 elif len(frame.shape) == 2:
                     height, width = frame.shape
                     channel = 3
+                
+                if self.profiling == True:
+                    metadata['ts_vi_encode_start'] = str(round(time.time()*1000))
+
                 if "encoding_type" and "encoding_level" in metadata:
                     frame = self.encode(frame)
+
+                if self.profiling == True:
+                    metadata['ts_vi_encode_end'] = str(round(time.time()*1000))
+
                 metadata['height'] = height
                 metadata['width'] = width
                 metadata['channel'] = channel
@@ -115,6 +131,10 @@ class Publisher:
                 # container to add the `frame blob` as value with
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
+
+                if self.profiling == True:
+                    metadata['ts_vi_exit'] = str(round(time.time()*1000))
+
                 publisher.publish((metadata, frame.tobytes()))
                 self.log.debug("Published data: {} on topic: {} with \
                                config: {}...".format(metadata, topic,

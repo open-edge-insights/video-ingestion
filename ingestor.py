@@ -28,6 +28,7 @@ import uuid
 import os
 import logging
 from libs.common.py.util import Util
+from distutils.util import strtobool
 
 MAX_CAM_FAIL_COUNT = 10
 MAX_CAM_CONN_RETRY = 5
@@ -55,6 +56,7 @@ class Ingestor:
         self.loop_video = ingestor_config.get("loop_video", None)
         self.encoding = ingestor_config.get("encoding", None)
         self.resolution = ingestor_config.get("resolution", None)
+        self.profiling = bool(strtobool(os.environ['PROFILING_MODE']))
 
     def start(self):
         """Starts the ingestor thread
@@ -112,6 +114,10 @@ class Ingestor:
                             metadata['encoding_level'] = self.encoding['level']
                         if self.resolution:
                             metadata['resolution'] = self.resolution
+
+                        if self.profiling is True:
+                            metadata['ts_vi_entry'] = str(round(time.time()*1000))
+
                         self.ingestor_queue.put((metadata, frame))
                         self.log.debug("Data: {} added to ingestor\
                                        queue".format(metadata))
