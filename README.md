@@ -6,8 +6,8 @@ basler/RTSP/USB camera using gstreamer pipeline and publishes the
 
 The high level logical flow of VideoIngestion pipeline is as below:
 1. VideoIngestion main program reads the ingestor and filter configuration
-2. After reading the config, it starts the zmq publisher thread, single/multiple
-   filter threads per filter configuration and ingestor thread
+2. After reading the config, it starts the messagebus publisher thread,
+   single/multiple filter threads per filter configuration and ingestor thread
    based on ingestor configuration. It exits whenever an exception occurs during
    this startup sequence.
 3. Ingestor thread reads from the ingestor configuration and adds
@@ -16,7 +16,7 @@ The high level logical flow of VideoIngestion pipeline is as below:
    threads consume ingestor queue and passes only the key frames with its
    metadata to publisher queue
 5. Publisher thread reads from the publisher queue and publishes it
-   over the ZMQ bus
+   over the message bus
 
 ## `Configuration`
 
@@ -50,6 +50,21 @@ If `AppName` is `VideoIngestion`, then the app's config would look like as below
 
 > **NOTE**: The above `ingestor` and `filter` config correspond to PCB demo
 > usecase
+
+### `Messagebus Endpoints config`
+
+The ENVs mentioned below in the environment section of this app's service in
+[docker-compose.yml](../docker_setup/docker-compose.yml) are needed by the
+messagebus publisher thread to start publishing ingested/filter data on topics
+
+```
+PubTopics: "stream_name"
+stream_name_cfg: "<protocol>,<endpoint>"
+```
+
+> **NOTE**: If `<protocol>` is `zmq/ipc`, then `<endpoint>` has to be the
+> `socket_dir_name` where unix socket files are created. If `<protocol>` is
+> `zmq/tcp`, then `<endpoint>` has to be the combination of `<hostname>:<port>`.
 
 
 ### `Ingestor config`
@@ -200,16 +215,19 @@ each of the video sources below:
 ### `Filter config`
 
 The Filter (user defined function) is responsible for doing pre-processing of the
-video frames. It uses the filter congiruation to do the selection of key frames
-(frames of interest for further processing).
+ingested video frames. It uses the filter configuration to do the selection of
+key frames(frames of interest for further processing).
 
 ------
-**NOTE**: Please note if no `filter` key is in the app's config, then it's as
-          good has running the VI(VideoIngestion) pipeline without any
-          filter thread/s.
+**NOTE**: Please note if there is no `filter` key in the app's config, then
+          it's as good as running the VI(VideoIngestion) pipeline without any
+          filter thread/s. Functionally, it is equivalent to running with
+          "bypass_filter" where the ingested frames are passed to classifier
+          module as is without any pre-processing with added advantage of no
+          filter threads.
 ------
 
-Sample configuration(forms the `filter` value in app's config) for filters used:
+**Sample configuration(forms the `filter` value in app's config) for filters used:**
 1. **PCB filter**
 
    Works well with all PCB video file ingestors. To work with physical camera,
@@ -220,7 +238,7 @@ Sample configuration(forms the `filter` value in app's config) for filters used:
     {
         "name": "pcb_filter",
         "queue_size": 10,
-        "max_workers": 5,
+        "max_workers": 1,
         "training_mode": "false",
         "n_total_px": 300000,
         "n_left_px": 1000,
@@ -229,12 +247,15 @@ Sample configuration(forms the `filter` value in app's config) for filters used:
    ```
 2. **Bypass filter**
 
-   Works well with PCB or sample classfication video file ingestor.
+   Works well with PCB or sample classfication video file ingestor. In general,
+   works for any usecase where the ingested frames had be passed on to the
+   classifier module as is without any pre-processing involved to select key
+   frames.
    ```
     {
         "name": "bypass_filter",
         "queue_size": 10,
-        "max_workers": 5,
+        "max_workers": 1,
         "training_mode": "false"
     }
    ```
@@ -274,7 +295,7 @@ Sample configuration(forms the `filter` value in app's config) for filters used:
         $ docker-compose up --build ia_video_ingestion
         ```
     2. Update EIS VideoIngestion config key value in `etcd` using UI
-       like `EtcdKeeper` or programmatically and see if it picks it up
-       automatically without any container restarts.
-
-       **NOTE**: The dynamic config update is still WIP.
+       like `EtcdKeeper` or programmatically. Please note that the dynamic
+       update of the config only works for the "ingestor" key value without
+       container restarts. If "filter" key value is changed, then the changes
+       are picked by restarting the container.

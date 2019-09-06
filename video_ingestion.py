@@ -30,11 +30,15 @@ import signal
 import logging
 import argparse
 from distutils.util import strtobool
+import sys
 from ingestor import Ingestor
 from libs.base_filter import load_filter
 from libs.log import configure_logging, LOG_LEVELS
 from libs.ConfigManager import ConfigManager
 from publisher import Publisher
+
+# Default queue size for filter input queue for `no_filter` case
+QUEUE_SIZE = 10
 
 
 class VideoIngestion:
@@ -48,7 +52,6 @@ class VideoIngestion:
         :param config_client: distributed store config client
         :type config_client: config client object
         """
-
         self.log = logging.getLogger(__name__)
         self.profiling = bool(strtobool(os.environ['PROFILING']))
         self.dev_mode = dev_mode
@@ -60,9 +63,9 @@ class VideoIngestion:
 
     def _print_config(self):
         self.log.info('ingestor_config: {}'.format(self.ingestor_config))
-        if self.filter_name:
+        if self.filter_config:
             self.log.info('filter name: {} filter config: {}'.format(
-                self.filter_name, self.filter_config))
+                self.filter_config["name"], self.filter_config))
 
     def _read_ingestor_filter_config(self):
         CONFIG_KEY_PATH = "/config"
@@ -70,13 +73,11 @@ class VideoIngestion:
             self.app_name, CONFIG_KEY_PATH))
 
         self.config = json.loads(self.config)
-        self.queue_size = 10  # default queue size for `no filter` config
         self.ingestor_config = self.config["ingestor"]
         self.filter_config = self.config.get("filter", None)
-        if self.filter_config:
-            self.filter_name = self.filter_config.get("name", None)
-        else:
-            self.filter_name = None
+
+        self.filter_input_queue = queue.Queue(
+            maxsize=QUEUE_SIZE)
 
     def start(self):
         """Start Video Ingestion.
@@ -86,44 +87,37 @@ class VideoIngestion:
 
         self._print_config()
 
-        filter_input_queue = queue.Queue(
-            maxsize=self.queue_size)
-
-        if self.filter_name:
+        if self.filter_config:
             queue_size = self.filter_config["queue_size"]
-            filter_input_queue = queue.Queue(
+            self.filter_input_queue = queue.Queue(
                 maxsize=queue_size)
-            filter_output_queue = queue.Queue(
+            self.filter_output_queue = queue.Queue(
                 maxsize=queue_size)
         else:
-            filter_output_queue = filter_input_queue  # for `no filter` config
+            # for `no filter` cfg
+            self.filter_output_queue = self.filter_input_queue
 
-        self.publisher = Publisher(filter_output_queue,
+        self.publisher = Publisher(self.filter_output_queue,
                                    self.config_client, self.dev_mode)
         self.publisher.start()
 
-        if self.filter_name:
+        if self.filter_config:
             self.filter = load_filter(self.filter_config["name"],
                                       self.filter_config,
-                                      filter_input_queue,
-                                      filter_output_queue)
+                                      self.filter_input_queue,
+                                      self.filter_output_queue)
             self.filter.start()
 
-        self.ingestor = Ingestor(self.ingestor_config, filter_input_queue)
+        self.ingestor = Ingestor(self.ingestor_config, self.filter_input_queue)
         self.ingestor.start()
         self.log.info(log_msg.format("Started", self.app_name))
 
     def stop(self):
-        """ Stop the Video Ingestion.
+        """ Stops Video Ingestion pipeline
         """
         log_msg = "======={} {}======="
         self.log.info(log_msg.format("Stopping", self.app_name))
-        self.ingestor.stop()
-        if hasattr(self, "filter"):
-            self.log.info("filter_name: {}".format(self.filter_name))
-            self.filter.stop()
-        self.publisher.stop()
-        self.log.info(log_msg.format("Stopped", self.app_name))
+        os._exit(1)
 
     def _on_change_config_callback(self, key, value):
         """Callback method to be called by etcd
@@ -133,13 +127,22 @@ class VideoIngestion:
         :param value: Etcd value
         :type value: str
         """
-        self.log.info("{}:{}".format(key, value))
-        try:
-            self._read_ingestor_filter_config()
-            self.stop()
-            self.start()
-        except Exception as ex:
-            self.log.exception(ex)
+        self.log.info("key: {}, value: {}".format(key, value))
+        value = json.loads(value)
+        ingestor_cfg = value["ingestor"]
+        filter_cfg = value.get("filter", None)
+        if filter_cfg != self.filter_config:
+            self.log.info("Filter cfg: {}".format(filter_cfg))
+            os._exit(0)
+        if ingestor_cfg != self.ingestor_config:
+            self.log.info("Ingestor cfg: {}".format(ingestor_cfg))
+            self.ingestor.stop()
+            self.ingestor_config = ingestor_cfg
+            self.ingestor = Ingestor(self.ingestor_config,
+                                     self.filter_input_queue)
+            self.ingestor.start()
+        else:
+            self.log.info("Received same ingestor config...")
 
 
 def main():
