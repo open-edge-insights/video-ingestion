@@ -101,7 +101,11 @@ class Publisher:
                 if self.resolution is not None:
                     width, height = self.resolution.split("x")
                     frame = self.resize(frame)
-                height, width, channel = frame.shape
+                if len(frame.shape) == 3:
+                    height, width, channel = frame.shape
+                elif len(frame.shape) == 2:
+                    height, width = frame.shape
+                    channel = 3
                 if "encoding_type" and "encoding_level" in metadata:
                     frame = self.encode(frame)
                 metadata['height'] = height
