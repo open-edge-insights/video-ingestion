@@ -97,7 +97,7 @@ each of the video sources below:
 
      **Eg**: `video_src` value to connect to basler camera with
      serial number `22573664`:
-     `"video_src":"pylonsrc serial=22573664 imageformat=yuv422 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+     `"video_src":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
    * In case frame read is failing when multiple basler cameras are used, use
      the `interpacketdelay` property to increase the delay between the
@@ -106,19 +106,19 @@ each of the video sources below:
 
      **Eg**: `video_src` value to increase the interpacket delay to 3000(default
      value for interpacket delay is 1500):
-     `"video_src":"pylonsrc imageformat=yuv422 exposure=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
+     `"video_src":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
 
    * To work with monochrome Basler camera, please change the
      image format to `mono8` in the Pipeline.
 
      **Eg**:`video_src` value to connect to monochrome basler camera with serial
      number 22773747 :
-     `"video_src":"pylonsrc serial=22773747 imageformat=mono8 exposure=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+     `"video_src":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
    * To work with USB Basler camera, please change the
-     image exposureGigE to exposureUsbGigE in the Pipeline.
+     exposure parameter to `exposureUsb` in the Pipeline.
 
-     `"video_src":"pylonsrc serial=22773747 imageformat=mono8 exposureUsbGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+     `"video_src":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
     ---
 3. **RTSP cvlc based camera simulation**
@@ -164,7 +164,7 @@ each of the video sources below:
       * mfxmpegvideoparse ! mfxmpeg2dec
      **NOTE**: If running on older systems where we don't have hardware media
      decoders, the above parsers and decoders may not work. In those cases,
-     one can use `h24parse | avdec_h2 4` which is a software decoder.
+     one can use `h24parse | avdec_h264` which is a software decoder.
    ------
 
 5. **USB camera**
