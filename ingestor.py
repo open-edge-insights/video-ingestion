@@ -27,8 +27,8 @@ import time
 import uuid
 import os
 import logging
-from libs.common.py.util import Util
-from distutils.util import strtobool
+from util.util import Util
+from util.msgbusutil import MsgBusUtil
 
 MAX_CAM_FAIL_COUNT = 10
 MAX_CAM_CONN_RETRY = 5
@@ -49,7 +49,7 @@ class Ingestor:
         self.log = logging.getLogger(__name__)
         self.ingestor_queue = ingestor_queue
         self.video_src = ingestor_config['video_src']
-        topics = Util.get_topics_from_env("pub")
+        topics = MsgBusUtil.get_topics_from_env("pub")
         self.topic = topics[0]
         self.poll_interval = ingestor_config.get('poll_interval', None)
         self.stop_ev = threading.Event()

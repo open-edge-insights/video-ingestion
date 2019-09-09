@@ -33,7 +33,7 @@ from distutils.util import strtobool
 import sys
 from ingestor import Ingestor
 from libs.base_filter import load_filter
-from libs.log import configure_logging, LOG_LEVELS
+from util.log import configure_logging, LOG_LEVELS
 from libs.ConfigManager import ConfigManager
 from publisher import Publisher
 

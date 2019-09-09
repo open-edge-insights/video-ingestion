@@ -30,8 +30,8 @@ import os
 import logging
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
-from libs.common.py.util import Util
-from distutils.util import strtobool
+from util.util import Util
+from util.msgbusutil import MsgBusUtil
 import eis.msgbus as mb
 
 
@@ -62,11 +62,11 @@ class Publisher:
     def start(self):
         """Starts the publisher thread(s)
         """
-        topics = Util.get_topics_from_env("pub")
+        topics = MsgBusUtil.get_topics_from_env("pub")
         self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
         subscribers = os.environ['Clients'].split(",")
         for topic in topics:
-            msgbus_cfg = Util.get_messagebus_config(topic, "pub",
+            msgbus_cfg = MsgBusUtil.get_messagebus_config(topic, "pub",
                                                     subscribers,
                                                     self.config_client,
                                                     self.dev_mode)

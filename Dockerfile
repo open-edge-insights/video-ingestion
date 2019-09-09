@@ -281,11 +281,6 @@ RUN cd ${HOME}/openvino_toolkit && \
     sed -i -e 's/^ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
     ./install.sh -s silent.cfg --ignore-cpu
 
-# Installing dependent python modules
-COPY vi_requirements.txt .
-RUN pip3.6 install -r vi_requirements.txt && \
-    rm -rf vi_requirements.txt
-
 ENV PYTHONPATH ${PYTHONPATH}:.
 
 FROM ia_common:$EIS_VERSION as common
@@ -293,7 +288,7 @@ FROM ia_common:$EIS_VERSION as common
 FROM pybase
 
 COPY --from=common /libs ${PY_WORK_DIR}/libs
-COPY --from=common /Util ${PY_WORK_DIR}/Util
+COPY --from=common /util ${PY_WORK_DIR}/util
 
 RUN cd ./libs/EISMessageBus && \
     rm -rf build deps && \
@@ -318,4 +313,4 @@ ENV DEBIAN_FRONTEND="noninteractive" \
 # Adding project depedency modules
 COPY . ./VideoIngestion/
 ENTRYPOINT ["VideoIngestion/vi_start.sh"]
-HEALTHCHECK NONE
+
