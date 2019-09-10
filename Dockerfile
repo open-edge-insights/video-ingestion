@@ -1,8 +1,9 @@
 # Dockerfile for VideoIngestion
 ARG EIS_VERSION
-FROM ia_pybase:$EIS_VERSION as pybase
+FROM ia_openvino_base:$EIS_VERSION as openvino
 LABEL description="VideoIngestion image"
 
+WORKDIR ${PY_WORK_DIR}
 ARG EIS_UID
 ARG EIS_USER_NAME
 RUN useradd -r -u ${EIS_UID} -G video ${EIS_USER_NAME}
@@ -132,20 +133,6 @@ ENV GST_VAAPI_ALL_DRIVERS=1
 ENV LIBRARY_PATH=/usr/lib
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/mediasdk/lib64
 
-# clinfo needs to be installed after build directory is copied over
-RUN mkdir neo && cd neo && \
-    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-core_18.50.1270_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-opencl_18.50.1270_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
-    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb && \
-    dpkg -i *.deb && \
-    dpkg-deb -x intel-gmmlib_18.4.1_amd64.deb /home/build/ && \
-    dpkg-deb -x intel-igc-core_18.50.1270_amd64.deb /home/build/ && \
-    dpkg-deb -x intel-igc-opencl_18.50.1270_amd64.deb /home/build/ && \
-    dpkg-deb -x intel-opencl_19.04.12237_amd64.deb /home/build/ && \
-    dpkg-deb -x intel-ocloc_19.04.12237_amd64.deb /home/build/
-
 RUN apt-get install -y \
     libusb-1.0-0-dev \
     libboost-all-dev \
@@ -267,25 +254,11 @@ RUN apt-get install -y gtk-doc-tools
 
 ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
 
-# OpenVINO install
-RUN apt-get install -y libpng-dev \
-    libcairo2-dev \
-    libpango1.0-dev \
-    libglib2.0-dev \
-    cpio \
-    lsb-release
-
-ENV HOME /EIS
-COPY l_openvino_toolkit*  ${HOME}/openvino_toolkit/
-RUN cd ${HOME}/openvino_toolkit && \
-    sed -i -e 's/^ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
-    ./install.sh -s silent.cfg --ignore-cpu
-
 ENV PYTHONPATH ${PYTHONPATH}:.
 
 FROM ia_common:$EIS_VERSION as common
 
-FROM pybase
+FROM openvino
 
 COPY --from=common /libs ${PY_WORK_DIR}/libs
 COPY --from=common /util ${PY_WORK_DIR}/util
