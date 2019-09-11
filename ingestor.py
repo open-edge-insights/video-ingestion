@@ -29,6 +29,7 @@ import os
 import logging
 from util.util import Util
 from util.msgbusutil import MsgBusUtil
+from distutils.util import strtobool
 
 MAX_CAM_FAIL_COUNT = 10
 MAX_CAM_CONN_RETRY = 5

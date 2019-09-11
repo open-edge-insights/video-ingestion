@@ -53,7 +53,7 @@ class VideoIngestion:
         :type config_client: config client object
         """
         self.log = logging.getLogger(__name__)
-        self.profiling = bool(strtobool(os.environ['PROFILING']))
+        self.profiling = bool(strtobool(os.environ['PROFILING_MODE']))
         self.dev_mode = dev_mode
         self.app_name = os.environ["AppName"]
         self.config_client = config_client
