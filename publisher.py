@@ -30,20 +30,21 @@ import os
 import logging
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
-from util.util import Util
 from util.msgbusutil import MsgBusUtil
 import eis.msgbus as mb
 from distutils.util import strtobool
 
-class Publisher:
 
-    def __init__(self, filter_output_queue, config_client, dev_mode):
+class Publisher:
+    def __init__(self, filter_output_queue, topic, config_client, dev_mode):
         """Publisher will get the filtered data from the filter queue and
            send it to EIS Message Bus
 
         :param filter_output_queue: Input queue for publisher (has [topic,
                                     metadata, keyframe] data entries)
         :type filter_output_queue: queue
+        :param topic: Topic on which data is published
+        :type topic: String
         :param config_client: Used to get keys value from ETCD.
         :type config_client: Class Object
         :param dev_mode: To check whether it is running in production mode or
@@ -55,6 +56,7 @@ class Publisher:
         self.stop_ev = threading.Event()
         self.resolution = None
         self.encoding = None
+        self.topic = topic
         self.config_client = config_client
         self.dev_mode = dev_mode
         self.profiling = bool(strtobool(os.environ['PROFILING_MODE']))
@@ -62,19 +64,17 @@ class Publisher:
     def start(self):
         """Starts the publisher thread(s)
         """
-        topics = MsgBusUtil.get_topics_from_env("pub")
-        self.publisher_threadpool = ThreadPoolExecutor(max_workers=len(topics))
+        self.publisher_threadpool = \
+            ThreadPoolExecutor(max_workers=len(self.topic))
         subscribers = os.environ['Clients'].split(",")
-        for topic in topics:
-            msgbus_cfg = MsgBusUtil.get_messagebus_config(topic, "pub",
-                                                    subscribers,
-                                                    self.config_client,
-                                                    self.dev_mode)
+        msgbus_cfg = \
+            MsgBusUtil.get_messagebus_config(self.topic, "pub", subscribers,
+                                             self.config_client,
+                                             self.dev_mode)
 
-            self.publisher_threadpool.submit(self.publish, topic,
-                                             msgbus_cfg)
+        self.publisher_threadpool.submit(self.publish, msgbus_cfg)
 
-    def publish(self, topic, msgbus_cfg):
+    def publish(self, msgbus_cfg):
         """Send the data to the publish topic
 
         :param topic: Publishers's topic name
@@ -85,21 +85,22 @@ class Publisher:
         publisher = None
         try:
             msgbus = mb.MsgbusContext(msgbus_cfg)
-            publisher = msgbus.new_publisher(topic)
+            publisher = msgbus.new_publisher(self.topic)
 
             thread_id = threading.get_ident()
             log_msg = "Thread ID: {} {} with topic:{} and msgbus_cfg:{}"
             self.log.info(log_msg.format(thread_id, "started",
-                                         topic,
+                                         self.topic,
                                          msgbus_cfg))
-            self.log.info("Publishing to topic: {}...".format(topic))
+            self.log.info("Publishing to topic: {}...".format(self.topic))
             while not self.stop_ev.is_set():
                 metadata, frame = self.filter_output_queue.get()
 
-                if self.profiling == True:
+                if self.profiling is True:
                     ts_vi_entry = int(metadata['ts_vi_entry'])
                     ts_vi_queue_exit = round(time.time()*1000)
-                    metadata['ts_vi_queue_wait'] = ts_vi_queue_exit - ts_vi_entry
+                    metadata['ts_vi_queue_wait'] = \
+                        ts_vi_queue_exit - ts_vi_entry
 
                 if "resolution" in metadata:
                     self.resolution = metadata["resolution"]
@@ -114,14 +115,15 @@ class Publisher:
                 elif len(frame.shape) == 2:
                     height, width = frame.shape
                     channel = 3
-                
-                if self.profiling == True:
-                    metadata['ts_vi_encode_start'] = str(round(time.time()*1000))
+
+                if self.profiling is True:
+                    metadata['ts_vi_encode_start'] = \
+                        str(round(time.time()*1000))
 
                 if "encoding_type" and "encoding_level" in metadata:
                     frame = self.encode(frame)
 
-                if self.profiling == True:
+                if self.profiling is True:
                     metadata['ts_vi_encode_end'] = str(round(time.time()*1000))
 
                 metadata['height'] = height
@@ -132,19 +134,20 @@ class Publisher:
                 # `img_handle` as key into ImageStore DB
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
 
-                if self.profiling == True:
+                if self.profiling is True:
                     metadata['ts_vi_exit'] = str(round(time.time()*1000))
 
                 publisher.publish((metadata, frame.tobytes()))
                 self.log.debug("Published data: {} on topic: {} with \
-                               config: {}...".format(metadata, topic,
+                               config: {}...".format(metadata, self.topic,
                                                      msgbus_cfg))
         except Exception as ex:
             self.log.exception('Error while publishing data:{}'.format(ex))
         finally:
             if publisher is not None:
                 publisher.close()
-        self.log.info(log_msg.format(thread_id, "stopped", topic, msgbus_cfg))
+        self.log.info(log_msg.format(thread_id, "stopped", self.topic,
+                                     msgbus_cfg))
 
     def encode(self, frame):
         if self.encoding["type"] == "jpg":

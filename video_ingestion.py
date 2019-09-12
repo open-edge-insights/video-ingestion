@@ -35,6 +35,7 @@ from ingestor import Ingestor
 from libs.base_filter import load_filter
 from util.log import configure_logging, LOG_LEVELS
 from libs.ConfigManager import ConfigManager
+from util.msgbusutil import MsgBusUtil
 from publisher import Publisher
 
 # Default queue size for filter input queue for `no_filter` case
@@ -87,6 +88,13 @@ class VideoIngestion:
 
         self._print_config()
 
+        pub_topic = MsgBusUtil.get_topics_from_env("pub")
+
+        if len(pub_topic) > 1:
+            self.log.error("More than one publish topic in {} " +
+                           "is not allowed".format(self.app_name))
+            sys.exit(1)
+
         if self.filter_config:
             queue_size = self.filter_config["queue_size"]
             self.filter_input_queue = queue.Queue(
@@ -97,7 +105,8 @@ class VideoIngestion:
             # for `no filter` cfg
             self.filter_output_queue = self.filter_input_queue
 
-        self.publisher = Publisher(self.filter_output_queue,
+        pub_topic = pub_topic[0]
+        self.publisher = Publisher(self.filter_output_queue, pub_topic,
                                    self.config_client, self.dev_mode)
         self.publisher.start()
 
