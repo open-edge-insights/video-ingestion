@@ -2,7 +2,7 @@
 
 This module ingests video frames from a video source like video file or
 basler/RTSP/USB camera using gstreamer pipeline and publishes the
-`(metadata, frame)` tuple to ZMQ bus.
+`(metadata, frame)` tuple to messagebus.
 
 The high level logical flow of VideoIngestion pipeline is as below:
 1. VideoIngestion main program reads the ingestor and filter configuration
@@ -51,20 +51,7 @@ If `AppName` is `VideoIngestion`, then the app's config would look like as below
 > **NOTE**: The above `ingestor` and `filter` config correspond to PCB demo
 > usecase
 
-### `Messagebus Endpoints config`
-
-The ENVs mentioned below in the environment section of this app's service in
-[docker-compose.yml](../docker_setup/docker-compose.yml) are needed by the
-messagebus publisher thread to start publishing ingested/filter data on topics
-
-```
-PubTopics: "stream_name"
-stream_name_cfg: "<protocol>,<endpoint>"
-```
-
-> **NOTE**: If `<protocol>` is `zmq/ipc`, then `<endpoint>` has to be the
-> `socket_dir_name` where unix socket files are created. If `<protocol>` is
-> `zmq/tcp`, then `<endpoint>` has to be the combination of `<hostname>:<port>`.
+For more details on Etcd and MessageBus endpoint configuration, visit [Etcd_and_MsgBus_Endpoint_Configuration](../Etcd_and_MsgBus_Endpoint_Configuration].md).
 
 
 ### `Ingestor config`
