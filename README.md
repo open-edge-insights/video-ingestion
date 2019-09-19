@@ -91,6 +91,7 @@ each of the video sources below:
    ```
    --------
    **NOTE**:
+
    * In case multiple Basler cameras are connected use serial parameter to
      specify the camera to be used in the gstreamer pipeline in the video
      config file for camera mode. If multiple cameras are connected and the
@@ -100,6 +101,11 @@ each of the video sources below:
      **Eg**: `video_src` value to connect to basler camera with
      serial number `22573664`:
      `"video_src":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+
+   * In case you want to enable resizing with basler camera use the `vaapipostproc` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
+
+        **Eg**: Example pipeline to enable resizing with basler camera
+        `"video_src":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! vaapipostproc height=600 width=600 ! videoconvert ! appsink"`
 
    * In case frame read is failing when multiple basler cameras are used, use
      the `interpacketdelay` property to increase the delay between the
@@ -136,6 +142,12 @@ each of the video sources below:
    ```
    ------
    **NOTE**:
+
+    * In case you want to enable resizing with RTSP cvlc based camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
+
+        **Eg**: Example pipeline to enable resizing with RTSP camera
+        `"video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
+
    * Install VLC if not installed already: `sudo apt install vlc`
    * In order to use the RTSP stream from cvlc, the RTSP server
      must be started using VLC with the following command:
@@ -156,6 +168,12 @@ each of the video sources below:
    ```
    ------
    **NOTE**:
+
+    * In case you want to enable resizing with RTSP camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
+
+        **Eg**: Example pipeline to enable resizing with RTSP camera
+        `"video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
+
    * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
    * For working both with simulated RTSP server via cvlc or direct streaming
      from RTSP camera, we can use the below Gstreamer MediaSDK parsers and
@@ -182,6 +200,12 @@ each of the video sources below:
    ```
    -------
    **NOTE**:
+
+     * In case you want to enable resizing with USB camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
+
+        **Eg**: Example pipeline to enable resizing with basler camera
+        `"video_src":"v4l2src ! vaapipostproc height=600 width=600 ! videoconvert ! appsink"`
+
    * In case, multiple USB cameras are connected specify the
      camera using the `device` property in the configuration file.
      Eg:
@@ -195,7 +219,6 @@ each of the video sources below:
 |  video_src    |  Video source                         | Video file or gstreamer based pipeline 	                    | Required 	        |
 |  encoding     |  Encodes the video frame	            | Supported encoding types: `jpg` or `png`. For `jpg`,encoding level is between `0-100` and or `png`, it's `0-9`)                                   | Optional          |
 |  poll_interval|  Determines fps read rate from camera | floating number  	                                            | Optional  	    |
-|  resolution	|  Used for resizing of input frames    | width x height	                                            | Optional  	    |
 |  loop_video	|  Would loop through the video file    | "true" or "false"	(By default, it's false)                    | Optional          |
 
 

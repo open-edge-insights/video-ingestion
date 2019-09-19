@@ -54,7 +54,6 @@ class Publisher:
         self.log = logging.getLogger(__name__)
         self.filter_output_queue = filter_output_queue
         self.stop_ev = threading.Event()
-        self.resolution = None
         self.encoding = None
         self.topic = topic
         self.config_client = config_client
@@ -102,14 +101,10 @@ class Publisher:
                     metadata['ts_vi_queue_wait'] = \
                         ts_vi_queue_exit - ts_vi_entry
 
-                if "resolution" in metadata:
-                    self.resolution = metadata["resolution"]
                 if "encoding_type" and "encoding_level" in metadata:
                     self.encoding = {"type": metadata["encoding_type"],
                                      "level": metadata["encoding_level"]}
-                if self.resolution is not None:
-                    width, height = self.resolution.split("x")
-                    frame = self.resize(frame)
+
                 if len(frame.shape) == 3:
                     height, width, channel = frame.shape
                 elif len(frame.shape) == 2:
@@ -166,12 +161,6 @@ class Publisher:
                 self.log.info("PNG Encoding value must be between 0-9")
         else:
             self.log.info(self.encoding["type"] + "is not supported")
-        return frame
-
-    def resize(self, frame):
-        width, height = self.resolution.split("x")
-        frame = cv2.resize(frame, (int(width), int(height)),
-                           interpolation=cv2.INTER_AREA)
         return frame
 
     def stop(self):

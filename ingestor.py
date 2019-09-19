@@ -56,7 +56,6 @@ class Ingestor:
         self.stop_ev = threading.Event()
         self.loop_video = ingestor_config.get("loop_video", None)
         self.encoding = ingestor_config.get("encoding", None)
-        self.resolution = ingestor_config.get("resolution", None)
         self.profiling = bool(strtobool(os.environ['PROFILING_MODE']))
 
     def start(self):
@@ -113,8 +112,6 @@ class Ingestor:
                         if self.encoding:
                             metadata['encoding_type'] = self.encoding['type']
                             metadata['encoding_level'] = self.encoding['level']
-                        if self.resolution:
-                            metadata['resolution'] = self.resolution
 
                         if self.profiling is True:
                             metadata['ts_vi_entry'] = str(round(time.time()*1000))
