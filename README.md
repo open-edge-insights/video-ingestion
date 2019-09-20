@@ -279,7 +279,6 @@ key frames(frames of interest for further processing).
     1. Build and Run VideoIngestion as container
         ```
         $ cd [repo]/docker_setup
-        $ ln -sf VideoIngestion/.dockerignore ../.dockerignore
         $ docker-compose up --build ia_video_ingestion
         ```
     2. Update EIS VideoIngestion config key value in `etcd` using UI
