@@ -37,6 +37,7 @@ from util.log import configure_logging, LOG_LEVELS
 from libs.ConfigManager import ConfigManager
 from util.msgbusutil import MsgBusUtil
 from publisher import Publisher
+from util.util import Util
 
 # Default queue size for filter input queue for `no_filter` case
 QUEUE_SIZE = 10
@@ -158,17 +159,10 @@ def main():
     """Main method
     """
     dev_mode = bool(strtobool(os.environ["DEV_MODE"]))
-    conf = {
-        "certFile": "",
-        "keyFile": "",
-        "trustFile": ""
-    }
-    if not dev_mode:
-        conf = {
-            "certFile": "/run/secrets/etcd_VideoIngestion_cert",
-            "keyFile": "/run/secrets/etcd_VideoIngestion_key",
-            "trustFile": "/run/secrets/ca_etcd"
-        }
+
+    app_name = os.environ["AppName"]
+    conf = Util.get_crypto_dict(app_name)
+
     cfg_mgr = ConfigManager()
     config_client = cfg_mgr.get_config_client("etcd", conf)
 
