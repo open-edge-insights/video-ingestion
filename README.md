@@ -201,10 +201,10 @@ each of the video sources below:
    -------
    **NOTE**:
 
-     * In case you want to enable resizing with USB camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
+     * In case you want to enable resizing with USB camera use the `videoscale` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
 
-        **Eg**: Example pipeline to enable resizing with basler camera
-        `"video_src":"v4l2src ! vaapipostproc height=600 width=600 ! videoconvert ! appsink"`
+        **Eg**: Example pipeline to enable resizing with USB camera
+        `"video_src":"v4l2src ! videoconvert ! videoscale ! video/x-raw, height=600, width=600 ! appsink"`
 
    * In case, multiple USB cameras are connected specify the
      camera using the `device` property in the configuration file.
