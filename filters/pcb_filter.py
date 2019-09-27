@@ -136,7 +136,7 @@ class Filter(BaseFilter):
             metadata, frame = self.input_queue.get()
             
             if self.profiling is True:
-                metadata['ts_vi_filter_entry'] = str(round(time.time()*1000))
+                metadata['ts_vi_filter_entry'] = time.time()*1000
             
             if self.training_mode is True:
                 self.count = self.count + 1

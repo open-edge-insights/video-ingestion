@@ -96,8 +96,8 @@ class Publisher:
                 metadata, frame = self.filter_output_queue.get()
 
                 if self.profiling is True:
-                    ts_vi_entry = int(metadata['ts_vi_entry'])
-                    ts_vi_queue_exit = round(time.time()*1000)
+                    ts_vi_entry = metadata['ts_vi_entry']
+                    ts_vi_queue_exit = time.time()*1000
                     metadata['ts_vi_queue_wait'] = \
                         ts_vi_queue_exit - ts_vi_entry
 
@@ -113,13 +113,13 @@ class Publisher:
 
                 if self.profiling is True:
                     metadata['ts_vi_encode_start'] = \
-                        str(round(time.time()*1000))
+                        time.time()*1000
 
                 if "encoding_type" and "encoding_level" in metadata:
                     frame = self.encode(frame)
 
                 if self.profiling is True:
-                    metadata['ts_vi_encode_end'] = str(round(time.time()*1000))
+                    metadata['ts_vi_encode_end'] = time.time()*1000
 
                 metadata['height'] = height
                 metadata['width'] = width
@@ -130,7 +130,7 @@ class Publisher:
                 metadata['img_handle'] = str(uuid.uuid1())[:8]
 
                 if self.profiling is True:
-                    metadata['ts_vi_exit'] = str(round(time.time()*1000))
+                    metadata['ts_vi_exit'] = time.time()*1000
 
                 publisher.publish((metadata, frame.tobytes()))
                 self.log.debug("Published data: {} on topic: {} with \

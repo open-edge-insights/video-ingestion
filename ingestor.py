@@ -114,7 +114,7 @@ class Ingestor:
                             metadata['encoding_level'] = self.encoding['level']
 
                         if self.profiling is True:
-                            metadata['ts_vi_entry'] = str(round(time.time()*1000))
+                            metadata['ts_vi_entry'] = time.time()*1000
 
                         self.ingestor_queue.put((metadata, frame))
                         self.log.debug("Data: {} added to ingestor\
