@@ -64,7 +64,10 @@ PKG_CHECK_MODULES(GST, [
 dnl check if compiler understands -Wall (if yes, add -Wall to GST_CFLAGS)
 AC_MSG_CHECKING([to see if compiler understands -Wall])
 save_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -Wall"
+SECURE_CFLAGS="-fstack-protector-strong -fPIE -fPIC -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security"
+SECURE_LDFLAGS="-z noexecstack -z relro -z now -pie"
+CFLAGS="$SECURE_CFLAGS $SECURE_LDFLAGS $CFLAGS -Wall"
+
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([ ], [ ])], [
   GST_CFLAGS="$GST_CFLAGS -Wall"
   AC_MSG_RESULT([yes])
