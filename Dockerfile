@@ -283,7 +283,32 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     GST_DEBUG="1" \
     LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libxcb-dri3.so"
 
+# Installing GVA plugins
+RUN mkdir gva && \
+    cd gva && \
+    git clone https://github.com/opencv/gst-video-analytics.git
+
+RUN apt-get update && apt install -y --no-install-recommends \
+       gcc \
+       mesa-utils \
+       ocl-icd-libopencl1 \
+       clinfo \
+       vainfo
+
+# Build GVA plugin
+RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
+      mkdir gva/gst-video-analytics/build && \
+      cd gva/gst-video-analytics/build && \
+      cmake .. && \
+      make -j $(nproc)"
+
 # Adding project depedency modules
 COPY . ./VideoIngestion/
+RUN mv VideoIngestion/models .
+
+# Export environment variables
+ENV MODELS_PATH="${PY_WORK_DIR}/VideoIngestion/models/" \
+    GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"${PY_WORK_DIR}/gva/gst-video-analytics/build/intel64/Release/lib"
+
 ENTRYPOINT ["VideoIngestion/vi_start.sh"]
 

@@ -56,6 +56,25 @@ For more details on Etcd and MessageBus endpoint configuration, visit [Etcd_and_
 
 ### `Ingestor config`
 
+   ---------
+   **NOTE**:
+
+   In case GVA plugin needs to be used one can refer the below pipeline to run the face detection example:
+
+   * When working with a USB camera :
+
+        ```
+        "video_src": "v4l2src ! decodebin ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+        ```
+
+    * When working with a RTSP camera :
+
+        ```
+        "video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+        ```
+
+   -------
+
 Gstreamer based pipeline is supported for reading from basler/rtsp/usb
 cameras through OpenCV.
 
