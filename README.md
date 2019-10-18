@@ -187,6 +187,35 @@ each of the video sources below:
      one can use `h24parse | avdec_h264` which is a software decoder.
    ------
 
+   ------
+   **NOTE**:
+    * In case RTSP stream ingestion needs to be used on Xeon machine with no GPU then refer the following ingestor config,
+
+    * If a physical RTSP camera is used:
+        ```
+        "video_src": "rtsp://admin:intel123@<RTSP CAMERA IP>:554"
+        ```
+    * If a simulated RTSP stream needs to be used:
+
+        * Run the following command to create a RTSP stream:
+            ```
+            docker run --rm -e RTSP_RESOLUTION='1920'x'1080' -e RTSP_FRAMERATE=25 -p 8554:8554 ullaakut/rtspatt
+            ```
+            If more options are required to generate a RTSP stream refer the following link:
+            ```
+            https://hub.docker.com/r/ullaakut/rtspatt/
+            ```
+
+        * Use the following config to read from the RTSP stream generated from the above command"
+            ```
+            "video_src": "rtsp://localhost:8554/live.sdp"
+            ```
+
+        **NOTE** : Some issues are observed with cvlc based camera simulation on a Xeon Machine with no GPU. In that case refer the above
+        commands to generate a RTSP stream.
+
+   ------
+
 5. **USB camera**
    ```
     {
