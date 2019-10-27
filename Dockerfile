@@ -256,21 +256,6 @@ ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
 
 ENV PYTHONPATH ${PYTHONPATH}:.
 
-FROM ia_common:$EIS_VERSION as common
-
-FROM openvino
-
-COPY --from=common /libs ${PY_WORK_DIR}/libs
-COPY --from=common /util ${PY_WORK_DIR}/util
-
-RUN cd ./libs/EISMessageBus && \
-    rm -rf build deps && \
-    mkdir build && \
-    cd build && \
-    cmake -DWITH_PYTHON=ON .. && \
-    make && \
-    make install
-
 ENV DEBIAN_FRONTEND="noninteractive" \
     MFX_HOME=$MFX_HOME:"/opt/intel/mediasdk/" \
     PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"/opt/intel/mediasdk" \
@@ -302,6 +287,60 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
       cmake .. && \
       make -j $(nproc)"
 
+FROM ia_common:$EIS_VERSION as common
+
+FROM openvino
+
+WORKDIR ${GO_WORK_DIR}
+
+COPY --from=common /libs ./common/libs
+COPY --from=common /util ./common/util
+COPY --from=common /cmake ./common/cmake
+
+RUN ./common/libs/EISMessageBus/install.sh
+
+RUN cd ./common/libs/EISMsgEnv && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
+RUN cd ./common/libs/ConfigManager/c && \
+    rm -rf build && \
+    ./prebuild.sh && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
+RUN cd ./common/util/c && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
+RUN cd ./common/libs/EISMessageBus && \
+    rm -rf build deps && \
+    mkdir build && \
+    cd build && \
+    cmake -DWITH_PYTHON=ON .. && \
+    make && \
+    make install
+
+# Build UDF loader lib
+# RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
+#      cd ./libs/UDFLoader && \
+#      rm -rf build && \
+#      mkdir build && \
+#      cd build && \
+#      cmake .. && \
+#      make && \
+#      make install"
+
 # Adding project depedency modules
 COPY . ./VideoIngestion/
 RUN mv VideoIngestion/models .
@@ -309,6 +348,14 @@ RUN mv VideoIngestion/models .
 # Export environment variables
 ENV MODELS_PATH="${PY_WORK_DIR}/VideoIngestion/models/" \
     GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"${PY_WORK_DIR}/gva/gst-video-analytics/build/intel64/Release/lib"
+
+RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
+    cd ./VideoIngestion && \
+    rm -rf build && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make"
 
 ENTRYPOINT ["VideoIngestion/vi_start.sh"]
 
