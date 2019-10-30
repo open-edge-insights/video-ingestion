@@ -29,16 +29,18 @@ If `AppName` is `VideoIngestion`, then the app's config would look like as below
 ```
 {
         "ingestor": {
-            "video_src": "./test_videos/pcb_d2000.avi",
+            "type": "opencv",
+            "pipeline": "/EIS/test_videos/pcb_d2000.avi",
             "encoding": {
                 "type": "jpg",
                 "level": 100
             },
-            "loop_video": "true"
+            "loop_video": "true",
+            "queue_size": 20,
+            "poll_interval": 0.2
         },
         "filter": {
             "name": "pcb_filter",
-            "queue_size": 10,
             "max_workers": 5,
             "training_mode": "false",
             "n_total_px": 300000,
@@ -64,13 +66,13 @@ For more details on Etcd and MessageBus endpoint configuration, visit [Etcd_and_
    * When working with a USB camera :
 
         ```
-        "video_src": "v4l2src ! decodebin ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+        "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
         ```
 
     * When working with a RTSP camera :
 
         ```
-        "video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
         ```
 
    -------
@@ -85,7 +87,7 @@ each of the video sources below:
    read API)
    ```
    {
-        "video_src": "./test_videos/pcb_d2000.avi",
+        "pipeline": "./test_videos/pcb_d2000.avi",
         "encoding": {
             "type": "jpg",
             "level": 100
@@ -93,14 +95,14 @@ each of the video sources below:
         "loop_video": "true"
    }
    ```
-   **NOTE**: Change the "video_src" to classification sample
+   **NOTE**: Change the "pipeline" to classification sample
              `./test_videos/classification_vid.avi` for classification sample
              use case with `Bypass filter`
 
 2. **Basler camera**
    ```
     {
-        "video_src": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink",
+        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink",
         "encoding": {
             "type": "jpg",
             "level": 100
@@ -117,41 +119,41 @@ each of the video sources below:
      `serial` parameter is not specified then the source plugin by default
      connects to camera with device_index=0.
 
-     **Eg**: `video_src` value to connect to basler camera with
+     **Eg**: `pipeline` value to connect to basler camera with
      serial number `22573664`:
-     `"video_src":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+     `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
    * In case you want to enable resizing with basler camera use the `vaapipostproc` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with basler camera
-        `"video_src":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! vaapipostproc height=600 width=600 ! videoconvert ! appsink"`
+        `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! vaapipostproc height=600 width=600 ! videoconvert ! appsink"`
 
    * In case frame read is failing when multiple basler cameras are used, use
      the `interpacketdelay` property to increase the delay between the
      transmission of each packet for the selected stream channel.
      Depending on the number of cameras, use an appropriate delay can be set.
 
-     **Eg**: `video_src` value to increase the interpacket delay to 3000(default
+     **Eg**: `pipeline` value to increase the interpacket delay to 3000(default
      value for interpacket delay is 1500):
-     `"video_src":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
+     `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! videoconvert ! appsink"`
 
    * To work with monochrome Basler camera, please change the
      image format to `mono8` in the Pipeline.
 
-     **Eg**:`video_src` value to connect to monochrome basler camera with serial
+     **Eg**:`pipeline` value to connect to monochrome basler camera with serial
      number 22773747 :
-     `"video_src":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+     `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
    * To work with USB Basler camera, please change the
      exposure parameter to `exposureUsb` in the Pipeline.
 
-     `"video_src":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+     `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
     ---
 3. **RTSP cvlc based camera simulation**
    ```
     {
-        "video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink",
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink",
         "encoding": {
             "type": "jpg",
             "level": 100
@@ -165,7 +167,7 @@ each of the video sources below:
     * In case you want to enable resizing with RTSP cvlc based camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
-        `"video_src": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
+        `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
 
    * Install VLC if not installed already: `sudo apt install vlc`
    * In order to use the RTSP stream from cvlc, the RTSP server
@@ -176,7 +178,7 @@ each of the video sources below:
 4. **RTSP camera**
    ```
     {
-        "video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink",
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink",
         "encoding": {
             "type": "jpg",
             "level": 100
@@ -191,7 +193,7 @@ each of the video sources below:
     * In case you want to enable resizing with RTSP camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
-        `"video_src": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
+        `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
 
    * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
    * For working both with simulated RTSP server via cvlc or direct streaming
@@ -212,7 +214,7 @@ each of the video sources below:
 
     * If a physical RTSP camera is used:
         ```
-        "video_src": "rtsp://admin:intel123@<RTSP CAMERA IP>:554"
+        "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554"
         ```
     * If a simulated RTSP stream needs to be used:
 
@@ -227,7 +229,7 @@ each of the video sources below:
 
         * Use the following config to read from the RTSP stream generated from the above command"
             ```
-            "video_src": "rtsp://localhost:8554/live.sdp"
+            "pipeline": "rtsp://localhost:8554/live.sdp"
             ```
 
         **NOTE** : Some issues are observed with cvlc based camera simulation on a Xeon Machine with no GPU. In that case refer the above
@@ -238,7 +240,7 @@ each of the video sources below:
 5. **USB camera**
    ```
     {
-        "video_src": "v4l2src ! videoconvert ! appsink",
+        "pipeline": "v4l2src ! videoconvert ! appsink",
         "encoding": {
             "type": "jpg",
             "level": 100
@@ -252,19 +254,19 @@ each of the video sources below:
      * In case you want to enable resizing with USB camera use the `videoscale` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with USB camera
-        `"video_src":"v4l2src ! videoconvert ! videoscale ! video/x-raw, height=600, width=600 ! appsink"`
+        `"pipeline":"v4l2src ! videoconvert ! videoscale ! video/x-raw, height=600, width=600 ! appsink"`
 
    * In case, multiple USB cameras are connected specify the
      camera using the `device` property in the configuration file.
      Eg:
-     `"video_src": "v4l2src device=/dev/video0 ! videoconvert ! appsink"`
+     `"pipeline": "v4l2src device=/dev/video0 ! videoconvert ! appsink"`
    -------
 
 #### `Detailed description on each of the keys used`
 
 |  Key	        | Description 	                        | Possible Values  	                                            | Required/Optional	|
 |---	        |---	                                |---	                                                        |---	            |
-|  video_src    |  Video source                         | Video file or gstreamer based pipeline 	                    | Required 	        |
+|  pipeline    |  Video source                         | Video file or gstreamer based pipeline 	                    | Required 	        |
 |  encoding     |  Encodes the video frame	            | Supported encoding types: `jpg` or `png`. For `jpg`,encoding level is between `0-100` and or `png`, it's `0-9`)                                   | Optional          |
 |  poll_interval|  Determines fps read rate from camera | floating number  	                                            | Optional  	    |
 |  loop_video	|  Would loop through the video file    | "true" or "false"	(By default, it's false)                    | Optional          |

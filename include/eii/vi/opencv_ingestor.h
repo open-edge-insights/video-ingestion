@@ -18,6 +18,11 @@
 // FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+/**
+ * @file
+ * @brief OpenCV Ingestor interface
+ */
+
 #ifndef _EIS_VI_OPENCV_H
 #define _EIS_VI_OPENCV_H
 

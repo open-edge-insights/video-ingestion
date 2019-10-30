@@ -18,6 +18,11 @@
 // FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+/**
+ * @file
+ * @brief Ingestor Base Implementation
+ */
+
 #include <unistd.h>
 #include <eis/utils/logger.h>
 #include "eis/vi/ingestor.h"
@@ -87,8 +92,7 @@ IngestRetCode Ingestor::start() {
     return IngestRetCode::SUCCESS;
 }
 
-Ingestor* IngestorWrapper::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type) {
-
+Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type) {
     Ingestor* ingestor = NULL;
     // Create the ingestor object based on the type specified in the config
     if(!strcmp(type, "opencv")) {

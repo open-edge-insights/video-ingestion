@@ -18,6 +18,12 @@
 // FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+
+/**
+ * @file
+ * @brief Ingestor interface
+ */
+
 #ifndef _EIS_VI_INGESTOR_H
 #define _EIS_VI_INGESTOR_H
 
@@ -151,13 +157,7 @@ namespace eis {
                 virtual void stop();
         };
 
-        class IngestorWrapper {
-            public:
-                /**
-                 * get_ingestor factory method
-                 */
-                static Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type);
-        };
+        Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type);
 
     } // vi
 } // eis

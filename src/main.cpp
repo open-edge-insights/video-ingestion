@@ -18,9 +18,10 @@
 // IN THE SOFTWARE.
 
 /**
- * @brief UDF loading example
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
+ * @file
+ * @brief VideoIngestion main program
  */
+
 
 #include <cstring>
 #include <thread>
@@ -65,10 +66,6 @@ int main(int argc, char** argv) {
         vi->start();
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
-        cleanup(vi);
-        return -1;
-    } catch(...) {
-        LOG_ERROR("Excpetion occurred starting VI pipeline");
         cleanup(vi);
         return -1;
     }
