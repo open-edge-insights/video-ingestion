@@ -19,8 +19,8 @@
 // IN THE SOFTWARE.
 
 /**
- * @brief @c GstreamerIngestor implementation
- * @author Kevin Midkiff (kevin.midkiff@intel.com)
+ * @file
+ * @brief Gstreamer Ingestor implementation
  */
 
 #ifdef WITH_PROFILE

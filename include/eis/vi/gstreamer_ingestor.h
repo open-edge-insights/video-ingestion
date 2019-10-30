@@ -18,6 +18,12 @@
 // FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+
+/**
+ * @file
+ * @brief Gstreamer ingestor interface
+ */
+
 #ifndef _EIS_VI_GSTREAMER_H
 #define _EIS_VI_GSTREAMER_H
 

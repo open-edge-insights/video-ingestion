@@ -19,9 +19,10 @@
 // IN THE SOFTWARE.
 
 /**
- * @brief @c OpenCvIngestor implementation
- * @author Kevin Midkiff <kevin.midkiff@intel.com>
+ * @file
+ * @brief OpenCV Ingestor implementation
  */
+
 #include <string>
 #include <vector>
 #include <cerrno>

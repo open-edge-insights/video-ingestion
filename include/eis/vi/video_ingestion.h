@@ -18,6 +18,12 @@
 // FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+
+/**
+ * @file
+ * @brief VideoIngestion interface
+ */
+
 #ifndef _EIS_VI_VIDEOINGESTION_H
 #define _EIS_VI_VIDEOINGESTION_H
 
@@ -28,10 +34,9 @@
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/config.h>
 #include <eis/utils/json_config.h>
-// #include <eis/udf/udf_manager.h>
+#include <eis/utils/msgbus_util.h>
 #include <eis/config_manager/config_manager.h>
 #include <eis/msgbus/msgbus.h>
-#include <eis/config_manager/config_manager.h>
 #include "eis/vi/ingestor.h"
 
 using namespace eis::utils;
@@ -45,6 +50,9 @@ namespace eis {
         class VideoIngestion {
             private:
 
+                // App name
+                std::string m_app_name;
+
                 // Ingestor configuration object
                 config_t* m_ingestor_cfg;
 
@@ -52,7 +60,7 @@ namespace eis {
                 char* m_ingestor_type;
 
                 // Filter configuration object
-                config_t* m_filter_cfg;
+                config_t* m_udf_cfg;
 
                 // Ingestor object
                 Ingestor* m_ingestor;
@@ -68,6 +76,15 @@ namespace eis {
 
                 // UDF output queue
                 FrameQueue* m_udf_output_queue;
+
+                // ConfigManager client
+                config_mgr_t* m_config_mgr_client;
+
+                // ConfigManager config
+                config_mgr_config_t* m_config_mgr_config;
+
+                // Env config
+                MsgBusUtil* m_env_config;
 
                 /**
                  * Frees up the dynamically allotted memory
