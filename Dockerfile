@@ -287,6 +287,10 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
       cmake .. && \
       make -j $(nproc)"
 
+# Export environment variables
+ENV MODELS_PATH="${PY_WORK_DIR}/VideoIngestion/models/" \
+    GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"${PY_WORK_DIR}/gva/gst-video-analytics/build/intel64/Release/lib"
+
 FROM ia_common:$EIS_VERSION as common
 
 FROM openvino
@@ -298,10 +302,6 @@ COPY --from=common /usr/local/lib /usr/local/lib
 COPY --from=common ${GO_WORK_DIR}/common/cmake ./common/cmake
 COPY --from=common ${GO_WORK_DIR}/common/libs ./common/libs
 
-# Export environment variables
-ENV MODELS_PATH="${PY_WORK_DIR}/VideoIngestion/models/" \
-    GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"${PY_WORK_DIR}/gva/gst-video-analytics/build/intel64/Release/lib"
-
 # Build UDF loader lib
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./common/libs/UDFLoader && \
@@ -309,7 +309,6 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     mkdir build && \
     cd build && \
     cmake .. && \
-    make && \
     make install"
 
 # Adding project depedency modules
