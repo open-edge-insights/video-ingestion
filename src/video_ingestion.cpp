@@ -44,7 +44,7 @@ using namespace eis::msgbus;
 VideoIngestion::VideoIngestion() {
 
     m_app_name = getenv("AppName");
-    m_env_config = new MsgBusUtil();
+    m_env_config = new EnvConfig();
     m_config_mgr_client = m_env_config->get_config_mgr_client();
 
     char config_key[MAX_CONFIG_KEY_LENGTH];

@@ -34,7 +34,7 @@
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/config.h>
 #include <eis/utils/json_config.h>
-#include <eis/utils/msgbus_util.h>
+#include <eis/utils/env_config.h>
 #include <eis/config_manager/config_manager.h>
 #include <eis/msgbus/msgbus.h>
 #include "eis/vi/ingestor.h"
