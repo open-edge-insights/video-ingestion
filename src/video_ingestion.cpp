@@ -56,7 +56,7 @@ VideoIngestion::VideoIngestion() {
     if(config == NULL) {
         throw("Failed to initialize configuration object");
     }
-
+    
     config_value_t* ingestor_value = config->get_config_value(config->cfg,
                                                               "ingestor");
     if(ingestor_value == NULL) {
