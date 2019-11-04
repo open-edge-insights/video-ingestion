@@ -33,12 +33,13 @@
 #include <eis/utils/config.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>
-#include <eis/utils/env_config.h>
+#include <eis/config_manager/env_config.h>
 #include <eis/config_manager/config_manager.h>
 #include <eis/msgbus/msgbus.h>
 #include "eis/vi/ingestor.h"
 
 using namespace eis::utils;
+using namespace eis::config_manager;
 
 namespace eis {
     namespace vi {

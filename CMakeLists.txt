@@ -55,6 +55,7 @@ endif()
 find_package(OpenCV REQUIRED)
 find_package(EISMsgEnv REQUIRED)
 find_package(EISUtils REQUIRED)
+find_package(EISConfigMgr REQUIRED)
 find_package(EISMessageBus REQUIRED)
 find_package(PkgConfig REQUIRED)
 
@@ -90,6 +91,7 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
     ${EISMsgEnv_INCLUDE}
     ${EISUtils_INCLUDE}
+    ${EISConfigMgr_INCLUDE}
     ${EISMessageBus_INCLUDE}
     ${GST_INCLUDE_DIRS}
     ${safestring_SOURCE_DIR}/include)
@@ -103,6 +105,7 @@ target_link_libraries(video-ingestion
         ${OpenCV_LIBS}
         ${EISUtils_LIBRARIES}
         ${EISMsgEnv_LIBRARIES}
+        eisconfigmgr
         ${EISMessageBus_LIBRARIES}
         ${GST_LIBRARIES}
     PRIVATE

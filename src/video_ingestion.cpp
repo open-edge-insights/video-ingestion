@@ -39,6 +39,7 @@
 
 using namespace eis::vi;
 using namespace eis::utils;
+using namespace eis::config_manager;
 using namespace eis::msgbus;
 
 VideoIngestion::VideoIngestion() {
