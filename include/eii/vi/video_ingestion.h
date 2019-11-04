@@ -32,7 +32,6 @@
 #include <eis/utils/frame.h>
 #include <eis/utils/config.h>
 #include <eis/utils/thread_safe_queue.h>
-#include <eis/utils/config.h>
 #include <eis/utils/json_config.h>
 #include <eis/utils/env_config.h>
 #include <eis/config_manager/config_manager.h>
@@ -84,7 +83,7 @@ namespace eis {
                 config_mgr_config_t* m_config_mgr_config;
 
                 // Env config
-                MsgBusUtil* m_env_config;
+                EnvConfig* m_env_config;
 
                 /**
                  * Frees up the dynamically allotted memory

@@ -54,7 +54,10 @@ void cleanup(VideoIngestion* vi) {
 }
 
 int main(int argc, char** argv) {
+
+    // Initialize log level default
     set_log_level(LOG_LVL_INFO);
+
     VideoIngestion* vi = NULL;
     try {
         if(argc >= 2) {
