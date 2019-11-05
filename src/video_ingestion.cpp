@@ -140,7 +140,7 @@ void VideoIngestion::start() {
         }                                                            
 
         m_publisher = new Publisher(
-                msgbus_config, topics[0], (InputMessageQueue*) m_udf_output_queue);
+                msgbus_config, topics[0], (MessageQueue*) m_udf_output_queue);
         m_publisher->start();
         LOG_INFO("Publisher thread started...");
 
