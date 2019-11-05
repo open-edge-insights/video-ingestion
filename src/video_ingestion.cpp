@@ -97,6 +97,11 @@ VideoIngestion::VideoIngestion() {
 
         config_value_object_t* ingestor_cvt = ingestor_value->body.object;
         m_ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value);
+        if(m_ingestor_cfg == NULL) {
+            const char* err = "Unable to get ingestor config";
+            LOG_ERROR("%s", err);
+            throw(err);
+        }
 
         config_value_t* udf_value = config->get_config_value(config->cfg,
                                                              "udf");
@@ -108,6 +113,11 @@ VideoIngestion::VideoIngestion() {
             m_udf_output_queue = new FrameQueue(queue_size);
             config_value_object_t* udf_cvt = udf_value->body.object;
             m_udf_cfg = config_new(udf_cvt, free, get_config_value);
+            if(m_udf_cfg == NULL) {
+                const char* err = "Unable to get UDF config";
+                LOG_ERROR("%s", err);
+                throw(err);
+            }
         }
     }
 }
@@ -115,14 +125,19 @@ VideoIngestion::VideoIngestion() {
 void VideoIngestion::start() {
     try {
         std::vector<std::string> topics = m_env_config->get_topics_from_env("pub");
-        if(topics.size() > 1) {
-            const char* err = "Only one topic is supported";
+        if(topics.size() != 1) {
+            const char* err = "Only one topic is supported. Neither more nor less";
             LOG_ERROR("%s", err);
             throw(err);
         }
         std::string topic_type = "pub";
       	config_t* msgbus_config = m_env_config->get_messagebus_config(topics[0],
                                                                      topic_type);
+        if(msgbus_config == NULL) {
+            const char* err = "Failed to get message bus config";
+            LOG_ERROR("%s", err);
+            throw(err);
+        }                                                            
 
         m_publisher = new Publisher(
                 msgbus_config, topics[0], (InputMessageQueue*) m_udf_output_queue);
