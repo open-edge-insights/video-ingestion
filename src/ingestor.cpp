@@ -80,9 +80,7 @@ void Ingestor::stop() {
 }
 
 IngestRetCode Ingestor::start() {
-    if(!m_initialized.load())
-        return IngestRetCode::NOT_INITIALIZED;
-    else if(m_stop.load())
+    if(m_stop.load())
         return IngestRetCode::STOPPED;
     else if(m_th != NULL)
         return IngestRetCode::ALREAD_RUNNING;

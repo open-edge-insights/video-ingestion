@@ -27,8 +27,14 @@ option(WITH_PROFILE "Compile in profiling mode" OFF)
 # Globals
 set(EIS_COMMON_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../common/cmake")
 
+<<<<<<< HEAD
 # Set C++ version
 set(CMAKE_CXX_STANDARD 14)
+=======
+# Set C standard to C11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "-Wall -std=c++11")
+>>>>>>> VideoIngestion: Added fix for the gstreamer ingestor module
 
 # Set CFLAGS for C/C++
 set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -D_FORTIFY_SOURCE=2")
