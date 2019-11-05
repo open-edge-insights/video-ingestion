@@ -27,6 +27,7 @@
 #include <safe_lib.h>
 #include "eis/vi/video_ingestion.h"
 #include "eis/vi/ingestor.h"
+#include "eis/vi/gstreamer_ingestor.h"
 
 #define INTEL_VENDOR "GenuineIntel"
 #define INTEL_VENDOR_LENGTH 12
@@ -135,6 +136,15 @@ void VideoIngestion::start() {
             msgbus_config, topics[0], (MessageQueue*) m_udf_output_queue);
     m_publisher->start();
     LOG_INFO("Publisher thread started...");
+
+    m_ingestor = new GstreamerIngestor(m_ingestor_cfg, m_udf_input_queue);
+    IngestRetCode ret = m_ingestor->start();
+    if(ret != IngestRetCode::SUCCESS) {
+        LOG_ERROR_0("Failed to start ingestor thread");
+    }
+    else{
+        LOG_INFO("Ingestor thread started...");
+    }
 
     if(m_udfs_key_exists) {
         LOG_INFO_0("Starting udf manager");
