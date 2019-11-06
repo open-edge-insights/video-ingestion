@@ -33,8 +33,11 @@
 #include "eis/vi/gstreamer_ingestor.h"
 #include "eis/vi/gva_roi_meta.h"
 #include "eis/utils/frame.h"
+#include <sstream>
+#include <random>
+#include <string>
 
-
+#define UUID_LENGTH 5
 #define PIPELINE "pipeline"
 
 using namespace eis::vi;
@@ -394,6 +397,18 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                 if(ret != MSG_SUCCESS) {
                     LOG_ERROR_0("Failed to put gva metadata")
                     return GST_FLOW_ERROR;
+                }
+
+                // Adding image handle to frame
+                std::string randuuid = ctx->generate_image_handle(UUID_LENGTH);
+                msg_envelope_t* meta_data = frame->get_meta_data();
+                msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(randuuid.c_str());
+                if (elem == NULL) {
+                    throw "Failed to create image handle element";
+                }
+                msgbus_msg_envelope_put(meta_data, "img_handle", elem);
+                if(ret != MSG_SUCCESS) {
+                    throw "Failed to put image handle meta-data";
                 }
 
                 ctx->m_udf_input_queue->push(frame);

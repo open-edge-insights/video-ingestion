@@ -24,10 +24,15 @@
  */
 
 #include <unistd.h>
+#include <sstream>
+#include <random>
+#include <string>
 #include <eis/utils/logger.h>
 #include "eis/vi/ingestor.h"
 #include "eis/vi/opencv_ingestor.h"
 #include "eis/vi/gstreamer_ingestor.h"
+
+#define UUID_LENGTH 5
 
 using namespace eis::vi;
 using namespace eis::utils;
@@ -56,6 +61,20 @@ void Ingestor::run() {
 
     while(!m_stop.load()) {
         this->read(frame);
+
+        // Adding image handle to frame
+        std::string randuuid = generate_image_handle(UUID_LENGTH);
+        msg_envelope_t* meta_data = frame->get_meta_data();
+        msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(randuuid.c_str());
+        if (elem == NULL) {
+            throw "Failed to create image handle element";
+        }
+        msgbus_ret_t ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
+        if(ret != MSG_SUCCESS) {
+            LOG_ERROR_0("Failed to put image handle meta-data");
+            continue;
+        }
+
         if(m_udf_input_queue->push(frame) != QueueRetCode::SUCCESS) {
             LOG_ERROR_0("Frame queue full, frame dropped");
             delete frame;
@@ -103,4 +122,19 @@ Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const
     }
 
     return ingestor;
+}
+
+std::string Ingestor::generate_image_handle(const int len) {
+    std::stringstream ss;
+    for (auto i = 0; i < len; i++) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, 255);
+        const auto rc = dis(gen);
+        std::stringstream hexstream;
+        hexstream << std::hex << rc;
+        auto hex = hexstream.str();
+        ss << (hex.length() < 2 ? '0' + hex : hex);
+    }
+    return ss.str();
 }
