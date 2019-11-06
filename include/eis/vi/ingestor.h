@@ -103,8 +103,8 @@ namespace eis {
          */
         class Ingestor {
             private:
-		// Underlying ingestion thread
-                std::thread* m_th;  
+		        // Underlying ingestion thread
+                std::thread* m_th;
 
             protected:
                 // Flag for if the ingestor has been initialized
@@ -132,6 +132,12 @@ namespace eis {
                  * the ingestion stream.
                  */
                 virtual void read(Frame*& frame) = 0;
+
+                /**
+                 * Method to generate random uuid to set image handle
+                 * for every frame.
+                 */
+                std::string generate_image_handle(const int len);
 
             public:
 
