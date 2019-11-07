@@ -31,6 +31,9 @@
 
 #include "eis/utils/logger.h"
 #include "eis/vi/gstreamer_ingestor.h"
+#include "eis/vi/gva_roi_meta.h"
+#include "eis/utils/frame.h"
+
 
 #define PIPELINE "pipeline"
 
@@ -98,6 +101,9 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue):
     }
     // Get the GST bus
     GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_gst_pipeline));
+    if (bus == NULL){
+    	LOG_ERROR_0("Failed to initialize GST bus");
+    }
     m_bus_watch_id = gst_bus_add_watch(bus, bus_call, m_loop);
     gst_object_unref(bus);
     // TODO: Verify bus actions happened correctly
@@ -228,9 +234,167 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                 // TODO: Check BGRx
                 GstreamerFrame* gst_frame = new GstreamerFrame(
                         sample, buf, info);
+
                 Frame* frame = new Frame(
                         (void*) gst_frame, (int) width, (int) height, 4,
                         info->data, free_gst_frame);
+
+                //Get the GVA metadata from the GST buffer
+                GVA::RegionOfInterestList roi_list(buf);
+
+                msgbus_ret_t ret = MSG_SUCCESS;
+
+                msg_envelope_elem_body_t* gva_meta_arr = msgbus_msg_envelope_new_array();
+		        if(gva_meta_arr == NULL) {
+                        LOG_ERROR_0("Failed to initialize gva metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+                for(GVA::RegionOfInterest& roi : roi_list) {
+                    GstVideoRegionOfInterestMeta* meta = roi.meta();
+
+                    LOG_DEBUG("Object Bounding Box: [%d, %d] [%d, %d]",
+                            meta->x, meta->y, meta->w, meta->h)
+
+                    msg_envelope_elem_body_t* roi_obj= msgbus_msg_envelope_new_object();
+                    if(roi_obj == NULL) {
+                        LOG_ERROR_0("Failed to initialize roi metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+		            msg_envelope_elem_body_t* x = msgbus_msg_envelope_new_integer(meta->x);
+                    if(x == NULL) {
+                        LOG_ERROR_0("Failed to initialize horizontal offset metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+		            msg_envelope_elem_body_t* y = msgbus_msg_envelope_new_integer(meta->y);
+                    if(y == NULL) {
+                        LOG_ERROR_0("Failed to initialize vertical offset metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+
+		            msg_envelope_elem_body_t* w = msgbus_msg_envelope_new_integer(meta->w);
+                    if(w == NULL) {
+                        LOG_ERROR_0("Failed to initialize width metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+		            msg_envelope_elem_body_t* h = msgbus_msg_envelope_new_integer(meta->h);
+		            if(h == NULL) {
+                        LOG_ERROR_0("Failed to initialize height metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+                    ret = msgbus_msg_envelope_elem_object_put(roi_obj, "x", x);
+                    if(ret != MSG_SUCCESS) {
+                        LOG_ERROR_0("Failed to put horizontal offset metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+                    ret = msgbus_msg_envelope_elem_object_put(roi_obj, "y", y);
+                    if(ret != MSG_SUCCESS) {
+                        LOG_ERROR_0("Failed to put vertical offset metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+                    ret = msgbus_msg_envelope_elem_object_put(roi_obj, "width", w);
+                    if(ret != MSG_SUCCESS) {
+                        LOG_ERROR_0("Failed to put width metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+                    ret = msgbus_msg_envelope_elem_object_put(roi_obj, "height", h);
+                    if(ret != MSG_SUCCESS) {
+                        LOG_ERROR_0("Failed to put height metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+                    msg_envelope_elem_body_t* tensor_arr = msgbus_msg_envelope_new_array();
+                    if(tensor_arr == NULL) {
+                        LOG_ERROR_0("Failed to initialize tensor metadata");
+                        return GST_FLOW_ERROR;
+                    }
+
+                    for(GVA::Tensor& tensor : roi) {
+                        LOG_DEBUG("Attribute: %s, Label: %s, Confidence: %f",
+                                tensor.name().c_str(), tensor.label().c_str(),
+                                tensor.confidence())
+
+                        msg_envelope_elem_body_t* tensor_obj= msgbus_msg_envelope_new_object();
+                        if(tensor_obj == NULL) {
+                            LOG_ERROR_0("Failed to initialize tensor metadata for each roi");
+                            return GST_FLOW_ERROR;
+                        }
+
+                        msg_envelope_elem_body_t* attribute = msgbus_msg_envelope_new_string(tensor.name().c_str());
+                        if(attribute == NULL) {
+                            LOG_ERROR_0("Failed to initialize attribute metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+			            msg_envelope_elem_body_t* label = msgbus_msg_envelope_new_string(tensor.label().c_str());
+                        if(label == NULL) {
+                            LOG_ERROR_0("Failed to initialize label metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+			            msg_envelope_elem_body_t* confidence = msgbus_msg_envelope_new_integer(tensor.confidence());
+                        if(confidence == NULL) {
+                            LOG_ERROR_0("Failed to initialize confidence metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+                        ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "attribute", attribute);
+                        if(ret != MSG_SUCCESS) {
+                            LOG_ERROR_0("Failed to put attribute metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+                        ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "label", label);
+                        if(ret != MSG_SUCCESS) {
+                            LOG_ERROR_0("Failed to put label metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+                        ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "confidence", confidence);
+                        if(ret != MSG_SUCCESS) {
+                            LOG_ERROR_0("Failed to put confidence metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+                        ret = msgbus_msg_envelope_elem_array_add(tensor_arr, tensor_obj);
+                        if(ret != MSG_SUCCESS) {
+                            LOG_ERROR_0("Failed to add tensor object to tensor array metadata");
+                            return GST_FLOW_ERROR;
+                        }
+                    }
+
+                    ret = msgbus_msg_envelope_elem_object_put(roi_obj, "tensor", tensor_arr);
+                    if(ret != MSG_SUCCESS) {
+                        LOG_ERROR_0("Failed to put tensor array to roi object metadata")
+                        return GST_FLOW_ERROR;
+                    }
+
+                    ret = msgbus_msg_envelope_elem_array_add(gva_meta_arr,roi_obj);
+                    if(ret != MSG_SUCCESS) {
+                        LOG_ERROR_0("Failed to add roi object to gva metadata")
+                        return GST_FLOW_ERROR;
+                    }
+                }
+
+                msg_envelope_t* gva_meta_data = frame->get_meta_data();
+                if(gva_meta_arr == NULL) {
+                    LOG_ERROR_0("Failed to initialize frame metadata");
+                    return GST_FLOW_ERROR;
+                }
+
+	            ret = msgbus_msg_envelope_put(gva_meta_data, "gva_meta", gva_meta_arr);
+                if(ret != MSG_SUCCESS) {
+                    LOG_ERROR_0("Failed to put gva metadata")
+                    return GST_FLOW_ERROR;
+                }
 
                 ctx->m_udf_input_queue->push(frame);
 #ifdef WITH_PROFILE

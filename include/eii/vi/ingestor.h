@@ -102,12 +102,11 @@ namespace eis {
          * Base ingestor interface.
          */
         class Ingestor {
-            //private:
+            private:
+		// Underlying ingestion thread
+                std::thread* m_th;  
 
             protected:
-                // Underlying ingestion thread
-                std::thread* m_th;
-
                 // Flag for if the ingestor has been initialized
                 std::atomic<bool> m_initialized;
 

@@ -62,17 +62,23 @@ For more details on Etcd and MessageBus endpoint configuration, visit [Etcd_and_
    **NOTE**:
 
    In case GVA plugin needs to be used one can refer the below pipeline to run the face detection example:
+   Gva plugins needs to be used only with `gstreamer` ingestor type.
 
    * When working with a USB camera :
 
         ```
-        "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+        "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
         ```
 
     * When working with a RTSP camera :
 
         ```
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=/EIS/models/face-detection-adas-0001.xml ! gvaclassify  model=/EIS/models/emotions-recognition-retail-0003.xml model-proc=/EIS/models/emotions-recognition-retail-0003.json ! gvaclassify  model=/EIS/models/age-gender-recognition-retail-0013.xml model-proc=/EIS/models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+        ```
+    To run the Safety Gear Detection Sample using GVA plugins the below pipeline:
+
+        ```
+        "pipeline": "multifilesrc loop=true location=/EIS/test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! gvawatermark ! appsink name=\"sink\""
         ```
 
    -------
