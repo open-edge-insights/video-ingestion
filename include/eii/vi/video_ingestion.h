@@ -36,10 +36,12 @@
 #include <eis/config_manager/env_config.h>
 #include <eis/config_manager/config_manager.h>
 #include <eis/msgbus/msgbus.h>
+#include <eis/udf/udf_manager.h>
 #include "eis/vi/ingestor.h"
 
 using namespace eis::utils;
 using namespace eis::config_manager;
+using namespace eis::udf;
 
 namespace eis {
     namespace vi {
@@ -59,8 +61,11 @@ namespace eis {
                 // Ingestor type - opencv or gstreamer
                 char* m_ingestor_type;
 
-                // Filter configuration object
-                config_t* m_udf_cfg;
+                // App configuration object
+                config_t* m_config;
+
+                // flag to check if `udfs` key exists in config
+                bool m_udfs_key_exists;
 
                 // Ingestor object
                 Ingestor* m_ingestor;
@@ -69,7 +74,7 @@ namespace eis {
                 msgbus::Publisher* m_publisher;
 
                 // EIS UDFManager
-                // UDFLoader::UdfManager* m_udf_manager;
+                UdfManager* m_udf_manager;
 
                 // UDF input queue
                 FrameQueue* m_udf_input_queue;
@@ -85,11 +90,6 @@ namespace eis {
 
                 // Env config
                 EnvConfig* m_env_config;
-
-                /**
-                 * Frees up the dynamically allotted memory
-                 */
-                void cleanup();
 
             public:
 

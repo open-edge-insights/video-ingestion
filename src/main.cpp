@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation.  //
+// Copyright (c) 2019 Intel Corporation.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
 // deal in the Software without restriction, including without limitation the
@@ -22,54 +22,40 @@
  * @brief VideoIngestion main program
  */
 
-
-#include <cstring>
-#include <thread>
-#include <atomic>
-#include <chrono>
-#include <eis/utils/logger.h>
-#include <eis/utils/json_config.h>
-#include <eis/msgbus/msgbus.h>
-#if 0
-#include "eis/udf/udf_manager.h"
-#endif
+#include <unistd.h>
 #include "eis/vi/video_ingestion.h"
 
-#if 0
-using namespace eis::udf;
-#endif
-using namespace eis::utils;
-using namespace eis::msgbus;
 using namespace eis::vi;
+using namespace eis::utils;
 
 void usage(const char* name) {
     printf("usage: %s [-h|--help]\n", name);
 }
 
-void cleanup(VideoIngestion* vi) {
-    if(vi) {
-        vi->stop();
-        delete vi;
-    }
-}
-
 int main(int argc, char** argv) {
-
-    // Initialize log level default
-    set_log_level(LOG_LVL_INFO);
-
     VideoIngestion* vi = NULL;
     try {
         if(argc >= 2) {
+            log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
             if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
                 usage(argv[0]);
+            } else if(strcmp(argv[1], "DEBUG") == 0) {
+                log_level = LOG_LVL_DEBUG;
+            } else if(strcmp(argv[1], "INFO") == 0) {
+                log_level = LOG_LVL_INFO;
+            } else if(strcmp(argv[1], "WARN") == 0) {
+                log_level = LOG_LVL_WARN;
             }
+            set_log_level(log_level);
         }
         vi = new VideoIngestion();
         vi->start();
+        while(1) {
+            usleep(2);
+        }
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
-        cleanup(vi);
+        delete vi;
         return -1;
     }
     return 0;
