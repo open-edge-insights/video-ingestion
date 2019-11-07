@@ -137,7 +137,15 @@ void VideoIngestion::start() {
     m_publisher->start();
     LOG_INFO("Publisher thread started...");
 
-    m_ingestor = new GstreamerIngestor(m_ingestor_cfg, m_udf_input_queue);
+    if(m_udfs_key_exists) {
+        LOG_INFO_0("Starting udf manager");
+        m_udf_manager = new UdfManager(m_config, m_udf_input_queue, m_udf_output_queue);
+        m_udf_manager->start();
+        LOG_INFO_0("Started udf manager");
+    }
+
+
+    m_ingestor = get_ingestor(m_ingestor_cfg, m_udf_input_queue, m_ingestor_type);
     IngestRetCode ret = m_ingestor->start();
     if(ret != IngestRetCode::SUCCESS) {
         LOG_ERROR_0("Failed to start ingestor thread");
@@ -146,16 +154,6 @@ void VideoIngestion::start() {
         LOG_INFO("Ingestor thread started...");
     }
 
-    if(m_udfs_key_exists) {
-        LOG_INFO_0("Starting udf manager");
-        m_udf_manager = new UdfManager(m_config, m_udf_input_queue, m_udf_output_queue);
-        m_udf_manager->start();
-        LOG_INFO_0("Started udf manager");
-    }
-
-    m_ingestor = get_ingestor(m_ingestor_cfg, m_udf_input_queue, m_ingestor_type);
-    m_ingestor->start();
-    LOG_INFO("Ingestor thread started...");
 }
 
 void VideoIngestion::stop() {
