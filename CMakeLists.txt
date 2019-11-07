@@ -18,8 +18,8 @@
 # FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-cmake_minimum_required(VERSION 3.11)
-project(video-ingestion)
+cmake_minimum_required(VERSION 3.12)
+project(video-ingestion VERSION 1.0.0 LANGUAGES C CXX)
 
 # Define CMake options
 option(WITH_PROFILE "Compile in profiling mode" OFF)
@@ -27,11 +27,12 @@ option(WITH_PROFILE "Compile in profiling mode" OFF)
 # Globals
 set(EIS_COMMON_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../common/cmake")
 
-# Set C standard to C11
-set(CMAKE_C_STANDARD 11)
+# Set C++ version
+set(CMAKE_CXX_STANDARD 14)
 
-# Set CFLAGS
+# Set CFLAGS for C/C++
 set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -D_FORTIFY_SOURCE=2")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 
 # Set LDFLAGS
 set(CMAKE_SHARED_LINKER_FLAGS "-z noexecstack -z relro -z now")
@@ -57,6 +58,7 @@ find_package(EISMsgEnv REQUIRED)
 find_package(EISUtils REQUIRED)
 find_package(EISConfigMgr REQUIRED)
 find_package(EISMessageBus REQUIRED)
+find_package(UDFLoader REQUIRED)
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(GST REQUIRED
@@ -93,6 +95,7 @@ include_directories(
     ${EISUtils_INCLUDE}
     ${EISConfigMgr_INCLUDE}
     ${EISMessageBus_INCLUDE}
+    ${UDFLoader_INCLUDE}
     ${GST_INCLUDE_DIRS}
     ${safestring_SOURCE_DIR}/include)
 
@@ -107,6 +110,7 @@ target_link_libraries(video-ingestion
         ${EISMsgEnv_LIBRARIES}
         eisconfigmgr
         ${EISMessageBus_LIBRARIES}
+        ${UDFLoader_LIBRARIES}
         ${GST_LIBRARIES}
     PRIVATE
         ${ZMQ_LIBRARIES}

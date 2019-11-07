@@ -97,7 +97,7 @@ void OpenCvIngestor::read(Frame*& frame) {
     cv::Mat* cv_frame = new cv::Mat();
 
     if(!m_cap->read(*cv_frame)) {
-        LOG_ERROR_0("Failed to read frame from OpenCV video capture");
+        LOG_WARN_0("Failed to read frame from OpenCV video capture");
         // Re-opening the video capture
         m_cap->release();
         delete m_cap;
