@@ -29,6 +29,7 @@
 
 #include <thread>
 #include <atomic>
+#include <condition_variable>
 #include <eis/utils/frame.h>
 #include <eis/utils/config.h>
 #include <eis/utils/thread_safe_queue.h>
@@ -91,12 +92,15 @@ namespace eis {
                 // Env config
                 EnvConfig* m_env_config;
 
+                // Error condition variable
+                std::condition_variable& m_err_cv;
+
             public:
 
                 /**
                  * Constructor
                  */
-                VideoIngestion();
+                VideoIngestion(std::condition_variable err_cv);
 
                 /**
                  * Start the VI pipeline in order of MsgBusPublisher, UDFManager and Ingestor
