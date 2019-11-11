@@ -58,6 +58,7 @@ void Ingestor::run() {
         this->read(frame);
         if(m_udf_input_queue->push(frame) != QueueRetCode::SUCCESS) {
             LOG_ERROR_0("Frame queue full, frame dropped");
+            delete frame;
         }
         frame = NULL;
         if(m_poll_interval > 0) {
