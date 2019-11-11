@@ -23,6 +23,7 @@
  */
 
 #include <unistd.h>
+#include <condition_variable>
 #include "eis/vi/video_ingestion.h"
 
 using namespace eis::vi;
@@ -48,7 +49,8 @@ int main(int argc, char** argv) {
             }
             set_log_level(log_level);
         }
-        vi = new VideoIngestion();
+        std::condition_variable err_cv;
+        vi = new VideoIngestion(err_cv);
         vi->start();
         while(1) {
             usleep(2);

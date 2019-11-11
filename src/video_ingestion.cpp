@@ -40,7 +40,9 @@ using namespace eis::config_manager;
 using namespace eis::msgbus;
 using namespace eis::udf;
 
-VideoIngestion::VideoIngestion() {
+VideoIngestion::VideoIngestion(std::condition_variable& err_cv) :
+    m_err_cv(err_cv)
+{
 
     m_app_name = getenv("AppName");
     m_env_config = new EnvConfig();
@@ -133,7 +135,7 @@ void VideoIngestion::start() {
     }
 
     m_publisher = new Publisher(
-            msgbus_config, topics[0], (MessageQueue*) m_udf_output_queue);
+            msgbus_config, m_err_cv, topics[0], (MessageQueue*) m_udf_output_queue);
     m_publisher->start();
     LOG_INFO("Publisher thread started...");
 
