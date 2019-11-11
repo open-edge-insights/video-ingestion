@@ -100,7 +100,7 @@ namespace eis {
                 /**
                  * Constructor
                  */
-                VideoIngestion(std::condition_variable err_cv);
+                VideoIngestion(std::condition_variable& err_cv);
 
                 /**
                  * Start the VI pipeline in order of MsgBusPublisher, UDFManager and Ingestor
