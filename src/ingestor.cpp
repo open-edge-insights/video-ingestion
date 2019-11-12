@@ -75,7 +75,7 @@ void Ingestor::run() {
             continue;
         }
 
-        if(m_udf_input_queue->push(frame) != QueueRetCode::SUCCESS) {
+        if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
             LOG_ERROR_0("Frame queue full, frame dropped");
             delete frame;
         }

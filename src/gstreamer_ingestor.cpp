@@ -78,10 +78,6 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue):
 #endif
 
     int argc = 1;
-    m_loop = NULL ;
-    m_gst_pipeline = NULL ;
-    m_sink = NULL;
-    gulong ret;
     char** argv = new char*[1];
     gst_init(&argc, &argv);
 
@@ -95,20 +91,15 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue):
     // TODO: Verify correctly loaded
 
     // Get and configure the sink element
-    m_sink = gst_bin_get_by_name(GST_BIN(m_gst_pipeline), "sink");
+    m_sink = gst_bin_get_by_name(GST_BIN(m_gst_pipeline), "appsink0");
     // TODO: Check that the sink was correctly found
     g_object_set(m_sink, "emit-signals", TRUE, NULL);
-    ret = g_signal_connect(m_sink, "new-sample", G_CALLBACK(this->new_sample), this);
-    if (!ret){
-        LOG_ERROR_0("Connection to GCallback not successfull");
-    }
+    g_signal_connect(m_sink, "new-sample", G_CALLBACK(this->new_sample), this);
+
     // Get the GST bus
-    GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_gst_pipeline));
-    if (bus == NULL){
-    	LOG_ERROR_0("Failed to initialize GST bus");
-    }
-    m_bus_watch_id = gst_bus_add_watch(bus, bus_call, m_loop);
-    gst_object_unref(bus);
+    // GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_gst_pipeline));
+    // m_bus_watch_id = gst_bus_add_watch(bus, bus_call, m_loop);
+    // gst_object_unref(bus);
     // TODO: Verify bus actions happened correctly
 }
 
@@ -411,7 +402,7 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                     throw "Failed to put image handle meta-data";
                 }
 
-                ctx->m_udf_input_queue->push(frame);
+                ctx->m_udf_input_queue->push_wait(frame);
 #ifdef WITH_PROFILE
                 ctx->m_frame_count++;
 #endif
