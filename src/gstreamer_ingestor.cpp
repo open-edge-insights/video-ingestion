@@ -78,6 +78,10 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue):
 #endif
 
     int argc = 1;
+    m_loop = NULL ;
+    m_gst_pipeline = NULL ;
+    m_sink = NULL;
+    gulong ret;
     char** argv = new char*[1];
     gst_init(&argc, &argv);
 
@@ -91,15 +95,20 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue):
     // TODO: Verify correctly loaded
 
     // Get and configure the sink element
-    m_sink = gst_bin_get_by_name(GST_BIN(m_gst_pipeline), "appsink0");
+    m_sink = gst_bin_get_by_name(GST_BIN(m_gst_pipeline), "sink");
     // TODO: Check that the sink was correctly found
     g_object_set(m_sink, "emit-signals", TRUE, NULL);
-    g_signal_connect(m_sink, "new-sample", G_CALLBACK(this->new_sample), this);
-
+    ret = g_signal_connect(m_sink, "new-sample", G_CALLBACK(this->new_sample), this);
+    if (!ret){
+        LOG_ERROR_0("Connection to GCallback not successfull");
+    }
     // Get the GST bus
-    // GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_gst_pipeline));
-    // m_bus_watch_id = gst_bus_add_watch(bus, bus_call, m_loop);
-    // gst_object_unref(bus);
+    GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_gst_pipeline));
+    if (bus == NULL){
+    	LOG_ERROR_0("Failed to initialize GST bus");
+    }
+    m_bus_watch_id = gst_bus_add_watch(bus, bus_call, m_loop);
+    gst_object_unref(bus);
     // TODO: Verify bus actions happened correctly
 }
 
