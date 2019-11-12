@@ -313,7 +313,7 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     make install"
 
 COPY --from=common ${GO_WORK_DIR}/common/udfs ./common/udfs
-# Build UDF samples
+# Build native UDF samples
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./common/udfs/native && \
     rm -rf build && \
@@ -336,11 +336,12 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
     make"
 
-#Removing build dependencies
+# Removing build dependencies
 RUN apt-get remove -y wget && \
     apt-get remove -y git && \
     apt-get remove curl && \
     apt-get autoremove -y
 
+ENV PYTHONPATH ${PYTHONPATH}:${GO_WORK_DIR}/common/udfs/python
+
 ENTRYPOINT ["VideoIngestion/vi_start.sh"]
-CMD ["ERROR"]
