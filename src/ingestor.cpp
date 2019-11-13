@@ -81,7 +81,7 @@ void Ingestor::run() {
         }
         frame = NULL;
         if(m_poll_interval > 0) {
-            usleep(m_poll_interval);
+            usleep(m_poll_interval * 1000 * 1000);
         }
 
     }
