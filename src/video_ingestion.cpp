@@ -185,10 +185,7 @@ VideoIngestion::~VideoIngestion() {
         delete m_ingestor_cfg;
     }
     if(m_config_mgr_client) {
-        delete m_config_mgr_client;
-    }
-    if(m_config_mgr_config) {
-        delete m_config_mgr_config;
+        config_mgr_config_destroy(m_config_mgr_client);
     }
     if(m_env_config) {
         delete m_env_config;
