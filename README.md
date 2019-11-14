@@ -166,7 +166,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
             {
                 "type": "gstreamer",
-                "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink name=\"sink\""
+                "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink name=\"sink\""
             }
 
 
@@ -174,7 +174,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink name=\"sink\""
+            "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink name=\"sink\""
         }
 
 
@@ -184,7 +184,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! gvawatermark ! appsink name=\"sink\""
+            "pipeline": "multifilesrc loop=TRUE location=/EIS/test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! appsink name=\"sink\""
         }
 
     **NOTE** : In case one needs to use CPU/GPU/HDDL device with GVA elements it can be set using the `device` property of `gvadetect` and `gvaclassify` elements.
@@ -193,10 +193,11 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml ! gvawatermark ! appsink name=\"sink\""
+            "pipeline": "multifilesrc loop=TRUE location=/EIS/test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml ! appsink name=\"sink\""
         }
 
     **Note** HDDL device needs to be configured on the system in order to use. 
+    **Note** Looping of videos is not happening when `.mp4` videos are used in the gstreamer pipeline with `multifilesrc`    plugin.
     
     Similarly the system needs to support gfx in order to set   `device=GPU`.
 
