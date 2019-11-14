@@ -31,6 +31,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <eis/udf/frame.h>
+#include <string.h>
 #include <eis/utils/config.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>
@@ -56,14 +57,8 @@ namespace eis {
                 // App name
                 std::string m_app_name;
 
-                // Ingestor configuration object
-                config_t* m_ingestor_cfg;
-
                 // Ingestor type - opencv or gstreamer
                 char* m_ingestor_type;
-
-                // App configuration object
-                config_t* m_config;
 
                 // flag to check if `udfs` key exists in config
                 bool m_udfs_key_exists;
@@ -83,21 +78,25 @@ namespace eis {
                 // UDF output queue
                 FrameQueue* m_udf_output_queue;
 
-                // ConfigManager client
-                config_mgr_t* m_config_mgr_client;
-
-                // Env config
-                EnvConfig* m_env_config;
-
                 // Error condition variable
                 std::condition_variable& m_err_cv;
 
             public:
 
                 /**
-                 * Constructor
-                 */
-                VideoIngestion(std::condition_variable& err_cv);
+                * Constructor
+                *
+                * \note The environmental configuration memory is not managed
+                *      by this object. It is managed by the caller.
+                *
+                * @param err_cv     - Error condition variable
+                * @param env_config - Environmental configuration
+                * @param vi_config  - VideoIngestion/config
+                */
+                VideoIngestion(std::condition_variable& err_cv, EnvConfig* env_config, char* vi_config);
+
+                //Destructor
+                ~VideoIngestion();
 
                 /**
                  * Start the VI pipeline in order of MsgBusPublisher, UDFManager and Ingestor
@@ -109,13 +108,7 @@ namespace eis {
                  */
                 void stop();
 
-                /**
-                 * Destructor
-                 */
-                ~VideoIngestion();
-
             };
-
-    } // vi
-} // eis
-#endif // _EIS_VI_VIDEOINGESTION_H
+    }
+}
+#endif

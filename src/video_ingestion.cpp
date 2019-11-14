@@ -31,7 +31,6 @@
 
 #define INTEL_VENDOR "GenuineIntel"
 #define INTEL_VENDOR_LENGTH 12
-#define MAX_CONFIG_KEY_LENGTH 40
 #define DEFAULT_QUEUE_SIZE 10
 
 using namespace eis::vi;
@@ -40,25 +39,19 @@ using namespace eis::config_manager;
 using namespace eis::msgbus;
 using namespace eis::udf;
 
-VideoIngestion::VideoIngestion(std::condition_variable& err_cv) :
+VideoIngestion::VideoIngestion(
+        std::condition_variable& err_cv, EnvConfig* env_config, char* vi_config) :
     m_err_cv(err_cv)
 {
-
-    m_app_name = getenv("AppName");
-    m_env_config = new EnvConfig();
-    m_config_mgr_client = m_env_config->get_config_mgr_client();
-
-    char config_key[MAX_CONFIG_KEY_LENGTH];
-    sprintf(config_key, "/%s/config", m_app_name.c_str());
-    const char* vi_config = m_config_mgr_client->get_config(config_key);
-
-    LOG_DEBUG("App config: %s", vi_config);
-    m_config = json_config_new_from_buffer(vi_config);
-    if(m_config == NULL) {
-        throw("Failed to initialize configuration object");
+    // Parse the configuration
+    config_t* config = json_config_new_from_buffer(vi_config);
+    if(config == NULL) {
+        const char* err = "Failed to initialize configuration object";
+        LOG_ERROR("%s", err);
+        throw(err);
     }
 
-    config_value_t* ingestor_value = m_config->get_config_value(m_config->cfg,
+    config_value_t* ingestor_value = config->get_config_value(config->cfg,
                                                               "ingestor");
     if(ingestor_value == NULL) {
         const char* err = "ingestor key is missing";
@@ -70,11 +63,14 @@ VideoIngestion::VideoIngestion(std::condition_variable& err_cv) :
         if(ingestor_type_cvt == NULL) {
             const char* err = "\"type\" key missing";
             LOG_ERROR("%s", err);
+            config_destroy(config);
             throw(err);
         }
         if(ingestor_type_cvt->type != CVT_STRING) {
             const char* err = "\"type\" value has to be of string type";
             LOG_ERROR("%s", err);
+            config_destroy(config);
+            config_value_destroy(ingestor_type_cvt);
             throw(err);
         }
         m_ingestor_type = ingestor_type_cvt->body.string;
@@ -89,6 +85,8 @@ VideoIngestion::VideoIngestion(std::condition_variable& err_cv) :
             if(ingestor_queue_cvt->type != CVT_INTEGER) {
                 const char* err = "\"queue_size\" value has to be of integer type";
                 LOG_ERROR("%s", err);
+                config_destroy(config);
+                config_value_destroy(ingestor_queue_cvt);
                 throw(err);
             }
             queue_size = ingestor_queue_cvt->body.integer;
@@ -96,14 +94,15 @@ VideoIngestion::VideoIngestion(std::condition_variable& err_cv) :
         m_udf_input_queue = new FrameQueue(queue_size);
 
         config_value_object_t* ingestor_cvt = ingestor_value->body.object;
-        m_ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value);
-        if(m_ingestor_cfg == NULL) {
+        config_t* ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value);
+        if(ingestor_cfg == NULL) {
             const char* err = "Unable to get ingestor config";
             LOG_ERROR("%s", err);
+            config_destroy(config);
             throw(err);
         }
 
-        config_value_t* udf_value = m_config->get_config_value(m_config->cfg,
+        config_value_t* udf_value = config->get_config_value(config->cfg,
                                                              "udfs");
         if(udf_value == NULL) {
             m_udfs_key_exists = false;
@@ -114,40 +113,38 @@ VideoIngestion::VideoIngestion(std::condition_variable& err_cv) :
             m_udfs_key_exists = true;
             m_udf_output_queue = new FrameQueue(queue_size);
         }
+        m_ingestor = get_ingestor(ingestor_cfg, m_udf_input_queue, m_ingestor_type);
+    }
+
+    std::vector<std::string> pub_topics = env_config->get_topics_from_env("pub");
+    if(pub_topics.size() != 1) {
+        const char* err = "Only one topic is supported. Neither more nor less";
+        LOG_ERROR("%s", err);
+        config_destroy(config);
+        throw(err);
+    }
+    std::string topic_type = "pub";
+    config_t* pub_config = env_config->get_messagebus_config(pub_topics[0],
+                                                                    topic_type);
+    if(pub_config == NULL) {
+        const char* err = "Failed to get message bus config";
+        LOG_ERROR("%s", err);
+        config_destroy(config);
+        throw(err);
+    }
+    m_publisher = new Publisher(
+            pub_config, m_err_cv, pub_topics[0], (MessageQueue*) m_udf_output_queue);
+   
+    if(m_udfs_key_exists) {
+        m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue);
     }
 }
 
 void VideoIngestion::start() {
-
-    std::vector<std::string> topics = m_env_config->get_topics_from_env("pub");
-    if(topics.size() != 1) {
-        const char* err = "Only one topic is supported. Neither more nor less";
-        LOG_ERROR("%s", err);
-        throw(err);
-    }
-    std::string topic_type = "pub";
-    config_t* msgbus_config = m_env_config->get_messagebus_config(topics[0],
-                                                                    topic_type);
-    if(msgbus_config == NULL) {
-        const char* err = "Failed to get message bus config";
-        LOG_ERROR("%s", err);
-        throw(err);
-    }
-
-    m_publisher = new Publisher(
-            msgbus_config, m_err_cv, topics[0], (MessageQueue*) m_udf_output_queue);
     m_publisher->start();
     LOG_INFO("Publisher thread started...");
-
-    if(m_udfs_key_exists) {
-        LOG_INFO_0("Starting udf manager");
-        m_udf_manager = new UdfManager(m_config, m_udf_input_queue, m_udf_output_queue);
-        m_udf_manager->start();
-        LOG_INFO_0("Started udf manager");
-    }
-
-
-    m_ingestor = get_ingestor(m_ingestor_cfg, m_udf_input_queue, m_ingestor_type);
+    m_udf_manager->start();
+    LOG_INFO_0("Started udf manager");
     IngestRetCode ret = m_ingestor->start();
     if(ret != IngestRetCode::SUCCESS) {
         LOG_ERROR_0("Failed to start ingestor thread");
@@ -155,39 +152,22 @@ void VideoIngestion::start() {
     else{
         LOG_INFO("Ingestor thread started...");
     }
-
 }
 
 void VideoIngestion::stop() {
     if(m_ingestor) {
         m_ingestor->stop();
-        delete m_ingestor;
     }
     if(m_udf_manager) {
         m_udf_manager->stop();
-        delete m_udf_manager;
     }
     if(m_publisher) {
         m_publisher->stop();
-        delete m_publisher;
     }
 }
 
 VideoIngestion::~VideoIngestion() {
-    stop();
-    if(m_ingestor_cfg) {
-        delete m_ingestor_cfg;
-    }
-    if(m_config) {
-        delete m_config;
-    }
-    if(m_ingestor_cfg) {
-        delete m_ingestor_cfg;
-    }
-    if(m_config_mgr_client) {
-        config_mgr_config_destroy(m_config_mgr_client);
-    }
-    if(m_env_config) {
-        delete m_env_config;
-    }
+    delete m_ingestor;
+    delete m_udf_manager;
+    delete m_publisher;
 }
