@@ -26,28 +26,54 @@
 #include <unistd.h>
 #include <condition_variable>
 #include "eis/vi/video_ingestion.h"
+#include <mutex>
+
+#define MAX_CONFIG_KEY_LENGTH 40
 
 using namespace eis::vi;
 using namespace eis::utils;
-using namespace eis::udf;
+
+static VideoIngestion* g_vi = NULL;
+static EnvConfig* g_config = NULL;
+static char* g_vi_config = NULL;
+static std::condition_variable g_err_cv;
 
 void usage(const char* name) {
     printf("Usage: %s \n", name);
 }
 
-int main(int argc, char** argv) {
-    VideoIngestion* vi = NULL;
-    EnvConfig* config = NULL;
-    char* str_log_level = NULL;
-    log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
+void vi_initialize(char* vi_config){
+    if(g_vi){
+        delete g_vi;
+    }
+    if(!g_config){
+        g_config = new EnvConfig();
+    }
+    g_vi = new VideoIngestion(g_err_cv, g_config, vi_config);
+    g_vi->start();
+}
 
+void on_change_config_callback(char* key, char* vi_config){
+    if(strcmp(g_vi_config, vi_config)){
+        vi_initialize(vi_config);
+    }
+}
+
+int main(int argc, char** argv) {
+    config_mgr_t* config_mgr = NULL;
     try {
         if(argc >= 2) {
             usage(argv[0]);
             return -1;
         }
-        config = new EnvConfig();
+        char* str_log_level = NULL;
+        g_config = new EnvConfig();
+        log_lvl_t log_level = LOG_LVL_ERROR;
+
         str_log_level = getenv("C_LOG_LEVEL");
+        if(str_log_level == NULL) {
+	        throw "\"C_LOG_LEVEL\" env not set";
+        }
         if(strcmp(str_log_level, "DEBUG") == 0) {
             log_level = LOG_LVL_DEBUG;
         } else if(strcmp(str_log_level, "INFO") == 0) {
@@ -58,23 +84,37 @@ int main(int argc, char** argv) {
             log_level = LOG_LVL_ERROR;
         }
         set_log_level(log_level);
-        std::condition_variable err_cv;
-        vi = new VideoIngestion(err_cv);
-        vi->start();
+        std::string m_app_name = getenv("AppName");
+        config_mgr_t* config_mgr = g_config->get_config_mgr_client();
+
+        char config_key[MAX_CONFIG_KEY_LENGTH];
+
+        // Get the configuration from the configuration manager
+        sprintf(config_key, "/%s/config", m_app_name.c_str());
+        g_vi_config = config_mgr->get_config(config_key);
+        LOG_DEBUG("App config: %s", g_vi_config);
+
+        LOG_DEBUG("Registering watch on config key: %s", config_key);
+        config_mgr->register_watch_key(config_key, on_change_config_callback);
+
+        vi_initialize(g_vi_config);
+
         std::mutex mtx;
         std::unique_lock<std::mutex> lk(mtx);
-        err_cv.wait(lk);
-        delete vi;
-        delete config;
+        g_err_cv.wait(lk);
+
+        delete g_vi;
+        delete g_config;
+        return -1;
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
-        if(vi != NULL) {
-            delete vi;
+        if(g_vi) {
+            delete g_vi;
         }
-        if(config != NULL) {
-            delete config;
+        if(g_config) {
+            delete g_config;
         }
+        config_mgr_config_destroy(config_mgr);
         return -1;
     }
-    return 0;
 }
