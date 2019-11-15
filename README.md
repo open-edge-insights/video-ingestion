@@ -30,7 +30,7 @@ If `AppName` is `VideoIngestion`, then the app's config would look like as below
 {
     "ingestor": {
         "type": "opencv",
-        "pipeline": "/EIS/test_videos/pcb_d2000.avi",
+        "pipeline": "./test_videos/pcb_d2000.avi",
         "loop_video": "true",
         "queue_size": 10,
         "poll_interval": 0.2
@@ -184,7 +184,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=/EIS/test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! gvawatermark ! appsink name=\"sink\""
+            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! gvawatermark ! appsink name=\"sink\""
         }
 
     **NOTE** : In case one needs to use CPU/GPU/HDDL device with GVA elements it can be set using the `device` property of `gvadetect` and `gvaclassify` elements.
@@ -193,7 +193,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=/EIS/test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml ! gvawatermark ! appsink name=\"sink\""
+            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml ! gvawatermark ! appsink name=\"sink\""
         }
 
     **Note** HDDL device needs to be configured on the system in order to use. 
