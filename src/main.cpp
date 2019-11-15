@@ -1,4 +1,5 @@
 // Copyright (c) 2019 Intel Corporation.
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
 // deal in the Software without restriction, including without limitation the
@@ -31,34 +32,48 @@ using namespace eis::utils;
 using namespace eis::udf;
 
 void usage(const char* name) {
-    printf("usage: %s [-h|--help]\n", name);
+    printf("Usage: %s \n", name);
 }
 
 int main(int argc, char** argv) {
     VideoIngestion* vi = NULL;
+    EnvConfig* config = NULL;
+    char* str_log_level = NULL;
+    log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
+
     try {
         if(argc >= 2) {
-            log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
-            if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
-                usage(argv[0]);
-            } else if(strcmp(argv[1], "DEBUG") == 0) {
-                log_level = LOG_LVL_DEBUG;
-            } else if(strcmp(argv[1], "INFO") == 0) {
-                log_level = LOG_LVL_INFO;
-            } else if(strcmp(argv[1], "WARN") == 0) {
-                log_level = LOG_LVL_WARN;
-            }
-            set_log_level(log_level);
+            usage(argv[0]);
+            return -1;
         }
+        config = new EnvConfig();
+        str_log_level = getenv("C_LOG_LEVEL");
+        if(strcmp(str_log_level, "DEBUG") == 0) {
+            log_level = LOG_LVL_DEBUG;
+        } else if(strcmp(str_log_level, "INFO") == 0) {
+            log_level = LOG_LVL_INFO;
+        } else if(strcmp(str_log_level, "WARN") == 0) {
+            log_level = LOG_LVL_WARN;
+        } else if(strcmp(str_log_level, "ERROR") == 0) {
+            log_level = LOG_LVL_ERROR;
+        }
+        set_log_level(log_level);
         std::condition_variable err_cv;
         vi = new VideoIngestion(err_cv);
         vi->start();
-        while(1) {
-            usleep(2);
-        }
+        std::mutex mtx;
+        std::unique_lock<std::mutex> lk(mtx);
+        err_cv.wait(lk);
+        delete vi;
+        delete config;
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
-        delete vi;
+        if(vi != NULL) {
+            delete vi;
+        }
+        if(config != NULL) {
+            delete config;
+        }
         return -1;
     }
     return 0;
