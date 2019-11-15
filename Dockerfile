@@ -326,7 +326,7 @@ ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${GO_WORK_DIR}/common/udfs/native/build/d
 
 # Adding project depedency modules
 COPY . ./VideoIngestion/
-RUN mv VideoIngestion/models .
+RUN mv VideoIngestion/models . && mv VideoIngestion/test_videos .
 
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./VideoIngestion && \
