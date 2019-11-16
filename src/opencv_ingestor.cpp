@@ -35,6 +35,7 @@
 
 using namespace eis::vi;
 using namespace eis::utils;
+using namespace eis::udf;
 
 #define PIPELINE "pipeline"
 #define RESIZE   "resize"

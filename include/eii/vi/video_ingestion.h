@@ -30,7 +30,7 @@
 #include <thread>
 #include <atomic>
 #include <condition_variable>
-#include <eis/utils/frame.h>
+#include <eis/udf/frame.h>
 #include <eis/utils/config.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>

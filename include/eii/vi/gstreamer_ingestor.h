@@ -31,6 +31,7 @@
 #include <glib.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>
+#include <eis/udf/frame.h>
 #include "eis/vi/ingestor.h"
 
 namespace eis {
@@ -65,7 +66,7 @@ namespace eis {
                 /**
                  * Overridden frame method.
                  */
-                void read(Frame*& frame);
+                void read(udf::Frame*& frame);
 
             public:
                 /**

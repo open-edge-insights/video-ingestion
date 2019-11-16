@@ -32,7 +32,7 @@
 #include "eis/utils/logger.h"
 #include "eis/vi/gstreamer_ingestor.h"
 #include "eis/vi/gva_roi_meta.h"
-#include "eis/utils/frame.h"
+#include <eis/udf/frame.h>
 #include <sstream>
 #include <random>
 #include <string>
@@ -41,6 +41,7 @@
 #define PIPELINE "pipeline"
 
 using namespace eis::vi;
+using namespace eis::udf;
 
 // Prototypes
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data);
