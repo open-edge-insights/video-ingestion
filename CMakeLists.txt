@@ -60,32 +60,13 @@ find_package(EISConfigMgr REQUIRED)
 find_package(EISMessageBus REQUIRED)
 find_package(UDFLoader REQUIRED)
 find_package(PkgConfig REQUIRED)
+find_package(IntelSafeString REQUIRED)
 
 pkg_check_modules(GST REQUIRED
     gstreamer-1.0>=1.14
     gstreamer-video-1.0>=1.14
     gstreamer-sdp-1.0>=1.14
     gstreamer-app-1.0>=1.14)
-
-# Include Intel safestring library
-configure_file(${EIS_COMMON_CMAKE}/IntelSafeString.txt.in safestring-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-                RESULT_VARIABLE ss_result
-                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/safestring-download)
-if(ss_result)
-    message(FATAL_ERROR "CMake step for safestring failed: ${ss_result}")
-endif()
-
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-    RESULT_VARIABLE ss_result
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/safestring-download)
-if(result)
-    message(FATAL_ERROR "Build step for safestring failed: ${ss_result}")
-endif()
-
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/safestring-src
-                 ${CMAKE_CURRENT_BINARY_DIR}/safestring-build
-                 EXCLUDE_FROM_ALL)
 
 # Include header directories
 include_directories(
@@ -97,7 +78,7 @@ include_directories(
     ${EISMessageBus_INCLUDE}
     ${UDFLoader_INCLUDE}
     ${GST_INCLUDE_DIRS}
-    ${safestring_SOURCE_DIR}/include)
+    ${IntelSafeString_INCLUDE})
 
 # Find C++ sources
 file(GLOB SOURCES "src/*.cpp")
@@ -114,8 +95,8 @@ target_link_libraries(video-ingestion
         ${GST_LIBRARIES}
     PRIVATE
         ${ZMQ_LIBRARIES}
-        ${CJSON_LIBRARIeES}
-        safestring_static)
+        ${CJSON_LIBRARIEES}
+        ${IntelSafeString_LIBRARIES})
 
 # If compile in debug mode, set DEBUG flag for C code
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
