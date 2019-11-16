@@ -28,6 +28,7 @@
 
 using namespace eis::vi;
 using namespace eis::utils;
+using namespace eis::udf;
 
 void usage(const char* name) {
     printf("usage: %s [-h|--help]\n", name);

@@ -36,6 +36,7 @@
 
 using namespace eis::vi;
 using namespace eis::utils;
+using namespace eis::udf;
 
 Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue) :
     m_th(NULL), m_initialized(false), m_stop(false),

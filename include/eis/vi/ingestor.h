@@ -31,7 +31,7 @@
 #include <thread>
 #include <atomic>
 #include <eis/utils/thread_safe_queue.h>
-#include <eis/utils/frame.h>
+#include <eis/udf/frame.h>
 #include <eis/utils/config.h>
 
 #define TYPE1 "type"
@@ -96,7 +96,7 @@ namespace eis {
         /**
          * Thread safe frame queue.
          */
-        typedef ThreadSafeQueue<Frame*> FrameQueue;
+        typedef ThreadSafeQueue<udf::Frame*> FrameQueue;
 
         /**
          * Base ingestor interface.
@@ -131,7 +131,7 @@ namespace eis {
                  * Read method implemented by subclasses to retrieve the next frame from
                  * the ingestion stream.
                  */
-                virtual void read(Frame*& frame) = 0;
+                virtual void read(udf::Frame*& frame) = 0;
 
                 /**
                  * Method to generate random uuid to set image handle

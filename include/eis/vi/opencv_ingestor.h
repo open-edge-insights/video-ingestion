@@ -59,7 +59,7 @@ namespace eis {
             /**
              * Overridden read method.
              */
-            void read(Frame*& frame) override;
+            void read(udf::Frame*& frame) override;
 
         public:
             /**
