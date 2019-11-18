@@ -95,7 +95,7 @@ The following are the type of ingestors supported:
         "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554",
     }
 
-    Refer [RTSP Camera](####        RTSP-Camera) section for more details on RTSP camera.
+    Refer [RTSP Camera](####RTSP-Camera) section for more details on RTSP camera.
 
 * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
 
@@ -103,10 +103,10 @@ The following are the type of ingestors supported:
    ```
     {
         "type": "opencv",
-        "pipeline": "v4l2src ! videoconvert ! appsink",
+        "pipeline": "/dev/video0",
     }
 
-    Refer [USB camera](####USB-Camera) section for more details on USB camera.
+ * In case multiple usb cameras are connected then specify the camera using the device index. E.g. `/dev/video1` for the camera connected second.
 -------
 
 #### `GStreamer Ingestor config`
@@ -117,7 +117,7 @@ The following are the configurations which can be used with the gstreamer ingest
     ```
     {
         "type": "gstreamer",
-        "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! appsink name=\"sink\"",
+        "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! video/x-raw,format=BGRx ! appsink",
     }
     ```
     >**NOTE**: Change the `location` parameter in "pipeline" to classification sample
@@ -128,29 +128,30 @@ The following are the configurations which can be used with the gstreamer ingest
    ```
     {
         "type": "gstreamer",
-        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink name=\"sink\"",
+        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink",
     }
     Refer [Basler Camera](####Basler-Camera) section for more details on Basler Camera.
 
 3. **RTSP cvlc based camera simulation**
     {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink name=\"sink\"",
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
     }
     Refer [RTSP cvcl based camera simulation](####RTSP-cvlc-based-camera-simulation) section for more details.
 
 4. **RTSP camera**
     {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! appsink name=\"sink\"",
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
     }
-* If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
+
+    * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in [../docker_setup/.env](../docker_setup/.env) in the etcd config.
     Refer [RTSP Camera](####RTSP-Camera) section for more details on RTSP camera.
 
 5. **USB camera**
     {
         "type": "gstreamer",
-        "pipeline": "v4l2src ! videoconvert ! appsink name=\"sink\"",
+        "pipeline": "v4l2src ! decodebin ! videoconvert ! appsink",
     }
     Refer [USB Camera](####USB-Camera) section for more details on USB camera.
 
@@ -166,7 +167,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
             {
                 "type": "gstreamer",
-                "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink name=\"sink\""
+                "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink"
             }
 
 
@@ -174,7 +175,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink name=\"sink\""
+            "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink"
         }
 
 
@@ -184,7 +185,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=/EIS/test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! appsink name=\"sink\""
+            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! appsink"
         }
 
     **NOTE** : In case one needs to use CPU/GPU/HDDL device with GVA elements it can be set using the `device` property of `gvadetect` and `gvaclassify` elements.
@@ -193,12 +194,12 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=/EIS/test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml ! appsink name=\"sink\""
+            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! video/x-raw,format=BGRx ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml ! appsink"
         }
 
-    **Note** HDDL device needs to be configured on the system in order to use. 
+    **Note** HDDL device needs to be configured on the system in order to use.
     **Note** Looping of videos is not happening when `.mp4` videos are used in the gstreamer pipeline with `multifilesrc`    plugin.
-    
+
     Similarly the system needs to support gfx in order to set   `device=GPU`.
 
     In case Safety Gear Detection Sample needs to be used with a physical camera replace the `multifilesrc` source plugin with `v4l2src` or `rtspsrc` and
@@ -268,7 +269,7 @@ The following are the configurations which can be used with the gstreamer ingest
     * In case you want to enable resizing with RTSP cvlc based camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
-        `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
+        `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
 
    ------
 
@@ -277,7 +278,7 @@ The following are the configurations which can be used with the gstreamer ingest
     * In case you want to enable resizing with RTSP camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
-        `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! appsink"`
+        `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
 
     * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
     * For working both with simulated RTSP server via cvlc or direct streaming
@@ -322,12 +323,12 @@ The following are the configurations which can be used with the gstreamer ingest
     * In case you want to enable resizing with USB camera use the `videoscale` element and specify the `height` and `width` parameter in the gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with USB camera
-        `"pipeline":"v4l2src ! videoconvert ! videoscale ! video/x-raw, height=600, width=600 ! appsink"`
+        `"pipeline":"v4l2src ! decodebin ! videoconvert ! videoscale ! video/x-raw, height=600, width=600 ! appsink"`
 
     * In case, multiple USB cameras are connected specify the
         camera using the `device` property in the configuration file.
         Eg:
-        `"pipeline": "v4l2src device=/dev/video0 ! videoconvert ! appsink"`
+        `"pipeline": "v4l2src device=/dev/video0 ! decodebin ! videoconvert ! appsink"`
    -------
 
 #### `Detailed description on each of the keys used`
@@ -363,6 +364,18 @@ key frames(frames of interest for further processing).
    proper setup is required with good lighting conditions. Proper training and
    tweaking filter and classifier logic may be required.
 
+    Refer below example for adding pcb filter udf config:
+    ```
+        "udfs": [{
+            "name": "pcb.pcb_filter",
+            "type": "python",
+            "training_mode": "false",
+            "n_total_px": 300000,
+            "n_left_px": 1000,
+            "n_right_px": 1000
+        }]
+    ```
+
 
 2. **Dummy filter**
 
@@ -371,14 +384,22 @@ key frames(frames of interest for further processing).
    classifier module as is without any pre-processing involved to select key
    frames.
 
+   Refer below example for adding  filter udf in VideoIngestion config:
+    ```
+        "udfs": [{
+            "name": "dummy",
+            "type": "native"
+        }]
+    ```
+
 #### `Detailed description on each of the keys used`
 
 |  Key	        | Description 	                                                    | Possible Values  	                      | Required/Optional |
 |---	        |---	                                                            |---	                                  |---	              |
-|  name 	    |   File name of the filter	| "pcb_filter" or "Dummy filter"       | Required	                              |                   |
+|  name 	    |   File name of the filter	| "pcb_filter" or "Dummy filter"        | Required	                              |                   |
 |  queue_size 	|   Determines the size of the input and output filter queue	    | any value that suits platform resources |   Required	      |
-|  max_workers 	|   Number of threads to perform filter operation                   | any value that suits platform resources                                                                                                               (Not more than 5 * number of cpu cores) |   Required        |
 |  training_mode|  If "true", used to capture images for training and building model| "true" or "false" (default is false)    |   Optional        |
+
 
 **Note**: The other keys used are specific to filter usecase
 
