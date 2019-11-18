@@ -322,7 +322,7 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
     make"
 
-ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${GO_WORK_DIR}/common/udfs/native/build/dummy
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${GO_WORK_DIR}/common/udfs/native/build/dummy:${GO_WORK_DIR}/common/udfs/native/build/resize
 
 # Adding project depedency modules
 COPY . ./VideoIngestion/

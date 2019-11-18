@@ -106,7 +106,18 @@ The following are the type of ingestors supported:
         "pipeline": "/dev/video0",
     }
 
- * In case multiple usb cameras are connected then specify the camera using the device index. E.g. `/dev/video1` for the camera connected second.
+    Refer [USB camera](####USB-Camera) section for more details on USB camera.
+
+    In case resizing needs to be enabled with opencv ingestor use the `Resize Udf`. The below udf config exmaple can be refered to use Resize Udf:
+    ```
+    "udfs": [{
+            "name": "resize",
+            "type": "native",
+            "width": 600,
+            "height":600
+            }],
+    ```
+
 -------
 
 #### `GStreamer Ingestor config`
