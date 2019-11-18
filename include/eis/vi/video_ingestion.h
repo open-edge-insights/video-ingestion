@@ -60,9 +60,6 @@ namespace eis {
                 // Ingestor type - opencv or gstreamer
                 char* m_ingestor_type;
 
-                // flag to check if `udfs` key exists in config
-                bool m_udfs_key_exists;
-
                 // Ingestor object
                 Ingestor* m_ingestor;
 
@@ -81,6 +78,12 @@ namespace eis {
                 // Error condition variable
                 std::condition_variable& m_err_cv;
 
+                // Encoding details
+                EncodeType m_enc_type;
+                int m_enc_lvl;
+
+                // flag to check if `udfs` key exists in config
+                bool m_udfs_key_exists;
             public:
 
                 /**
