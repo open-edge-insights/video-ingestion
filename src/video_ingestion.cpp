@@ -41,7 +41,7 @@ using namespace eis::udf;
 
 VideoIngestion::VideoIngestion(
         std::condition_variable& err_cv, EnvConfig* env_config, char* vi_config) :
-    m_err_cv(err_cv)
+    m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0)
 {
     // Parse the configuration
     config_t* config = json_config_new_from_buffer(vi_config);
@@ -50,71 +50,120 @@ VideoIngestion::VideoIngestion(
         LOG_ERROR("%s", err);
         throw(err);
     }
+    config_value_t* encoding_value = config->get_config_value(config->cfg,
+                                                              "encoding");
+    if(encoding_value == NULL) {
+        const char* err = "\"encoding\" key is missing";
+        LOG_WARN("%s", err);
+    } else {
+        config_value_t* encoding_type_cvt = config_value_object_get(encoding_value,
+                                                                    "type");
+        if(encoding_type_cvt == NULL) {
+            const char* err = "encoding \"type\" key missing";
+            LOG_ERROR("%s", err);
+            config_destroy(config);
+            throw(err);
+        }
+        if(encoding_type_cvt->type != CVT_STRING) {
+            const char* err = "encoding \"type\" value has to be of string type";
+            LOG_ERROR("%s", err);
+            config_destroy(config);
+            config_value_destroy(encoding_type_cvt);
+            throw(err);
+        }
+        char* enc_type = encoding_type_cvt->body.string;
+        if(strcmp(enc_type, "jpeg") == 0) {
+            m_enc_type = EncodeType::JPEG;
+            LOG_DEBUG_0("Encoding type is jpeg");
+        } else if(strcmp(enc_type, "png") == 0) {
+            m_enc_type = EncodeType::PNG;
+            LOG_DEBUG_0("Encoding type is png");
+        }
+
+        config_value_t* encoding_level_cvt = config_value_object_get(encoding_value,
+                                                                    "level");
+        if(encoding_level_cvt == NULL) {
+            const char* err = "encoding \"level\" key missing";
+            LOG_ERROR("%s", err);
+            config_destroy(config);
+            throw(err);
+        }
+        if(encoding_level_cvt->type != CVT_INTEGER) {
+            const char* err = "encoding \"level\" value has to be of string type";
+            LOG_ERROR("%s", err);
+            config_destroy(config);
+            config_value_destroy(encoding_level_cvt);
+            throw(err);
+        }
+        m_enc_lvl = encoding_level_cvt->body.integer;
+        LOG_DEBUG("Encoding value is %d", m_enc_lvl);
+    }
 
     config_value_t* ingestor_value = config->get_config_value(config->cfg,
                                                               "ingestor");
     if(ingestor_value == NULL) {
-        const char* err = "ingestor key is missing";
+        const char* err = "\"ingestor\" key is missing";
         LOG_ERROR("%s", err);
         throw(err);
-    } else {
-        config_value_t* ingestor_type_cvt = config_value_object_get(ingestor_value,
-                                                                    "type");
-        if(ingestor_type_cvt == NULL) {
-            const char* err = "\"type\" key missing";
-            LOG_ERROR("%s", err);
-            config_destroy(config);
-            throw(err);
-        }
-        if(ingestor_type_cvt->type != CVT_STRING) {
-            const char* err = "\"type\" value has to be of string type";
-            LOG_ERROR("%s", err);
-            config_destroy(config);
-            config_value_destroy(ingestor_type_cvt);
-            throw(err);
-        }
-        m_ingestor_type = ingestor_type_cvt->body.string;
-
-        config_value_t* ingestor_queue_cvt = config_value_object_get(ingestor_value,
-                                                                     "queue_size");
-        size_t queue_size = DEFAULT_QUEUE_SIZE;
-        if(ingestor_queue_cvt == NULL) {
-            LOG_INFO("\"queue_size\" key missing, so using default queue size: \
-                     %ld", queue_size);
-        } else {
-            if(ingestor_queue_cvt->type != CVT_INTEGER) {
-                const char* err = "\"queue_size\" value has to be of integer type";
-                LOG_ERROR("%s", err);
-                config_destroy(config);
-                config_value_destroy(ingestor_queue_cvt);
-                throw(err);
-            }
-            queue_size = ingestor_queue_cvt->body.integer;
-        }
-        m_udf_input_queue = new FrameQueue(queue_size);
-
-        config_value_object_t* ingestor_cvt = ingestor_value->body.object;
-        config_t* ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value);
-        if(ingestor_cfg == NULL) {
-            const char* err = "Unable to get ingestor config";
-            LOG_ERROR("%s", err);
-            config_destroy(config);
-            throw(err);
-        }
-
-        config_value_t* udf_value = config->get_config_value(config->cfg,
-                                                             "udfs");
-        if(udf_value == NULL) {
-            m_udfs_key_exists = false;
-            LOG_INFO("\"udfs\" key doesn't exist, so udf output queue is same as \
-                    udf input queue!!")
-            m_udf_output_queue = m_udf_input_queue;
-        } else {
-            m_udfs_key_exists = true;
-            m_udf_output_queue = new FrameQueue(queue_size);
-        }
-        m_ingestor = get_ingestor(ingestor_cfg, m_udf_input_queue, m_ingestor_type);
     }
+    config_value_t* ingestor_type_cvt = config_value_object_get(ingestor_value,
+                                                                "type");
+    if(ingestor_type_cvt == NULL) {
+        const char* err = "\"type\" key missing";
+        LOG_ERROR("%s", err);
+        config_destroy(config);
+        throw(err);
+    }
+    if(ingestor_type_cvt->type != CVT_STRING) {
+        const char* err = "\"type\" value has to be of string type";
+        LOG_ERROR("%s", err);
+        config_destroy(config);
+        config_value_destroy(ingestor_type_cvt);
+        throw(err);
+    }
+    m_ingestor_type = ingestor_type_cvt->body.string;
+
+    config_value_t* ingestor_queue_cvt = config_value_object_get(ingestor_value,
+                                                                    "queue_size");
+    size_t queue_size = DEFAULT_QUEUE_SIZE;
+    if(ingestor_queue_cvt == NULL) {
+        LOG_INFO("\"queue_size\" key missing, so using default queue size: \
+                    %ld", queue_size);
+    } else {
+        if(ingestor_queue_cvt->type != CVT_INTEGER) {
+            const char* err = "\"queue_size\" value has to be of integer type";
+            LOG_ERROR("%s", err);
+            config_destroy(config);
+            config_value_destroy(ingestor_queue_cvt);
+            throw(err);
+        }
+        queue_size = ingestor_queue_cvt->body.integer;
+    }
+    m_udf_input_queue = new FrameQueue(queue_size);
+
+    config_value_object_t* ingestor_cvt = ingestor_value->body.object;
+    config_t* ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value);
+    if(ingestor_cfg == NULL) {
+        const char* err = "Unable to get ingestor config";
+        LOG_ERROR("%s", err);
+        config_destroy(config);
+        throw(err);
+    }
+
+    config_value_t* udf_value = config->get_config_value(config->cfg,
+                                                            "udfs");
+    if(udf_value == NULL) {
+        m_udfs_key_exists = false;
+        LOG_INFO("\"udfs\" key doesn't exist, so udf output queue is same as \
+                udf input queue!!")
+        m_udf_output_queue = m_udf_input_queue;
+    } else {
+        m_udfs_key_exists = true;
+        m_udf_output_queue = new FrameQueue(queue_size);
+    }
+
+    // Get ingestor
+    m_ingestor = get_ingestor(ingestor_cfg, m_udf_input_queue, m_ingestor_type);
 
     std::vector<std::string> pub_topics = env_config->get_topics_from_env("pub");
     if(pub_topics.size() != 1) {
@@ -123,6 +172,8 @@ VideoIngestion::VideoIngestion(
         config_destroy(config);
         throw(err);
     }
+
+    // Get message bus config
     std::string topic_type = "pub";
     config_t* pub_config = env_config->get_messagebus_config(pub_topics[0],
                                                                     topic_type);
@@ -134,10 +185,9 @@ VideoIngestion::VideoIngestion(
     }
     m_publisher = new Publisher(
             pub_config, m_err_cv, pub_topics[0], (MessageQueue*) m_udf_output_queue);
-   
-    if(m_udfs_key_exists) {
-        m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue);
-    }
+    
+    m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue,
+                                   m_enc_type, m_enc_lvl, m_udfs_key_exists);
 }
 
 void VideoIngestion::start() {
