@@ -33,6 +33,8 @@
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/udf/frame.h>
 #include <eis/utils/config.h>
+#include <eis/utils/profiling.h>
+#include <chrono>
 
 #define TYPE1 "type"
 #define PIPELINE "pipeline"
@@ -121,6 +123,9 @@ namespace eis {
 
                 // poll interval
                 double m_poll_interval;
+
+                // profiling 
+                Profiling* m_profile = NULL;
 
                 /**
                  * Ingestion thread run method

@@ -27,6 +27,8 @@
 #include <sstream>
 #include <random>
 #include <string>
+#include <string.h>
+#include <algorithm>
 #include <eis/utils/logger.h>
 #include "eis/vi/ingestor.h"
 #include "eis/vi/opencv_ingestor.h"
@@ -41,7 +43,7 @@ using namespace eis::udf;
 Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue) :
     m_th(NULL), m_initialized(false), m_stop(false),
     m_udf_input_queue(frame_queue) {
-
+        this->m_profile = new Profiling();
 }
 
 Ingestor::~Ingestor() {
@@ -66,6 +68,9 @@ void Ingestor::run() {
         // Adding image handle to frame
         std::string randuuid = generate_image_handle(UUID_LENGTH);
         msg_envelope_t* meta_data = frame->get_meta_data();
+        // Profiling start
+        DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
+        // Profiling end
         msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(randuuid.c_str());
         if (elem == NULL) {
             throw "Failed to create image handle element";
@@ -75,11 +80,19 @@ void Ingestor::run() {
             LOG_ERROR_0("Failed to put image handle meta-data");
             continue;
         }
+        // Profiling start
+        DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_entry")
+        // Profiling end
 
         if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
             LOG_ERROR_0("Frame queue full, frame dropped");
             delete frame;
         }
+
+        // Profiling start
+        DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_exit")
+        // Profiling end
+
         frame = NULL;
         if(m_poll_interval > 0) {
             usleep(m_poll_interval * 1000 * 1000);
