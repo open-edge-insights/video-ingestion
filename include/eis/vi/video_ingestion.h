@@ -85,6 +85,7 @@ namespace eis {
 
                 // flag to check if `udfs` key exists in config
                 bool m_udfs_key_exists;
+
             public:
 
                 /**
