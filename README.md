@@ -150,29 +150,35 @@ The following are the configurations which can be used with the gstreamer ingest
         "type": "gstreamer",
         "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
     }
+    ```
     Refer [Basler Camera](####Basler-Camera) section for more details on Basler Camera.
 
 3. **RTSP cvlc based camera simulation**
+    ```
     {
         "type": "gstreamer",
         "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
     }
+    ```
     Refer [RTSP cvcl based camera simulation](####RTSP-cvlc-based-camera-simulation) section for more details.
 
 4. **RTSP camera**
+    ```
     {
         "type": "gstreamer",
         "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
     }
-
-    * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in [../docker_setup/.env](../docker_setup/.env) in the etcd config.
+    ```
+     * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in [../docker_setup/.env](../docker_setup/.env) in the etcd config.
     Refer [RTSP Camera](####RTSP-Camera) section for more details on RTSP camera.
 
 5. **USB camera**
+    ```
     {
         "type": "gstreamer",
         "pipeline": "v4l2src ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
     }
+    ```
     Refer [USB Camera](####USB-Camera) section for more details on USB camera.
 
 --------
@@ -205,7 +211,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml ! appsink"
+            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml model-proc=models/frozen_inference_graph.json ! appsink"
         }
 
     **NOTE** : In case one needs to use CPU/GPU/HDDL device with GVA elements it can be set using the `device` property of `gvadetect` and `gvaclassify` elements.
@@ -214,7 +220,7 @@ The following are the configurations which can be used with the gstreamer ingest
 
         {
             "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml ! appsink"
+            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml model-proc=models/frozen_inference_graph.json ! appsink"
         }
 
     **Note** HDDL device needs to be configured on the system in order to use.
@@ -241,11 +247,12 @@ The following are the configurations which can be used with the gstreamer ingest
 
         **Eg**: `pipeline` value to connect to basler camera with
         serial number `22573664`:
-        `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx appsink"`
+
+            `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx appsink"`
 
     * In case you want to enable resizing with basler camera use the `vaapipostproc` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
 
-            **Eg**: Example pipeline to enable resizing with basler camera
+        **Eg**: Example pipeline to enable resizing with basler camera
 
             `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! decodebin ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
 
@@ -257,7 +264,7 @@ The following are the configurations which can be used with the gstreamer ingest
         **Eg**: `pipeline` value to increase the interpacket delay to 3000(default
         value for interpacket delay is 1500):
 
-        `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+            `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
 
     * To work with monochrome Basler camera, please change the
         image format to `mono8` in the Pipeline.
@@ -265,14 +272,12 @@ The following are the configurations which can be used with the gstreamer ingest
         **Eg**:`pipeline` value to connect to monochrome basler camera with serial
         number 22773747 :
 
-        `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+            `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
 
     * To work with USB Basler camera, please change the
         exposure parameter to `exposureUsb` in the Pipeline.
 
-        `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
-
-    -------
+            `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
 
     -------
 
@@ -281,7 +286,9 @@ The following are the configurations which can be used with the gstreamer ingest
     * Install VLC if not installed already: `sudo apt install vlc`
     * In order to use the RTSP stream from cvlc, the RTSP server
         must be started using VLC with the following command:
+        ```
         `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://localhost:8554/}' --loop --sout-keep`
+        ```
 
     --------
 
@@ -290,7 +297,9 @@ The following are the configurations which can be used with the gstreamer ingest
     * In case you want to enable resizing with RTSP cvlc based camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
+        ```
         `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
+        ```
 
    ------
 
@@ -299,8 +308,9 @@ The following are the configurations which can be used with the gstreamer ingest
     * In case you want to enable resizing with RTSP camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
+        ```
         `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
-
+        ```
     * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
     * For working both with simulated RTSP server via cvlc or direct streaming
         from RTSP camera, we can use the below Gstreamer MediaSDK parsers and
@@ -344,12 +354,16 @@ The following are the configurations which can be used with the gstreamer ingest
     * In case you want to enable resizing with USB camera use the `videoscale` element and specify the `height` and `width` parameter in the gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with USB camera
+        ```
         `"pipeline":"v4l2src ! decodebin ! videoscale ! video/x-raw, height=600, width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+        ```
 
     * In case, multiple USB cameras are connected specify the
         camera using the `device` property in the configuration file.
         Eg:
+        ```
         `"pipeline": "v4l2src device=/dev/video0 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+        ```
    -------
 
 #### `Detailed description on each of the keys used`
@@ -359,7 +373,7 @@ The following are the configurations which can be used with the gstreamer ingest
 |  pipeline     |  Video source                         | Video file or gstreamer based pipeline 	                    | Required 	        |
 |  poll_interval|  Determines fps read rate from camera | floating number  	                                            | Optional  	    |
 |  loop_video	|  Would loop through the video file    | "true" or "false"	(By default, it's false)                    | Optional          |
-
+|  queue_size 	|   Determines the size of the input and output filter queue	    | any value that suits platform resources |   Required	      |
 
 ### `Filter config`
 
@@ -417,10 +431,9 @@ key frames(frames of interest for further processing).
 
 |  Key	        | Description 	                                                    | Possible Values  	                      | Required/Optional |
 |---	        |---	                                                            |---	                                  |---	              |
-|  name 	    |   File name of the filter	| "pcb_filter" or "Dummy filter"        | Required	                              |                   |
-|  queue_size 	|   Determines the size of the input and output filter queue	    | any value that suits platform resources |   Required	      |
+|  name 	    |   File name of the filter	                                        | "pcb_filter" or "Dummy filter"          |   Required        |
 |  training_mode|  If "true", used to capture images for training and building model| "true" or "false" (default is false)    |   Optional        |
-
+|  type 	    |   Type of the filter used                                         | "native" or "python"                    |   Required        |
 
 **Note**: The other keys used are specific to filter usecase
 

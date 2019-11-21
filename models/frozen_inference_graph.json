@@ -1,0 +1,21 @@
+{
+  "json_schema_version": 1.0,
+  "input_preproc": [
+    {
+      "color_format": "BGR",
+      "input_layer": "data"
+    }
+  ],
+  "output_postproc": [
+    {
+      "layer_name": "DetectionOutput",
+      "labels": [
+        "Safe",
+        "Violation",
+        "Safety_Helmet",
+        "Safety_jacket"
+      ],
+      "converter": "tensor_to_label"
+    }
+  ]
+}
