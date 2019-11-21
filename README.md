@@ -48,8 +48,8 @@ For more details on Etcd and MessageBus endpoint configuration, visit [Etcd_and_
 
 The following are the type of ingestors supported:
 
-1. opencv
-2. gstreamer
+1. OpenCV
+2. GStreamer
 
 >**Note**: If running on non-gfx systems or older systems which doesn't have hardware media decoders it is recommended to use opencv ingestor
 
@@ -148,7 +148,7 @@ The following are the configurations which can be used with the gstreamer ingest
    ```
     {
         "type": "gstreamer",
-        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink",
     }
     ```
     Refer [Basler Camera](####Basler-Camera) section for more details on Basler Camera.
@@ -176,7 +176,7 @@ The following are the configurations which can be used with the gstreamer ingest
     ```
     {
         "type": "gstreamer",
-        "pipeline": "v4l2src ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink",
     }
     ```
     Refer [USB Camera](####USB-Camera) section for more details on USB camera.
@@ -187,97 +187,114 @@ The following are the configurations which can be used with the gstreamer ingest
 
    **Note**: GVA plugins needs to be used only with `gstreamer` ingestor type.
 
-   In case GVA plugin needs to be used the below configurations can be use:
+   To run the Safety Gear Detection sample using GVA plugins refer the below pipeline:
 
-   * When working with a USB camera :
+   >**Note**: `dummy` udf needs to be used in the VideoIngestion and VideoAnalytics config when working with GVA elements. VideoAnalytics service is optional when working with GVA elements.
 
-            {
-                "type": "gstreamer",
-                "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink"
-            }
+    ```
+    "udfs": [{
+        "name": "dummy",
+        "type": "native"
+    }]
+    ```
+   >**Note**: Refer `Using Labels` section [Visualizer/README.md](../Visualizer/README.md) to pass the respective json file as command line argument.
 
+ * When working with a Video file :
+
+    ```
+    {
+        "type": "gstreamer",
+        "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+    }
+    ```
+
+* When working with a USB camera :
+
+    ```
+    {
+        "type": "gstreamer",
+        "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+    }
+    ```
 
 * When working with a RTSP camera :
 
-        {
-            "type": "gstreamer",
-            "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! gvadetect model=models/face-detection-adas-0001.xml ! gvaclassify  model=models/emotions-recognition-retail-0003.xml model-proc=models/emotions-recognition-retail-0003.json ! gvaclassify  model=models/age-gender-recognition-retail-0013.xml model-proc=models/age-gender-recognition-retail-0013.json ! appsink"
-        }
+    ```
+    {
+        "type": "gstreamer",
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+    }
+    ```
 
+>**NOTE** : In case one needs to use CPU/GPU/HDDL device with GVA elements it can be set using the `device` property of `gvadetect` and `gvaclassify` elements.
 
-* When working with a Video file :
+Example pipeline to run the Safety Gear Detection Sample using GVA plugins on `HDDL` device:
 
-    To run the Safety Gear Detection Sample using GVA plugins the below pipeline:
+```
+{
+    "type": "gstreamer",
+    "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! appsink"
+}
+```
 
-        {
-            "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! gvaclassify model=models/frozen_inference_graph.xml model-proc=models/frozen_inference_graph.json ! appsink"
-        }
+>**Note** HDDL device needs to be configured on the system in order to use.Similarly the system needs to support gfx in order to set   `device=GPU`.
 
-    **NOTE** : In case one needs to use CPU/GPU/HDDL device with GVA elements it can be set using the `device` property of `gvadetect` and `gvaclassify` elements.
-
-    Example pipeline to run the Safety Gear Detection Sample using GVA plugins on HHDL device:
-
-        {
-            "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! gvaclassify device=HDDL model=models/frozen_inference_graph.xml model-proc=models/frozen_inference_graph.json ! appsink"
-        }
-
-    **Note** HDDL device needs to be configured on the system in order to use.
-    **Note** Looping of videos is not happening when `.mp4` videos are used in the gstreamer pipeline with `multifilesrc`    plugin.
-
-    Similarly the system needs to support gfx in order to set   `device=GPU`.
-
-    In case Safety Gear Detection Sample needs to be used with a physical camera replace the `multifilesrc` source plugin with `v4l2src` or `rtspsrc` and
-    provide the necessary configs.
-
-    >**Note** : The labels are not getting generated when Safety Gear Detection Sample is used with GVA plugins.
+>**Note** Looping of videos is not happening when `Safety_Full_Hat_and_Vest.mp4` video is used in the gstreamer pipeline with `multifilesrc` plugin.
 
    -------
 
-   In case more information is needed regarding different camera configurations refer the below section for the respective cameras:
+   **In case more information is needed regarding different camera configurations refer the below section for the respective cameras:**
 
    #### Basler camera
 
-    * In case multiple Basler cameras are connected use serial parameter to
+* In case multiple Basler cameras are connected use serial parameter to
         specify the camera to be used in the gstreamer pipeline in the video
         config file for camera mode. If multiple cameras are connected and the
         `serial` parameter is not specified then the source plugin by default
         connects to camera with device_index=0.
 
-        **Eg**: `pipeline` value to connect to basler camera with
-        serial number `22573664`:
+    **Eg**: `pipeline` value to connect to basler camera with
+    serial number `22573664`:
 
-            `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx appsink"`
+    ```
+    `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx appsink"`
+    ```
 
-    * In case you want to enable resizing with basler camera use the `vaapipostproc` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
+* In case you want to enable resizing with basler camera use the `vaapipostproc` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
 
-        **Eg**: Example pipeline to enable resizing with basler camera
+    **Eg**: Example pipeline to enable resizing with basler camera
 
-            `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! decodebin ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+    ```
+    `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+    ```
 
-    * In case frame read is failing when multiple basler cameras are used, use
+* In case frame read is failing when multiple basler cameras are used, use
         the `interpacketdelay` property to increase the delay between the
         transmission of each packet for the selected stream channel.
         Depending on the number of cameras, use an appropriate delay can be set.
 
-        **Eg**: `pipeline` value to increase the interpacket delay to 3000(default
+    **Eg**: `pipeline` value to increase the interpacket delay to 3000(default
         value for interpacket delay is 1500):
 
-            `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+        ```
+        `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! decodebin ! video/x-raw,format=YUY2 ! video/x-raw,format=BGRx ! appsink"`
+        ```
 
-    * To work with monochrome Basler camera, please change the
+* To work with monochrome Basler camera, please change the
         image format to `mono8` in the Pipeline.
 
-        **Eg**:`pipeline` value to connect to monochrome basler camera with serial
-        number 22773747 :
+    **Eg**:`pipeline` value to connect to monochrome basler camera with serial number 22773747 :
 
-            `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+    ```
+    `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+    ```
 
-    * To work with USB Basler camera, please change the
+* To work with USB Basler camera, please change the
         exposure parameter to `exposureUsb` in the Pipeline.
 
-            `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+    ```
+    `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+    ```
 
     -------
 
@@ -355,14 +372,14 @@ The following are the configurations which can be used with the gstreamer ingest
 
         **Eg**: Example pipeline to enable resizing with USB camera
         ```
-        `"pipeline":"v4l2src ! decodebin ! videoscale ! video/x-raw, height=600, width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+        `"pipeline":"v4l2src ! videoscale ! video/x-raw,format=YUY2,height=600,width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
         ```
 
     * In case, multiple USB cameras are connected specify the
         camera using the `device` property in the configuration file.
         Eg:
         ```
-        `"pipeline": "v4l2src device=/dev/video0 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+        `"pipeline": "v4l2src device=/dev/video0 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
         ```
    -------
 

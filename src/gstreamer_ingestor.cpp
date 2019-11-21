@@ -323,9 +323,9 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                     }
 
                     for(GVA::Tensor& tensor : roi) {
-                        LOG_DEBUG("Attribute: %s, Label: %s, Confidence: %f",
+                        LOG_DEBUG("Attribute: %s, Label: %s, Confidence: %f Label_id:%d",
                                 tensor.name().c_str(), tensor.label().c_str(),
-                                tensor.confidence())
+                                tensor.confidence(), tensor.label_id());
 
                         msg_envelope_elem_body_t* tensor_obj= msgbus_msg_envelope_new_object();
                         if(tensor_obj == NULL) {
@@ -345,9 +345,15 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                             return GST_FLOW_ERROR;
                         }
 
-			            msg_envelope_elem_body_t* confidence = msgbus_msg_envelope_new_integer(tensor.confidence());
+			            msg_envelope_elem_body_t* confidence = msgbus_msg_envelope_new_floating(tensor.confidence());
                         if(confidence == NULL) {
                             LOG_ERROR_0("Failed to initialize confidence metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+                        msg_envelope_elem_body_t* label_id = msgbus_msg_envelope_new_integer(tensor.label_id());
+                        if(label_id == NULL) {
+                            LOG_ERROR_0("Failed to initialize label_id metadata");
                             return GST_FLOW_ERROR;
                         }
 
@@ -366,6 +372,12 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                         ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "confidence", confidence);
                         if(ret != MSG_SUCCESS) {
                             LOG_ERROR_0("Failed to put confidence metadata");
+                            return GST_FLOW_ERROR;
+                        }
+
+                        ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "label_id", label_id);
+                        if(ret != MSG_SUCCESS) {
+                            LOG_ERROR_0("Failed to put label_id metadata");
                             return GST_FLOW_ERROR;
                         }
 
