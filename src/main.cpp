@@ -50,7 +50,7 @@ void signal_callback_handler(int signum){
     }else if(signum == SIGINT){
         LOG_INFO("Received Ctrl-C, terminating Video Ingestion");
     }
-    
+
     if(g_vi) {
         delete g_vi;
     }
@@ -73,7 +73,10 @@ void vi_initialize(char* vi_config){
 
 void on_change_config_callback(char* key, char* vi_config){
     if(strcmp(g_vi_config, vi_config)){
-        vi_initialize(vi_config);
+        // TODO: Dynamic config needs to be enabled later once it works
+        // with python `udfs`
+        // vi_initialize(vi_config);
+        _Exit(-1);
     }
 }
 
