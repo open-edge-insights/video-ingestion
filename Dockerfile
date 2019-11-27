@@ -46,7 +46,7 @@ RUN wget ${NASM_REPO} && \
     cd nasm-${NASM_VER} && \
     ./autogen.sh && \
     ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu && \
-    make -j$(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install
 
 # Build YASM
@@ -56,7 +56,7 @@ RUN wget -O - ${YASM_REPO} | tar xz && \
     cd yasm-${YASM_VER} && \
     sed -i "s/) ytasm.*/)/" Makefile.in && \
     ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu && \
-    make -j$(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install
 
 # Build x264
@@ -67,7 +67,7 @@ RUN git clone ${X264_REPO} && \
     cd x264 && \
     git checkout ${X264_VER} && \
     ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu --enable-shared && \
-    make -j$(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install DESTDIR="/home/build" && \
     make install
 
@@ -80,7 +80,7 @@ RUN apt-get install -y libnuma-dev
 RUN wget -O - ${X265_REPO} | tar xz && mv x265-${X265_VER} x265 && \
     cd x265/build/linux && \
     cmake -DBUILD_SHARED_LIBS=ON -DENABLE_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr -DLIB_INSTALL_DIR=/usr/lib/x86_64-linux-gnu ../../source && \
-    make -j$(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install DESTDIR="/home/build" && \
     make install
 
@@ -93,7 +93,7 @@ RUN git clone ${SVT_HEVC_REPO} && \
     git checkout ${SVT_HEVC_VER} && \
     mkdir -p ../../Bin/Release && \
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu -DCMAKE_ASM_NASM_COMPILER=yasm ../.. && \
-    make -j$(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install DESTDIR=/home/build && \
     make install
 
@@ -106,7 +106,7 @@ RUN apt-get install -y libpciaccess-dev
 RUN wget -O - ${LIBDRM_REPO} | tar xz && \
     cd libdrm-${LIBDRM_VER} && \
     ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu && \
-    make -j$(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install DESTDIR=/home/build && \
     make install ;
 
@@ -160,7 +160,7 @@ RUN wget -O - ${GST_REPO} | tar xJ && \
     --enable-introspection \
     --disable-examples  \
     --disable-gtk-doc && \
-    make -j $(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install DESTDIR=/home/build && \
     make install;
 
@@ -192,7 +192,7 @@ RUN wget -O - ${GST_PLUGIN_BASE_REPO} | tar xJ && \
     --enable-shared \
     --disable-examples  \
     --disable-gtk-doc && \
-    make -j $(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install DESTDIR=/home/build && \
     make install
 
@@ -223,7 +223,7 @@ RUN ./install_gstreamerplugins.sh ${EIS_UID} /EIS
 # Build gstreamer plugin for svt
 RUN cd SVT-HEVC/gstreamer-plugin && \
     cmake . && \
-    make -j$(nproc) && \
+    make -j$(nproc --ignore=2) && \
     make install DESTDIR=/home/build && \
     make install
 
@@ -241,7 +241,7 @@ RUN wget -O - ${GST_PLUGIN_VAAPI_REPO} | tar xJ && \
         --enable-shared \
         --disable-examples \
         --disable-gtk-doc  && \
-     make -j $(nproc) && \
+     make -j$(nproc --ignore=2) && \
      make install DESTDIR=/home/build && \
      make install
 
@@ -285,7 +285,7 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
       mkdir gva/gst-video-analytics/build && \
       cd gva/gst-video-analytics/build && \
       cmake .. && \
-      make -j $(nproc)"
+      make -j$(nproc --ignore=2)"
 
 # Export environment variables
 ENV MODELS_PATH="${PY_WORK_DIR}/VideoIngestion/models/" \
