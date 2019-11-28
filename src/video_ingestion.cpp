@@ -197,6 +197,12 @@ VideoIngestion::VideoIngestion(
     
     m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue,
                                    m_enc_type, m_enc_lvl, m_udfs_key_exists);
+
+    config_value_destroy(ingestor_type_cvt);
+    config_value_destroy(ingestor_queue_cvt);
+    config_value_destroy(encoding_value);
+    config_value_destroy(udf_value);
+
 }
 
 void VideoIngestion::start() {
