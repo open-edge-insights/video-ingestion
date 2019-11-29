@@ -172,13 +172,6 @@ COPY install_gstreamerplugins.sh .
 RUN chmod 777 install_gstreamerplugins.sh .
 RUN ./install_gstreamerplugins.sh ${EIS_UID} /EIS
 
-# Build gstreamer plugin for svt
-RUN cd SVT-HEVC/gstreamer-plugin && \
-    cmake . && \
-    make -j$(nproc --ignore=2) && \
-    make install DESTDIR=/home/build && \
-    make install
-
 # Build gstreamer plugin vaapi
 ARG GST_PLUGIN_VAAPI_REPO=https://gstreamer.freedesktop.org/src/gstreamer-vaapi/gstreamer-vaapi-${GST_VER}.tar.xz
 
