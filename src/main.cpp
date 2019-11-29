@@ -34,9 +34,37 @@ using namespace eis::vi;
 using namespace eis::utils;
 
 static VideoIngestion* g_vi = NULL;
-static EnvConfig* g_config = NULL;
 static char* g_vi_config = NULL;
 static std::condition_variable g_err_cv;
+static config_mgr_t* g_config_mgr = NULL;
+static env_config_t* g_env_config_client = NULL;
+
+void get_config_mgr(){
+    std::string pub_cert_file = "";
+    std::string pri_key_file = "";
+    std::string trust_file = "";
+    std::string m_app_name = getenv("AppName");
+    bool dev_mode;
+
+    std::string dev_mode_str=getenv("DEV_MODE");
+    if (dev_mode_str == "false") {
+        dev_mode = false;
+    } else if (dev_mode_str == "true") {
+        dev_mode = true;
+    }
+
+    if(!dev_mode) {
+        pub_cert_file = "/run/secrets/etcd_" + m_app_name + "_cert";
+        pri_key_file = "/run/secrets/etcd_" + m_app_name + "_key";
+        trust_file = "/run/secrets/ca_etcd";
+    }
+
+    g_config_mgr = config_mgr_new("etcd",
+                                 (char*)pub_cert_file.c_str(),
+                                 (char*) pri_key_file.c_str(),
+                                 (char*) trust_file.c_str());
+                                 
+}
 
 void usage(const char* name) {
     printf("Usage: %s \n", name);
@@ -54,9 +82,6 @@ void signal_callback_handler(int signum){
     if(g_vi) {
         delete g_vi;
     }
-    if(g_config) {
-        delete g_config;
-    }
     exit(0);
 }
 
@@ -64,10 +89,11 @@ void vi_initialize(char* vi_config){
     if(g_vi){
         delete g_vi;
     }
-    if(!g_config){
-        g_config = new EnvConfig();
+    if(!g_config_mgr){
+        get_config_mgr();
     }
-    g_vi = new VideoIngestion(g_err_cv, g_config, vi_config);
+    g_env_config_client = env_config_new();
+    g_vi = new VideoIngestion(g_err_cv, g_env_config_client, vi_config, g_config_mgr);
     g_vi->start();
 }
 
@@ -80,6 +106,14 @@ void on_change_config_callback(char* key, char* vi_config){
     }
 }
 
+void clean_up(){
+    if(g_vi) {
+        delete g_vi;
+    }
+    config_mgr_config_destroy(g_config_mgr);
+    env_config_destroy(g_env_config_client);
+}
+
 int main(int argc, char** argv) {
     signal(SIGINT, signal_callback_handler);
     signal(SIGABRT, signal_callback_handler);
@@ -90,11 +124,13 @@ int main(int argc, char** argv) {
             usage(argv[0]);
             return -1;
         }
+        get_config_mgr();
         char* str_log_level = NULL;
-        g_config = new EnvConfig();
+
         log_lvl_t log_level = LOG_LVL_ERROR;
 
         str_log_level = getenv("C_LOG_LEVEL");
+
         if(str_log_level == NULL) {
 	        throw "\"C_LOG_LEVEL\" env not set";
         }
@@ -107,19 +143,19 @@ int main(int argc, char** argv) {
         } else if(strcmp(str_log_level, "ERROR") == 0) {
             log_level = LOG_LVL_ERROR;
         }
+
         set_log_level(log_level);
         std::string m_app_name = getenv("AppName");
-        config_mgr_t* config_mgr = g_config->get_config_mgr_client();
-
+        
         char config_key[MAX_CONFIG_KEY_LENGTH];
 
         // Get the configuration from the configuration manager
         sprintf(config_key, "/%s/config", m_app_name.c_str());
-        g_vi_config = config_mgr->get_config(config_key);
+        g_vi_config = g_config_mgr->get_config(config_key);
         LOG_DEBUG("App config: %s", g_vi_config);
 
         LOG_DEBUG("Registering watch on config key: %s", config_key);
-        config_mgr->register_watch_key(config_key, on_change_config_callback);
+        g_config_mgr->register_watch_key(config_key, on_change_config_callback);
 
         vi_initialize(g_vi_config);
 
@@ -127,18 +163,10 @@ int main(int argc, char** argv) {
         std::unique_lock<std::mutex> lk(mtx);
         g_err_cv.wait(lk);
 
-        delete g_vi;
-        delete g_config;
-        return -1;
+        clean_up();
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
-        if(g_vi) {
-            delete g_vi;
-        }
-        if(g_config) {
-            delete g_config;
-        }
-        config_mgr_config_destroy(config_mgr);
-        return -1;
+        clean_up();
     }
+    return -1;
 }

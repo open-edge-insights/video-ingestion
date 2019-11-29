@@ -40,7 +40,7 @@ using namespace eis::msgbus;
 using namespace eis::udf;
 
 VideoIngestion::VideoIngestion(
-        std::condition_variable& err_cv, EnvConfig* env_config, char* vi_config) :
+        std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* g_config_mgr) :
     m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0)
 {
     // Parse the configuration
@@ -165,26 +165,35 @@ VideoIngestion::VideoIngestion(
     // Get ingestor
     m_ingestor = get_ingestor(ingestor_cfg, m_udf_input_queue, m_ingestor_type);
 
-    std::vector<std::string> pub_topics = env_config->get_topics_from_env("pub");
-    if(pub_topics.size() != 1) {
-        const char* err = "Only one topic is supported. Neither more nor less";
-        LOG_ERROR("%s", err);
-        config_destroy(config);
-        throw(err);
+    char* topic_type = "pub";
+    char** pub_topics = env_config->get_topics_from_env(topic_type);
+
+    int pub_topic_length = 0;
+    while (pub_topics[pub_topic_length] != NULL) {
+        pub_topic_length++;
+        if(pub_topic_length != 1){
+            const char* err = "Only one topic is supported. Neither more, nor less";
+            LOG_ERROR("%s", err);
+            config_destroy(config);
+            throw(err);
+        }
     }
 
-    // Get message bus config
-    std::string topic_type = "pub";
-    config_t* pub_config = env_config->get_messagebus_config(pub_topics[0],
-                                                                    topic_type);
+    LOG_DEBUG_0("Successfully read PubTopics env value...");
+
+    config_t* pub_config = env_config->get_messagebus_config(g_config_mgr,pub_topics[0], topic_type);      
     if(pub_config == NULL) {
-        const char* err = "Failed to get message bus config";
+        const char* err = "Failed to get publisher message bus config";
         LOG_ERROR("%s", err);
         config_destroy(config);
         throw(err);
     }
+    LOG_DEBUG_0("Publisher Config received...");                                                
+
+
     m_publisher = new Publisher(
             pub_config, m_err_cv, pub_topics[0], (MessageQueue*) m_udf_output_queue);
+    free(pub_topics);
     
     m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue,
                                    m_enc_type, m_enc_lvl, m_udfs_key_exists);

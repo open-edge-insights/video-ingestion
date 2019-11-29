@@ -36,6 +36,7 @@
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>
 #include <eis/config_manager/env_config.h>
+#include <eis/config_manager/config.h>
 #include <eis/config_manager/config_manager.h>
 #include <eis/msgbus/msgbus.h>
 #include <eis/udf/udf_manager.h>
@@ -96,7 +97,7 @@ namespace eis {
                 * @param env_config - Environmental configuration
                 * @param vi_config  - VideoIngestion/config
                 */
-                VideoIngestion(std::condition_variable& err_cv, EnvConfig* env_config, char* vi_config);
+                VideoIngestion(std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* g_config_mgr);
 
                 //Destructor
                 ~VideoIngestion();
