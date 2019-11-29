@@ -49,54 +49,6 @@ RUN wget ${NASM_REPO} && \
     make -j$(nproc --ignore=2) && \
     make install
 
-# Build YASM
-ARG YASM_VER=1.3.0
-ARG YASM_REPO=https://www.tortall.net/projects/yasm/releases/yasm-${YASM_VER}.tar.gz
-RUN wget -O - ${YASM_REPO} | tar xz && \
-    cd yasm-${YASM_VER} && \
-    sed -i "s/) ytasm.*/)/" Makefile.in && \
-    ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu && \
-    make -j$(nproc --ignore=2) && \
-    make install
-
-# Build x264
-ARG X264_VER=stable
-ARG X264_REPO=https://github.com/mirror/x264
-
-RUN git clone ${X264_REPO} && \
-    cd x264 && \
-    git checkout ${X264_VER} && \
-    ./configure --prefix="/usr" --libdir=/usr/lib/x86_64-linux-gnu --enable-shared && \
-    make -j$(nproc --ignore=2) && \
-    make install DESTDIR="/home/build" && \
-    make install
-
-# Build x265
-ARG X265_VER=2.9
-ARG X265_REPO=https://github.com/videolan/x265/archive/${X265_VER}.tar.gz
-
-RUN apt-get install -y libnuma-dev
-
-RUN wget -O - ${X265_REPO} | tar xz && mv x265-${X265_VER} x265 && \
-    cd x265/build/linux && \
-    cmake -DBUILD_SHARED_LIBS=ON -DENABLE_TESTS=OFF -DCMAKE_INSTALL_PREFIX=/usr -DLIB_INSTALL_DIR=/usr/lib/x86_64-linux-gnu ../../source && \
-    make -j$(nproc --ignore=2) && \
-    make install DESTDIR="/home/build" && \
-    make install
-
-# Fetch SVT-HEVC
-ARG SVT_HEVC_VER=20a47b0d904e9d99e089d93d7c33af92788cbfdb
-ARG SVT_HEVC_REPO=https://github.com/intel/SVT-HEVC
-
-RUN git clone ${SVT_HEVC_REPO} && \
-    cd SVT-HEVC/Build/linux && \
-    git checkout ${SVT_HEVC_VER} && \
-    mkdir -p ../../Bin/Release && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu -DCMAKE_ASM_NASM_COMPILER=yasm ../.. && \
-    make -j$(nproc --ignore=2) && \
-    make install DESTDIR=/home/build && \
-    make install
-
 # Build libdrm
 ARG LIBDRM_VER=2.4.96
 ARG LIBDRM_REPO=https://dri.freedesktop.org/libdrm/libdrm-${LIBDRM_VER}.tar.gz
