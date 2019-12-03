@@ -27,6 +27,7 @@
 #include <condition_variable>
 #include "eis/vi/video_ingestion.h"
 #include <mutex>
+#include <atomic>
 
 #define MAX_CONFIG_KEY_LENGTH 40
 
@@ -38,6 +39,7 @@ static char* g_vi_config = NULL;
 static std::condition_variable g_err_cv;
 static config_mgr_t* g_config_mgr = NULL;
 static env_config_t* g_env_config_client = NULL;
+static std::atomic<bool> g_cfg_change;
 
 void get_config_mgr(){
     std::string pub_cert_file = "";
@@ -63,7 +65,7 @@ void get_config_mgr(){
                                  (char*)pub_cert_file.c_str(),
                                  (char*) pri_key_file.c_str(),
                                  (char*) trust_file.c_str());
-                                 
+
 }
 
 void usage(const char* name) {
@@ -88,6 +90,7 @@ void signal_callback_handler(int signum){
 void vi_initialize(char* vi_config){
     if(g_vi){
         delete g_vi;
+        g_vi = NULL;
     }
     if(!g_config_mgr){
         get_config_mgr();
@@ -99,10 +102,14 @@ void vi_initialize(char* vi_config){
 
 void on_change_config_callback(char* key, char* vi_config){
     if(strcmp(g_vi_config, vi_config)){
-        // TODO: Dynamic config needs to be enabled later once it works
-        // with python `udfs`
-        // vi_initialize(vi_config);
-        _Exit(-1);
+        if(g_vi) {
+            delete g_vi;
+            g_vi = NULL;
+        }
+        delete g_vi_config;
+        g_vi_config = vi_config;
+        g_cfg_change.store(true);
+        g_err_cv.notify_one();
     }
 }
 
@@ -146,7 +153,7 @@ int main(int argc, char** argv) {
 
         set_log_level(log_level);
         std::string m_app_name = getenv("AppName");
-        
+
         char config_key[MAX_CONFIG_KEY_LENGTH];
 
         // Get the configuration from the configuration manager
@@ -160,8 +167,17 @@ int main(int argc, char** argv) {
         vi_initialize(g_vi_config);
 
         std::mutex mtx;
-        std::unique_lock<std::mutex> lk(mtx);
-        g_err_cv.wait(lk);
+
+        while(true) {
+            std::unique_lock<std::mutex> lk(mtx);
+            g_err_cv.wait(lk);
+            if(g_cfg_change.load()) {
+                vi_initialize(g_vi_config);
+                g_cfg_change.store(false);
+            } else {
+                break;
+            }
+        }
 
         clean_up();
     } catch(const std::exception& ex) {
