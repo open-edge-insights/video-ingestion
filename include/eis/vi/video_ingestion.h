@@ -36,14 +36,12 @@
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>
 #include <eis/config_manager/env_config.h>
-#include <eis/config_manager/config.h>
 #include <eis/config_manager/config_manager.h>
 #include <eis/msgbus/msgbus.h>
 #include <eis/udf/udf_manager.h>
 #include "eis/vi/ingestor.h"
 
 using namespace eis::utils;
-using namespace eis::config_manager;
 using namespace eis::udf;
 
 namespace eis {
@@ -85,7 +83,6 @@ namespace eis {
 
                 // flag to check if `udfs` key exists in config
                 bool m_udfs_key_exists;
-
             public:
 
                 /**

@@ -32,10 +32,10 @@
 #define INTEL_VENDOR "GenuineIntel"
 #define INTEL_VENDOR_LENGTH 12
 #define DEFAULT_QUEUE_SIZE 10
+#define PUB "pub"
 
 using namespace eis::vi;
 using namespace eis::utils;
-using namespace eis::config_manager;
 using namespace eis::msgbus;
 using namespace eis::udf;
 
@@ -165,8 +165,8 @@ VideoIngestion::VideoIngestion(
     // Get ingestor
     m_ingestor = get_ingestor(ingestor_cfg, m_udf_input_queue, m_ingestor_type);
 
-    char* topic_type = "pub";
-    char** pub_topics = env_config->get_topics_from_env(topic_type);
+
+    char** pub_topics = env_config->get_topics_from_env(PUB);
 
     int pub_topic_length = 0;
     while (pub_topics[pub_topic_length] != NULL) {
@@ -181,7 +181,7 @@ VideoIngestion::VideoIngestion(
 
     LOG_DEBUG_0("Successfully read PubTopics env value...");
 
-    config_t* pub_config = env_config->get_messagebus_config(g_config_mgr,pub_topics[0], topic_type);      
+    config_t* pub_config = env_config->get_messagebus_config(g_config_mgr,pub_topics[0], PUB);      
     if(pub_config == NULL) {
         const char* err = "Failed to get publisher message bus config";
         LOG_ERROR("%s", err);
