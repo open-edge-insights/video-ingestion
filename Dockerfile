@@ -246,6 +246,8 @@ COPY --from=common /usr/local/include /usr/local/include
 COPY --from=common /usr/local/lib /usr/local/lib
 COPY --from=common ${GO_WORK_DIR}/common/cmake ./common/cmake
 COPY --from=common ${GO_WORK_DIR}/common/libs ./common/libs
+COPY --from=common ${GO_WORK_DIR}/common/util ${GO_WORK_DIR}/common/util
+COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python3.6/dist-packages
 
 ARG CMAKE_BUILD_TYPE
 # Build UDF loader lib
@@ -287,6 +289,6 @@ RUN apt-get remove -y wget && \
     apt-get remove curl && \
     apt-get autoremove -y
 
-ENV PYTHONPATH ${PYTHONPATH}:${GO_WORK_DIR}/common/udfs/python
+ENV PYTHONPATH ${PYTHONPATH}:${GO_WORK_DIR}/common/udfs/python:${GO_WORK_DIR}/common/
 
 ENTRYPOINT ["VideoIngestion/vi_start.sh"]
