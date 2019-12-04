@@ -43,6 +43,9 @@ using namespace eis::udf;
 Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue) :
     m_th(NULL), m_initialized(false), m_stop(false),
     m_udf_input_queue(frame_queue) {
+        // Setting default poll interval
+        // This will be over written with the sub class poll interval
+        m_poll_interval = 0;
         this->m_profile = new Profiling();
 }
 
@@ -54,6 +57,9 @@ Ingestor::~Ingestor() {
 
         // Delete the thread
         delete m_th;
+
+        // Delete profiling variable
+        delete m_profile;
     }
 }
 
@@ -80,14 +86,12 @@ void Ingestor::run() {
             LOG_ERROR_0("Failed to put image handle meta-data");
             continue;
         }
+
         // Profiling start
         DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_entry")
         // Profiling end
 
-        if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
-            LOG_ERROR_0("Frame queue full, frame dropped");
-            delete frame;
-        }
+        m_udf_input_queue->push_wait(frame);
 
         // Profiling start
         DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_exit")
