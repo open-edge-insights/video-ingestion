@@ -42,6 +42,7 @@
 
 
 using namespace eis::utils;
+using namespace eis::udf;
 
 namespace eis {
     namespace vi {
@@ -109,6 +110,11 @@ namespace eis {
                 std::thread* m_th;
 
             protected:
+                // Encoding details
+                EncodeType m_enc_type;
+                
+                int m_enc_lvl;
+
                 // Flag for if the ingestor has been initialized
                 std::atomic<bool> m_initialized;
 
@@ -149,7 +155,7 @@ namespace eis {
                 /**
                  * Constructor
                  */
-                Ingestor(config_t* config, FrameQueue* frame_queue);
+                Ingestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type, int enc_lvl);
 
                 /**
                  * Destructor
@@ -167,7 +173,7 @@ namespace eis {
                 virtual void stop();
         };
 
-        Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type);
+        Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type, EncodeType enc_type, int enc_lvl);
 
     } // vi
 } // eis

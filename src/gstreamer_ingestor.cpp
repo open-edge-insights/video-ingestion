@@ -43,11 +43,15 @@
 using namespace eis::vi;
 using namespace eis::udf;
 
+static EncodeType g_enc_type;
+static int g_enc_lvl; 
 // Prototypes
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data);
 
-GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue):
-    Ingestor(config, frame_queue) {
+GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type, int enc_lvl):
+    Ingestor(config, frame_queue, enc_type, enc_lvl) {
+    g_enc_type = enc_type;
+    g_enc_lvl = enc_lvl;
 
     config_value_t* cvt_pipeline = config->get_config_value(config->cfg, PIPELINE);
     LOG_INFO("cvt_pipeline initialized");
@@ -216,7 +220,8 @@ void free_gst_frame(void* obj) {
 /**
  * A new sample has been received in the appsink
  */
-GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor* ctx) {
+GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink,
+GstreamerIngestor* ctx) {
     GstSample* sample;
     g_signal_emit_by_name(sink, "pull-sample", &sample);
     if(sample) {
@@ -464,7 +469,7 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_entry");
                 // Profiling end
-
+                frame->set_encoding(g_enc_type, g_enc_lvl);
                 ctx->m_udf_input_queue->push_wait(frame);
 
                 // Profiling start

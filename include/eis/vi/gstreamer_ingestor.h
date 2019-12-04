@@ -50,7 +50,6 @@ namespace eis {
 
                 // Glib main loop
                 GMainLoop* m_loop;
-
     #ifdef WITH_PROFILE
                 int m_frame_count;
     #endif
@@ -72,7 +71,7 @@ namespace eis {
                 /**
                  * Constructor
                  */
-                GstreamerIngestor(config_t* config, FrameQueue* frame_queue);
+                GstreamerIngestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type, int enc_lvl);
 
                 /**
                  * Destructor

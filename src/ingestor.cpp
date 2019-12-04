@@ -40,9 +40,9 @@ using namespace eis::vi;
 using namespace eis::utils;
 using namespace eis::udf;
 
-Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue) :
+Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
     m_th(NULL), m_initialized(false), m_stop(false),
-    m_udf_input_queue(frame_queue) {
+    m_udf_input_queue(frame_queue),  m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
         // Setting default poll interval
         // This will be over written with the sub class poll interval
         m_poll_interval = 0;
@@ -91,6 +91,9 @@ void Ingestor::run() {
         DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_entry")
         // Profiling end
 
+        // Set encding type and level
+        frame->set_encoding(m_enc_type, m_enc_lvl);
+
         m_udf_input_queue->push_wait(frame);
 
         // Profiling start
@@ -128,13 +131,13 @@ IngestRetCode Ingestor::start() {
     return IngestRetCode::SUCCESS;
 }
 
-Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type) {
+Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, EncodeType enc_type, int enc_lvl) {
     Ingestor* ingestor = NULL;
     // Create the ingestor object based on the type specified in the config
     if(!strcmp(type, "opencv")) {
-        ingestor = new OpenCvIngestor(config, frame_queue);
+        ingestor = new OpenCvIngestor(config, frame_queue, enc_type, enc_lvl);
     } else if(!strcmp(type, "gstreamer")) {
-        ingestor = new GstreamerIngestor(config, frame_queue);
+        ingestor = new GstreamerIngestor(config, frame_queue, enc_type, enc_lvl);
     } else {
         throw("Unknown ingestor");
     }
