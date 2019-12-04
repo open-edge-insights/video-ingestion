@@ -153,17 +153,17 @@ VideoIngestion::VideoIngestion(
     config_value_t* udf_value = config->get_config_value(config->cfg,
                                                             "udfs");
     if(udf_value == NULL) {
-        m_udfs_key_exists = false;
         LOG_INFO("\"udfs\" key doesn't exist, so udf output queue is same as \
                 udf input queue!!")
         m_udf_output_queue = m_udf_input_queue;
     } else {
-        m_udfs_key_exists = true;
         m_udf_output_queue = new FrameQueue(queue_size);
+        m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue,
+                                        m_enc_type, m_enc_lvl);
     }
 
     // Get ingestor
-    m_ingestor = get_ingestor(ingestor_cfg, m_udf_input_queue, m_ingestor_type);
+    m_ingestor = get_ingestor(ingestor_cfg, m_udf_input_queue, m_ingestor_type, m_enc_type, m_enc_lvl);
 
 
     char** pub_topics = env_config->get_topics_from_env(PUB);
@@ -194,9 +194,6 @@ VideoIngestion::VideoIngestion(
     m_publisher = new Publisher(
             pub_config, m_err_cv, pub_topics[0], (MessageQueue*) m_udf_output_queue);
     free(pub_topics);
-    
-    m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue,
-                                   m_enc_type, m_enc_lvl, m_udfs_key_exists);
 
     config_value_destroy(ingestor_type_cvt);
     config_value_destroy(ingestor_queue_cvt);
