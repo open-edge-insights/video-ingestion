@@ -28,6 +28,7 @@
 #include "eis/vi/video_ingestion.h"
 #include <mutex>
 #include <atomic>
+#include <csignal>
 
 #define MAX_CONFIG_KEY_LENGTH 40
 
