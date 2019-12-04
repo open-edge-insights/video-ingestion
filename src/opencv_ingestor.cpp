@@ -46,15 +46,20 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue):
     m_width = 0;
     m_height = 0;
     m_cap = NULL;
+    m_encoding = false;
     m_initialized.store(true);
 
     config_value_t* cvt_pipeline = config->get_config_value(config->cfg, PIPELINE);
     LOG_INFO("cvt_pipeline initialized");
     if(cvt_pipeline == NULL) {
-        LOG_ERROR("JSON missing key \'%s\'", PIPELINE);
+        const char* err = "JSON missing key";
+        LOG_ERROR("%s \'%s\'", err, PIPELINE);
+        throw(err);
     } else if(cvt_pipeline->type != CVT_STRING) {
-        LOG_ERROR("JSON value for \'%s\' must be a string", PIPELINE);
         config_value_destroy(cvt_pipeline);
+        const char* err = "JSON value must be a string";
+        LOG_ERROR("%s for \'%s\'", err, PIPELINE);
+        throw(err);
     }
     m_pipeline = std::string(cvt_pipeline->body.string);
     config_value_destroy(cvt_pipeline);
@@ -83,7 +88,6 @@ OpenCvIngestor::~OpenCvIngestor() {
     LOG_DEBUG_0("OpenCV ingestor destructor");
     if(m_cap != NULL) {
         m_cap->release();
-        delete m_cap;
         LOG_DEBUG_0("Cap deleted");
     }
 }

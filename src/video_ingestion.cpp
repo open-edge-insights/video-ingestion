@@ -206,15 +206,18 @@ VideoIngestion::VideoIngestion(
 }
 
 void VideoIngestion::start() {
-    m_publisher->start();
-    LOG_INFO("Publisher thread started...");
-    m_udf_manager->start();
-    LOG_INFO_0("Started udf manager");
+    if(m_publisher) {
+        m_publisher->start();
+        LOG_INFO("Publisher thread started...");
+    }
+    if(m_udf_manager) {
+        m_udf_manager->start();
+        LOG_INFO("Started udf manager");
+    }
     IngestRetCode ret = m_ingestor->start();
     if(ret != IngestRetCode::SUCCESS) {
         LOG_ERROR_0("Failed to start ingestor thread");
-    }
-    else{
+    } else {
         LOG_INFO("Ingestor thread started...");
     }
 }
@@ -232,7 +235,13 @@ void VideoIngestion::stop() {
 }
 
 VideoIngestion::~VideoIngestion() {
-    delete m_ingestor;
-    delete m_udf_manager;
-    delete m_publisher;
+    if(m_ingestor) {
+        delete m_ingestor;
+    }
+    if(m_udf_manager) {
+        delete m_udf_manager;
+    }
+    if(m_publisher) {
+        delete m_publisher;
+    }
 }

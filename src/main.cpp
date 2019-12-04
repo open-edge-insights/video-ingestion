@@ -29,6 +29,7 @@
 #include <mutex>
 #include <atomic>
 #include <csignal>
+#include <safe_lib.h>
 
 #define MAX_CONFIG_KEY_LENGTH 40
 
@@ -46,19 +47,33 @@ void get_config_mgr(){
     std::string pub_cert_file = "";
     std::string pri_key_file = "";
     std::string trust_file = "";
-    std::string m_app_name = getenv("AppName");
-    bool dev_mode;
+    std::string app_name = "";
+    std::string dev_mode_str = "";
+    
+    char* str_app_name = NULL;
+    str_app_name = getenv("AppName");
+    if(str_app_name == NULL) {
+        throw "\"AppName\" env not set";
+    } else {
+        app_name = str_app_name;
+    }
 
-    std::string dev_mode_str=getenv("DEV_MODE");
-    if (dev_mode_str == "false") {
-        dev_mode = false;
-    } else if (dev_mode_str == "true") {
+    char* str_dev_mode = NULL;
+    str_dev_mode = getenv("DEV_MODE");
+    if(str_dev_mode == NULL) {
+        throw "\"DEV_MODE\" env not set";
+    } else {
+        dev_mode_str = str_dev_mode;
+    }
+    
+    bool dev_mode = false;
+    if (dev_mode_str == "true") {
         dev_mode = true;
     }
 
     if(!dev_mode) {
-        pub_cert_file = "/run/secrets/etcd_" + m_app_name + "_cert";
-        pri_key_file = "/run/secrets/etcd_" + m_app_name + "_key";
+        pub_cert_file = "/run/secrets/etcd_" + app_name + "_cert";
+        pri_key_file = "/run/secrets/etcd_" + app_name + "_key";
         trust_file = "/run/secrets/ca_etcd";
     }
 
@@ -126,39 +141,47 @@ int main(int argc, char** argv) {
     signal(SIGINT, signal_callback_handler);
     signal(SIGABRT, signal_callback_handler);
     signal(SIGTERM, signal_callback_handler);
-    config_mgr_t* config_mgr = NULL;
+
     try {
         if(argc >= 2) {
             usage(argv[0]);
             return -1;
         }
         get_config_mgr();
-        char* str_log_level = NULL;
 
-        log_lvl_t log_level = LOG_LVL_ERROR;
+        char* str_log_level = NULL;
+        log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
 
         str_log_level = getenv("C_LOG_LEVEL");
-
         if(str_log_level == NULL) {
-	        throw "\"C_LOG_LEVEL\" env not set";
+            throw "\"C_LOG_LEVEL\" env not set";
+        } else {
+            if(strncmp(str_log_level, "DEBUG", 5) == 0) {
+                log_level = LOG_LVL_DEBUG;
+            } else if(strncmp(str_log_level, "INFO", 5) == 0) {
+                log_level = LOG_LVL_INFO;
+            } else if(strncmp(str_log_level, "WARN", 5) == 0) {
+                log_level = LOG_LVL_WARN;
+            } else if(strncmp(str_log_level, "ERROR", 5) == 0) {
+                log_level = LOG_LVL_ERROR;
         }
-        if(strcmp(str_log_level, "DEBUG") == 0) {
-            log_level = LOG_LVL_DEBUG;
-        } else if(strcmp(str_log_level, "INFO") == 0) {
-            log_level = LOG_LVL_INFO;
-        } else if(strcmp(str_log_level, "WARN") == 0) {
-            log_level = LOG_LVL_WARN;
-        } else if(strcmp(str_log_level, "ERROR") == 0) {
-            log_level = LOG_LVL_ERROR;
+        set_log_level(log_level);
         }
 
         set_log_level(log_level);
-        std::string m_app_name = getenv("AppName");
 
-        char config_key[MAX_CONFIG_KEY_LENGTH];
+        std::string app_name = "";
+        char* str_app_name = NULL;
+        str_app_name = getenv("AppName");
+        if(str_app_name == NULL) {
+            throw "\"AppName\" env not set";
+        } else {
+            app_name = str_app_name;
+        }
 
         // Get the configuration from the configuration manager
-        sprintf(config_key, "/%s/config", m_app_name.c_str());
+        char config_key[MAX_CONFIG_KEY_LENGTH];
+        snprintf(config_key, MAX_CONFIG_KEY_LENGTH, "/%s/config", app_name.c_str());
         g_vi_config = g_config_mgr->get_config(config_key);
         LOG_DEBUG("App config: %s", g_vi_config);
 
