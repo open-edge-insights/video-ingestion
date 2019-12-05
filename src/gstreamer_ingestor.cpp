@@ -413,9 +413,12 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                     return GST_FLOW_ERROR;
                 }
 
-                // Adding image handle to frame
+                // Adding image handle to frame 
                 std::string randuuid = ctx->generate_image_handle(UUID_LENGTH);
                 msg_envelope_t* meta_data = frame->get_meta_data();
+                // Profiling start
+                DO_PROFILING(ctx->m_profile, meta_data, "ts_Ingestor_entry");
+                // Profiling end
                 msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(randuuid.c_str());
                 if (elem == NULL) {
                     throw "Failed to create image handle element";
@@ -425,7 +428,15 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink, GstreamerIngestor*
                     throw "Failed to put image handle meta-data";
                 }
 
+                // Profiling start
+                DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_entry");
+                // Profiling end
+
                 ctx->m_udf_input_queue->push_wait(frame);
+
+                // Profiling start
+                DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_exit");
+                // Profiling end
 #ifdef WITH_PROFILE
                 ctx->m_frame_count++;
 #endif
