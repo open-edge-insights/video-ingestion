@@ -39,6 +39,7 @@ using namespace eis::udf;
 
 #define PIPELINE "pipeline"
 #define RESIZE   "resize"
+#define LOOP_VIDEO "loop_video"
 
 OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue):
     Ingestor(config, frame_queue) {
@@ -47,6 +48,7 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue):
     m_height = 0;
     m_cap = NULL;
     m_encoding = false;
+    m_loop_video = false;
     m_initialized.store(true);
 
     config_value_t* cvt_pipeline = config->get_config_value(config->cfg, PIPELINE);
@@ -74,7 +76,19 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue):
         m_poll_interval = cvt_poll_interval->body.floating;
         config_value_destroy(cvt_poll_interval);
     }
-
+    config_value_t* cvt_loop_video = config->get_config_value(
+            config->cfg, LOOP_VIDEO);
+    if(cvt_loop_video != NULL) {
+        if(cvt_loop_video->type != CVT_STRING) {
+            LOG_INFO_0("Loop video must be a string");
+            config_value_destroy(cvt_loop_video);
+        }
+        std::string str_loop_video = cvt_loop_video->body.string;
+        if(str_loop_video == "true") {
+            m_loop_video = true;
+        }
+        config_value_destroy(cvt_loop_video);
+    }
     LOG_INFO("Pipeline: %s", m_pipeline.c_str());
     LOG_INFO("Poll interval: %lf", m_poll_interval);
 
@@ -102,12 +116,20 @@ void OpenCvIngestor::read(Frame*& frame) {
     cv::Mat* cv_frame = new cv::Mat();
 
     if(!m_cap->read(*cv_frame)) {
-        LOG_WARN_0("Failed to read frame from OpenCV video capture");
         // Re-opening the video capture
-        m_cap->release();
-        delete m_cap;
-        m_cap = new cv::VideoCapture(m_pipeline);
-
+        if(m_loop_video == true) {
+            LOG_WARN_0("Video ended. Looping...");
+            m_cap->release();
+            delete m_cap;
+            m_cap = new cv::VideoCapture(m_pipeline);
+        } else {
+            const char* err = "Video ended...";
+            LOG_WARN("%s", err);
+	    // Sleeping indefinitely to avoid restart
+	    while(true) {
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+	    }
+        }
         m_cap->read(*cv_frame);
     }
 

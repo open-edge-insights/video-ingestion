@@ -55,6 +55,9 @@ namespace eis {
             // video source
             std::string m_pipeline;
 
+            // video loop option
+            bool m_loop_video;
+
         protected:
             /**
              * Overridden read method.
