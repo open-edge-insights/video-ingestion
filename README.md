@@ -68,7 +68,7 @@ The following are the type of ingestors supported:
     }
     ```
     >**NOTE**: Change the "pipeline" to Safety_Full_Hat_and_Vest sample
-            `./test_videos/Safety_Full_Hat_and_Vest.avi` for Safety_Full_Hat_and_Vest
+            `./test_videos/Safety_Full_Hat_and_Vest.mp4` for Safety_Full_Hat_and_Vest
             use case with `Dummy filter`.
 
     >**NOTE**: Change the "pipeline" to classification sample
