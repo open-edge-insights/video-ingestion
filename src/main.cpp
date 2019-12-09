@@ -123,9 +123,12 @@ void on_change_config_callback(char* key, char* vi_config){
             g_vi = NULL;
         }
         delete g_vi_config;
-        g_vi_config = vi_config;
-        g_cfg_change.store(true);
-        g_err_cv.notify_one();
+        _Exit(-1);
+        // TODO: Uncomment the below logic once the dynamic cfg fix works as
+        // expected
+        //g_vi_config = vi_config;
+        //g_cfg_change.store(true);
+        //g_err_cv.notify_one();
     }
 }
 
