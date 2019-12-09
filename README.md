@@ -236,21 +236,6 @@ Example pipeline to run the Safety Gear Detection Sample using GVA plugins on `C
     "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=CPU model=models/frozen_inference_graph.xml ! appsink"
 }
 ```
-
->**Note** HDDL device needs to be configured on the system in order to use. Similarly the system needs to support gfx in order to set `device=GPU`.
->**Note** HDDL daemon needs to be started on the host system using the below command and make sure the HDDL service is ready.
-```
-$HDDL_INSTALL_DIR/bin/hddldaemon
-```
->**Note** For HDDL device user need to change the IR files(xml & bin) to FP16 type. For e.g. config can look as below:
-
-```
-{
-    "type": "gstreamer",
-    "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=CPU model=models/frozen_inference_graph_fp16.xml ! appsink"
-}
-```
-
 >**Note** Looping of videos is not happening when `Safety_Full_Hat_and_Vest.mp4` video is used in the gstreamer pipeline with `multifilesrc` plugin.
 
    -------
