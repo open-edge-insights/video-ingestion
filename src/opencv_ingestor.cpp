@@ -64,6 +64,7 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, Encode
         throw(err);
     }
     m_pipeline = std::string(cvt_pipeline->body.string);
+    LOG_INFO("Pipeline: %s", m_pipeline.c_str());
     config_value_destroy(cvt_pipeline);
 
     config_value_t* cvt_poll_interval = config->get_config_value(
@@ -76,6 +77,8 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, Encode
         m_poll_interval = cvt_poll_interval->body.floating;
         config_value_destroy(cvt_poll_interval);
     }
+    LOG_INFO("Poll interval: %lf", m_poll_interval);
+
     config_value_t* cvt_loop_video = config->get_config_value(
             config->cfg, LOOP_VIDEO);
     if(cvt_loop_video != NULL) {
@@ -89,8 +92,6 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, Encode
         }
         config_value_destroy(cvt_loop_video);
     }
-    LOG_INFO("Pipeline: %s", m_pipeline.c_str());
-    LOG_INFO("Poll interval: %lf", m_poll_interval);
 
     m_cap = new cv::VideoCapture(m_pipeline);
     if(!m_cap->isOpened()) {
@@ -125,10 +126,10 @@ void OpenCvIngestor::read(Frame*& frame) {
         } else {
             const char* err = "Video ended...";
             LOG_WARN("%s", err);
-	    // Sleeping indefinitely to avoid restart
-	    while(true) {
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-	    }
+            // Sleeping indefinitely to avoid restart
+            while(true) {
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+            }
         }
         m_cap->read(*cv_frame);
     }
