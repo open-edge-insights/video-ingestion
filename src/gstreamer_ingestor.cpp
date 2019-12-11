@@ -66,6 +66,7 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
     }
     m_pipeline = std::string(cvt_pipeline->body.string);
     m_pipeline.append(" name=\"sink\"");
+    LOG_INFO("Pipeline: %s", m_pipeline.c_str());
     config_value_destroy(cvt_pipeline);
 
     config_value_t* cvt_poll_interval = config->get_config_value(
@@ -78,8 +79,6 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
         m_poll_interval = cvt_poll_interval->body.floating;
         config_value_destroy(cvt_poll_interval);
     }
-
-    LOG_INFO("Pipeline: %s", m_pipeline.c_str());
     LOG_INFO("Poll interval: %lf", m_poll_interval);
 
 #ifdef WITH_PROFILE
