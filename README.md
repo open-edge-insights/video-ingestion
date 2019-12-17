@@ -1,48 +1,156 @@
 # `VideoIngestion Module`
 
-This module ingests video frames from a video source like video file or
-basler/RTSP/USB camera using gstreamer pipeline and publishes the
-`(metadata, frame)` tuple to messagebus.
+The VideoIngestion module is mainly responsibly for ingesting the video frames
+coming from a video source like video file or basler/RTSP/USB camera
+into the EIS stack for further processing.
 
 The high level logical flow of VideoIngestion pipeline is as below:
-1. VideoIngestion main program reads the ingestor and filter configuration
-2. After reading the config, it starts the messagebus publisher thread,
-   single/multiple filter threads per filter configuration and ingestor thread
-   based on ingestor configuration. It exits whenever an exception occurs during
-   this startup sequence.
-3. Ingestor thread reads from the ingestor configuration and adds
-   data to ingestor queue
-4. Based on the filter configuration, single or multiple filter
-   threads consume ingestor queue and passes only the key frames with its
-   metadata to publisher queue
-5. Publisher thread reads from the publisher queue and publishes it
-   over the message bus
+
+1. App reads the application configuration via EIS Configuration Manager which
+   has details of `ingestor`, `encoding` and `udfs`.
+2. Based on the ingestor configuration, app reads the video frames from
+   the video file or camera.
+3. [`Optional`] The read frames are passed onto one or more chained native/python
+   UDFs for doing any pre-processing (passing thru UDFs is an optional thing and
+   not required if one doesn't want to perform any pre-processing on the
+   ingested frames). One can refer [UDFs README](../common/udfs/README.md) for more details
+4. App gets the msgbus endpoint configuration from system environment and
+   based on the configuration, app publishes the data on the mentioned topic
+   on EIS MessageBus.
 
 ## `Configuration`
 
-All the VideoIngestion module configuration are added into etcd (distributed
-key-value data store) under `AppName` as mentioned in the
-environment section of this app's service definition in docker-compose.
+---
+**NOTE**:
 
-If `AppName` is `VideoIngestion`, then the app's config would look like as below
- for `/VideoIngestion/config` key with `ingestor` configs in Etcd:
-```
+* The `max_jobs`, `max_workers` and `udfs` are configuration keys related to udfs.
+  For more details on udf configuration, please visit
+  [../common/udfs/README.md](../common/udfs/README.md)
+* For details on Etcd and MessageBus endpoint configuration, visit
+  [Etcd_and_MsgBus_Endpoint_Configuration](../Etcd_and_MsgBus_Endpoint_Configuration.md).
+
+---
+
+All the app module configuration are added into distributed key-value store
+under `AppName` env, as mentioned in the environment section of this app's service
+definition in docker-compose.
+
+If `AppName` is `VideoIngestion`, then the app's config would be fetched from
+`/VideoIngestion/config` key via EIS Configuration Manager.
+Below is the JSON schema for app's config:
+
+```javascript
 {
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ingestor"
+  ],
+  "properties": {
+    "encoding": {
+      "description": "Encoding object",
+      "type": "object",
+      "required": [
+        "type",
+        "level"
+      ],
+      "properties": {
+        "type": {
+          "description": "Encoding type",
+          "type": "string",
+          "enum": [
+              "jpeg",
+              "png"
+            ]
+        },
+        "level": {
+          "description": "Encoding value",
+          "type": "integer",
+          "default": 0
+        }
+      }
+    },
     "ingestor": {
-        "type": "opencv",
-        "pipeline": "./test_videos/pcb_d2000.avi",
-        "loop_video": "true",
-        "queue_size": 10,
-        "poll_interval": 0.2
+      "description": "Ingestor object",
+      "type": "object",
+      "required": [
+        "type",
+        "pipeline"
+      ],
+      "properties": {
+        "type": {
+          "description": "Ingestor type",
+          "type": "string",
+          "enum": [
+              "opencv",
+              "gstreamer"
+            ]
+        },
+        "pipeline": {
+          "description": "gstreamer pipeline",
+          "type": "string"
+        },
+        "loop_video": {
+          "description": "whether to loop vidoe or not",
+          "type": "boolean",
+          "default": false
+        },
+        "queue_size": {
+          "description": "ingestor queue size for frames",
+          "type": "integer"
+        },
+        "poll_interval": {
+          "description": "polling interval for reading ingested frames",
+          "type": "number",
+          "default": 0.0
+        }
+      }
+    },
+    "max_jobs": {
+      "description": "Number of queued UDF jobs",
+      "type": "integer",
+      "default": 20
+    },
+    "max_workers": {
+      "description": "Number of threads acting on queued jobs",
+      "type": "integer",
+      "default": 4
+    },
+    "udfs": {
+      "description": "Array of UDF config objects",
+      "type": "array",
+      "items": [
+        {
+          "description": "UDF config object",
+          "type": "object",
+          "properties": {
+            "type": {
+              "description": "UDF type",
+              "type": "string",
+              "enum": [
+                "native",
+                "python"
+              ]
+            },
+            "name": {
+              "description": "Unique UDF name",
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "required": [
+            "type",
+            "name"
+          ]
+        }
+      ]
     }
+  }
 }
 ```
 
-> **NOTE**: The above `ingestor` config correspond to PCB demo
-> usecase
-
-For more details on Etcd and MessageBus endpoint configuration, visit [Etcd_and_MsgBus_Endpoint_Configuration](../Etcd_and_MsgBus_Endpoint_Configuration.md).
-
+One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for
+validating the app configuration against the above schema.
 
 ### `Ingestor config`
 
@@ -51,405 +159,330 @@ The following are the type of ingestors supported:
 1. OpenCV
 2. GStreamer
 
->**Note**: If running on non-gfx systems or older systems which doesn't have hardware media decoders it is recommended to use opencv ingestor
+We are also supporting usage of GVA (Gstreamer Video Analytics) plugins with
+our Gstreamer ingestor. [GVA](https://github.com/opencv/gst-video-analytics) is
+a collection of GStreamer elements to enable CNN model based video analytics
+capabilities (such as object detection, classification, recognition) in
+GStreamer framework.
 
->**Note**: If GVA elements need to be used then it is recommended to use gstreamer ingestor
+ ---
+  **Note**:
 
+  * If running on non-gfx systems or older systems which doesn't have hardware
+    media decoders (like in Xeon m/c) it is recommended to use `opencv` ingestor
+  * GVA elements can only be used with `gstreamer` ingestor
+  * In case one needs to use CPU/GPU device with GVA elements it
+    can be set using the device property of gvadetect and gvaclassify elements.
 
-#### `OpenCV Ingestor config`
+    **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on CPU device**:
 
-1. **Video file** (No Gstreamer pipeline involved before reading from OpenCV read API)
-    ```
+    ```javascript
     {
+        "type": "gstreamer",
+        "pipeline": "multifilesrc location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=CPU model=models/frozen_inference_graph.xml ! appsink"
+    }
+    ```
+  ---
+
+#### `Camera Configuration`
+
+* `Video file`
+
+  * `OpenCV Ingestor`
+
+      ```javascript
+      {
         "type": "opencv",
         "pipeline": "./test_videos/pcb_d2000.avi",
         "poll_interval": 0.2
         "loop_video": "true"
-    }
-    ```
-    >**NOTE**: Change the "pipeline" to Safety_Full_Hat_and_Vest sample
-            `./test_videos/Safety_Full_Hat_and_Vest.mp4` for Safety_Full_Hat_and_Vest
-            use case with `Dummy filter`.
+      }
+      ```
 
-    >**NOTE**: Change the "pipeline" to classification sample
-            `./test_videos/classification_vid.avi` for classification sample
-            use case with `Dummy filter`.
+  * `Gstreamer Ingestor`
 
-2. **Basler camera**
-   ```
-    {
-        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink",
-    }
-
-    Refer [Basler Camera](####Basler-Camera) section for more details on basler camera.
-
-3. **RTSP cvlc based camera simulation**
-   ```
-    {
-        "type": "opencv",
-        "pipeline": "rtsp://localhost:8554/",
-    }
-    ```
-    Refer [Start cvlc based RTSP stream](####Start-cvlc-based-RTSP-stream) section to start a cvlc based RTSP stream.
-
-4. **RTSP camera**
-   ```
-    {
-        "type": "opencv",
-        "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554",
-    }
-
-    Refer [RTSP Camera](####RTSP-Camera) section for more details on RTSP camera.
-
-* If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
-
-5. **USB camera**
-   ```
-    {
-        "type": "opencv",
-        "pipeline": "/dev/video0",
-    }
-
-    Refer [USB camera](####USB-Camera) section for more details on USB camera.
-
-    In case resizing needs to be enabled with opencv ingestor use the `Resize Udf`. The below udf config exmaple can be refered to use Resize Udf:
-    ```
-    "udfs": [{
-            "name": "resize",
-            "type": "native",
-            "width": 600,
-            "height":600
-            }],
-    ```
-
--------
-
-#### `GStreamer Ingestor config`
-
-The following are the configurations which can be used with the gstreamer ingestor:
-
-1. **Video file**
-    ```
-    {
+      ```javascript
+      {
         "type": "gstreamer",
         "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
-    }
-    ```
-    >**NOTE**: Change the `location` parameter in "pipeline" to classification sample
-                    `./test_videos/classification_vid.avi` for classification sample
-                    use case with `Dummy filter`
+      }
+      ```
 
-    >**Note**: In case Safety_Full_Hat_and_Vest.mp4 video needs to be used then refer the below pipeline:
-    ```
-        multifilesrc location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink
-    ```
+  * `GVA - Gstreamer ingestor with GVA elements`
 
-2. **Basler camera**
-   ```
-    {
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+      }
+
+   ---
+
+    **NOTE**:
+    * Use video `./test_videos/Safety_Full_Hat_and_Vest.mp4` in the pipeline
+      for safety gear demo
+    * Looping of videos is not happening when `./test_videos/Safety_Full_Hat_and_Vest.mp4`
+      video is used in the gstreamer pipeline with multifilesrc plugin.
+
+    ---
+
+* `Basler Camera`
+
+  * `OpenCV Ingestor`
+
+      ```javascript
+      {
+        "type": "opencv",
+        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink",
+      }
+      ```
+
+  * `Gstreamer Ingestor`
+
+      ```javascript
+      {
         "type": "gstreamer",
         "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink",
-    }
-    ```
-    Refer [Basler Camera](####Basler-Camera) section for more details on Basler Camera.
+      }
+      ```
 
-3. **RTSP cvlc based camera simulation**
-    ```
-    {
-        "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
-    }
-    ```
-    Refer [RTSP cvcl based camera simulation](####RTSP-cvlc-based-camera-simulation) section for more details.
+    ---
 
-4. **RTSP camera**
-    ```
-    {
+    **NOTE**:
+    * In case multiple Basler cameras are connected use serial parameter to
+      specify the camera to be used in the gstreamer pipeline in the video
+      config file for camera mode. If multiple cameras are connected and the
+      serial parameter is not specified then the source plugin by default
+      connects to camera with device_index=0.
+
+      Eg: pipeline value to connect to basler camera with
+      serial number 22573664:
+
+      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx appsink"`
+
+    * In case you want to enable resizing with basler camera use the
+      vaapipostproc element and specify the height and width parameter in the
+      gstreamer pipeline.
+
+      Eg: Example pipeline to enable resizing with basler camera
+
+      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+
+    * In case frame read is failing when multiple basler cameras are used, use
+      the interpacketdelay property to increase the delay between the
+      transmission of each packet for the selected stream channel.
+      Depending on the number of cameras, use an appropriate delay can be set.
+
+      Eg: pipeline value to increase the interpacket delay to 3000(default
+      value for interpacket delay is 1500):
+
+      `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! decodebin ! video/x-raw,format=YUY2 ! video/x-raw,format=BGRx ! appsink"`
+
+    * To work with monochrome Basler camera, please change the
+      image format to mono8 in the Pipeline.
+
+      Eg:pipeline value to connect to monochrome basler camera with serial number 22773747 :
+
+      `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+
+
+    * To work with USB Basler camera, please change the
+      exposure parameter to exposureUsb in the Pipeline.
+
+      `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+
+    ---
+
+* `RTSP Camera`
+
+  * `OpenCV Ingestor`
+
+      ```javascript
+      {
+        "type": "opencv",
+        "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554",
+      }
+      ```
+
+    > **NOTE**: Opencv for rtsp will use software decoders
+
+  * `Gstreamer Ingestor`
+
+      ```javascript
+      {
         "type": "gstreamer",
         "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
-    }
-    ```
-     * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in [../docker_setup/.env](../docker_setup/.env) in the etcd config.
-    Refer [RTSP Camera](####RTSP-Camera) section for more details on RTSP camera.
+      }
+      ```
 
-5. **USB camera**
-    ```
-    {
-        "type": "gstreamer",
-        "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink",
-    }
-    ```
-    Refer [USB Camera](####USB-Camera) section for more details on USB camera.
+  * `GVA - Gstreamer ingestor with GVA elements`
 
---------
-
-**GVA Plugins**:
-
-   **Note**: GVA plugins needs to be used only with `gstreamer` ingestor type.
-
-   To run the Safety Gear Detection sample using GVA plugins refer the below pipeline:
-
-   >**Note**: `dummy` udf needs to be used in the VideoIngestion and VideoAnalytics config when working with GVA elements. VideoAnalytics service is optional when working with GVA elements.
-
-    ```
-    "udfs": [{
-        "name": "dummy",
-        "type": "native"
-    }]
-    ```
-   >**Note**: Refer `Using Labels` section [Visualizer/README.md](../Visualizer/README.md) to pass the respective json file as command line argument.
-
- * When working with a Video file :
-
-    ```
-    {
-        "type": "gstreamer",
-        "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
-    }
-    ```
-
-* When working with a USB camera :
-
-    ```
-    {
-        "type": "gstreamer",
-        "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
-    }
-    ```
-
-* When working with a RTSP camera :
-
-    ```
-    {
+      ```javascript
+      {
         "type": "gstreamer",
         "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
-    }
-    ```
+      }
+      ```
 
->**NOTE** : In case one needs to use CPU/GPU device with GVA elements it can be set using the `device` property of `gvadetect` and `gvaclassify` elements.
+  ---
 
-Example pipeline to run the Safety Gear Detection Sample using GVA plugins on `CPU` device:
+    **NOTE**:
 
-```
-{
-    "type": "gstreamer",
-    "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=CPU model=models/frozen_inference_graph.xml ! appsink"
-}
-```
->**Note** Looping of videos is not happening when `Safety_Full_Hat_and_Vest.mp4` video is used in the gstreamer pipeline with `multifilesrc` plugin.
-
-   -------
-
-   **In case more information is needed regarding different camera configurations refer the below section for the respective cameras:**
-
-   #### Basler camera
-
-* In case multiple Basler cameras are connected use serial parameter to
-        specify the camera to be used in the gstreamer pipeline in the video
-        config file for camera mode. If multiple cameras are connected and the
-        `serial` parameter is not specified then the source plugin by default
-        connects to camera with device_index=0.
-
-    **Eg**: `pipeline` value to connect to basler camera with
-    serial number `22573664`:
-
-    ```
-    `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx appsink"`
-    ```
-
-* In case you want to enable resizing with basler camera use the `vaapipostproc` element and specify the `height` and `width` parameter in the          gstreamer pipeline.
-
-    **Eg**: Example pipeline to enable resizing with basler camera
-
-    ```
-    `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
-    ```
-
-* In case frame read is failing when multiple basler cameras are used, use
-        the `interpacketdelay` property to increase the delay between the
-        transmission of each packet for the selected stream channel.
-        Depending on the number of cameras, use an appropriate delay can be set.
-
-    **Eg**: `pipeline` value to increase the interpacket delay to 3000(default
-        value for interpacket delay is 1500):
-
-        ```
-        `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! decodebin ! video/x-raw,format=YUY2 ! video/x-raw,format=BGRx ! appsink"`
-        ```
-
-* To work with monochrome Basler camera, please change the
-        image format to `mono8` in the Pipeline.
-
-    **Eg**:`pipeline` value to connect to monochrome basler camera with serial number 22773747 :
-
-    ```
-    `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
-    ```
-
-* To work with USB Basler camera, please change the
-        exposure parameter to `exposureUsb` in the Pipeline.
-
-    ```
-    `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
-    ```
-
-    -------
-
-    #### Start cvlc based RTSP stream
-
-    * Install VLC if not installed already: `sudo apt install vlc`
-    * In order to use the RTSP stream from cvlc, the RTSP server
-        must be started using VLC with the following command:
-        ```
-        `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://localhost:8554/}' --loop --sout-keep`
-        ```
-
-    --------
-
-   #### RTSP cvlc based camera simulation
-
-    * In case you want to enable resizing with RTSP cvlc based camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
+    * In case you want to enable resizing with RTSP camera use the
+     `vaapipostproc` element and specifiy the `height` and `width`
+      parameter in the          gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
-        ```
-        `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
-        ```
 
-   ------
-
-    #### RTSP camera
-
-    * In case you want to enable resizing with RTSP camera use the `vaapipostproc` element and specifiy the `height` and `width` parameter in the          gstreamer pipeline.
-
-        **Eg**: Example pipeline to enable resizing with RTSP camera
-        ```
         `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
-        ```
-    * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in GlobalEnv in the etcd config.
-    * For working both with simulated RTSP server via cvlc or direct streaming
-        from RTSP camera, we can use the below Gstreamer MediaSDK parsers and
-        decoders based on the input stream type
+
+    * If working behind a proxy, RTSP camera IP need to be updated
+  *   to RTSP_CAMERA_IP in [../docker_setup/.env](../docker_setup/.env)
+
+    * For working both with simulated RTSP server via cvlc or
+      direct streaming from RTSP camera, we can use the below Gstreamer
+      MediaSDK parsers and decoders based on the input stream type
         **Eg**: parsers and decoders:
         * h264parse !  vaapih264dec
         * h265parse ! vaapih265dec
 
-        >**NOTE**: If running on non-gfx systems or older systems where we don't have hardware media decoders, the above parsers and decoders may not work. In those cases,
-        one can use `opencv` ingestor and refer the below steps.
+        ---
+        **NOTE**: If running on non-gfx systems or older systems where we don't
+        have hardware media decoders, the above parsers and decoders may not
+        work. In those cases, one can use `opencv` ingestor and refer the below steps.
 
-        * In case RTSP stream ingestion needs to be used on Xeon machine with no GPU then refer the following ingestor config,
+        In case RTSP stream ingestion needs to be used on Xeon machine with no
+        GPU then refer the following ingestor config,
 
         * If a physical RTSP camera is used:
-            ```
-            "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554"
-            ```
+
+            `"pipeline": "rtsp://admin:intel123@<RTSP CAMERA_IP>:554"`
+
         * If a simulated RTSP stream needs to be used:
 
-        * Run the following command to create a RTSP stream:
-            ```
-            docker run --rm -e RTSP_RESOLUTION='1920'x'1080' -e RTSP_FRAMERATE=25 -p 8554:8554 ullaakut/rtspatt
-            ```
-            If more options are required to generate a RTSP stream refer the following link:
-            ```
-            https://hub.docker.com/r/ullaakut/rtspatt/
-            ```
+          * Run the following command to create a RTSP stream:
 
-        * Use the following config to read from the RTSP stream generated from the above command"
-            ```
-            "pipeline": "rtsp://localhost:8554/live.sdp"
-            ```
+              ```sh
+              docker run --rm -e RTSP_RESOLUTION='1920'x'1080' -e RTSP_FRAMERATE=25 -p 8554:8554 ullaakut/rtspatt
+              ```
 
-        >**NOTE** : Some issues are observed with cvlc based camera simulation on a Xeon Machine with no GPU. In that case refer the above
+              If more options are required to generate a RTSP stream refer
+              the following link:
+
+              ```
+              https://hub.docker.com/r/ullaakut/rtspatt/
+              ```
+
+          * Use the following config to read from the RTSP stream generated
+            from the above command"
+              ```
+              "pipeline": "rtsp://localhost:8554/live.sdp"
+              ```
+
+        >**NOTE** : Some issues are observed with cvlc based camera simulation
+        on a Xeon Machine with no GPU. In that case refer the above
         commands to generate a RTSP stream.
+        ---
+    ---
 
-   ------
+* `USB Camera`
 
-    #### USB camera
+  * `OpenCV Ingestor`
 
-    * In case you want to enable resizing with USB camera use the `videoscale` element and specify the `height` and `width` parameter in the gstreamer pipeline.
+      ```javascript
+      {
+        "type": "opencv",
+        "pipeline": "/dev/video0",
+      }
+      ```
+
+  * `Gstreamer Ingestor`
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+      }
+      ```
+
+  * `GVA - Gstreamer ingestor with GVA elements`
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+      }
+      ```
+
+  ---
+
+    **NOTE**:
+    * In case you want to enable resizing with USB camera use the
+      `videoscale` element and specify the `height` and `width`  parameter in the gstreamer pipeline.
 
         **Eg**: Example pipeline to enable resizing with USB camera
-        ```
+
         `"pipeline":"v4l2src ! videoscale ! video/x-raw,format=YUY2,height=600,width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
-        ```
 
     * In case, multiple USB cameras are connected specify the
-        camera using the `device` property in the configuration file.
-        Eg:
-        ```
+      camera using the `device` property in the configuration file.
+
+        **Eg:**
+
         `"pipeline": "v4l2src device=/dev/video0 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
-        ```
-   -------
 
-#### `Detailed description on each of the keys used`
+    ---
 
-|  Key	        | Description 	                        | Possible Values  	                                            | Required/Optional	|
-|---	        |---	                                |---	                                                        |---	            |
-|  pipeline     |  Video source                         | Video file or gstreamer based pipeline 	                    | Required 	        |
-|  poll_interval|  Determines fps read rate from camera | floating number  	                                            | Optional  	    |
-|  loop_video	|  Would loop through the video file    | "true" or "false"	(By default, it's false)                    | Optional          |
-|  queue_size 	|   Determines the size of the input and output filter queue	    | any value that suits platform resources |   Required	      |
+* `RTSP simulated camera using cvlc`
 
-### `Filter config`
+  * `OpenCV Ingestor`
 
-The Filter (user defined function) is responsible for doing pre-processing of the
-ingested video frames. It uses the filter configuration to do the selection of
-key frames(frames of interest for further processing).
+      ```javascript
+      {
+        "type": "opencv",
+        "pipeline": "rtsp://localhost:8554/",
+      }
+      ```
 
-------
+    > **NOTE**:
+    > * It has been observed that VI is unable to read frames from cvlc rtsp server with
+    >   opencv ingestor over long runs.
 
->**NOTE**: Please note if there is no `filter` key in the app's config, then
-          it's as good as running the VI(VideoIngestion) pipeline without any
-          filter thread/s. Functionally, it is equivalent to running with
-          "Dummy filter" where the ingested frames are passed to classifier
-          module as is without any pre-processing with added advantage of no
-          filter threads.
-------
+  * `Gstreamer Ingestor`
 
-**Sample configuration(forms the `filter` value in app's config) for filters used:**
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
+      }
+      ```
 
-1. **PCB filter**
+  ---
 
-   Works well with all PCB video file ingestors. To work with physical camera,
-   proper setup is required with good lighting conditions. Proper training and
-   tweaking filter and classifier logic may be required.
+    **NOTE**:
+    * If VI is unable to read frames from cvlc rtsp server with gstreamer
+      ingestor, then we need to force `appsink` to drop the queued buffers. This
+      can be achieved by using `max-buffers` and `drop` properties for `appsink`.
 
-    Refer below example for adding pcb filter udf config:
-    ```
-        "udfs": [{
-            "name": "pcb.pcb_filter",
-            "type": "python",
-            "training_mode": "false",
-            "n_total_px": 300000,
-            "n_left_px": 1000,
-            "n_right_px": 1000
-        }]
-    ```
+    * Start cvlc based RTSP stream
 
+      * Install VLC if not installed already: `sudo apt install vlc`
+      * In order to use the RTSP stream from cvlc, the RTSP server
+          must be started using VLC with the following command:
 
-2. **Dummy filter**
+          `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://localhost:8554/}' --loop --sout-keep`
 
-   Works well with PCB or sample classfication video file ingestor. In general,
-   works for any usecase where the ingested frames had be passed on to the
-   classifier module as is without any pre-processing involved to select key
-   frames.
+    * RTSP cvlc based camera simulation
 
-   Refer below example for adding  filter udf in VideoIngestion config:
-    ```
-        "udfs": [{
-            "name": "dummy",
-            "type": "native"
-        }]
-    ```
+      * In case you want to enable resizing with RTSP cvlc based camera use the
+        `vaapipostproc` element and specifiy the `height` and `width` parameter
+         in the gstreamer pipeline.
 
-#### `Detailed description on each of the keys used`
+          **Eg**: Example pipeline to enable resizing with RTSP camera
 
-|  Key	        | Description 	                                                    | Possible Values  	                      | Required/Optional |
-|---	        |---	                                                            |---	                                  |---	              |
-|  name 	    |   File name of the filter	                                        | "pcb_filter" or "Dummy filter"          |   Required        |
-|  training_mode|  If "true", used to capture images for training and building model| "true" or "false" (default is false)    |   Optional        |
-|  type 	    |   Type of the filter used                                         | "native" or "python"                    |   Required        |
+          `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
 
-**Note**: The other keys used are specific to filter usecase
+    ---
 
 ## `Installation`
 
@@ -465,8 +498,6 @@ key frames(frames of interest for further processing).
         $ cd [repo]/docker_setup
         $ docker-compose up --build ia_video_ingestion
         ```
-    2. Update EIS VideoIngestion config key value in `etcd` using UI
-       like `EtcdKeeper` or programmatically. Please note that the dynamic
-       update of the config only works for the "ingestor" key value without
-       container restarts. If "filter" key value is changed, then the changes
-       are picked by restarting the container.
+    2. Update EIS VideoIngestion config key in distributed key-value
+       store using UI's like `EtcdKeeper` or programmatically, the container
+       restarts to pick the new changes.
