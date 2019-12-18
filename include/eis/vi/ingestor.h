@@ -110,10 +110,6 @@ namespace eis {
                 std::thread* m_th;
 
             protected:
-                // Encoding details
-                EncodeType m_enc_type;
-                
-                int m_enc_lvl;
 
                 // Flag for if the ingestor has been initialized
                 std::atomic<bool> m_initialized;
@@ -124,13 +120,18 @@ namespace eis {
                 // UDF input queue
                 FrameQueue* m_udf_input_queue;
 
+                // Encoding details
+                EncodeType m_enc_type;
+
+                int m_enc_lvl;
+
                 // pipeline
                 std::string m_pipeline;
 
                 // poll interval
                 double m_poll_interval;
 
-                // profiling 
+                // profiling
                 Profiling* m_profile = NULL;
 
                 /**
