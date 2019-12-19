@@ -34,6 +34,7 @@
 #include "eis/vi/gva_roi_meta.h"
 #include <eis/udf/frame.h>
 #include <sstream>
+#include <fstream>
 #include <random>
 #include <string>
 
@@ -151,10 +152,18 @@ void GstreamerIngestor::run() {
     LOG_INFO_0("Gstreamer ingestor thread stopped");
 
 #ifdef WITH_PROFILE
+    // This code block will execute only when g_main_loop ends
+    // and it can be triggered by stopping the ingestor source
     auto end = std::chrono::system_clock::now();
     int elapsed = std::chrono::duration_cast<std::chrono::seconds>(
             end - start).count();
     LOG_INFO("GStreamer FPS: %d", m_frame_count / elapsed);
+    char* str_app_name = NULL;
+    str_app_name = getenv("AppName");
+    std::ofstream fps_file;
+    fps_file.open("/var/tmp/fps.txt", std::ofstream::app);
+    fps_file << str_app_name << " FPS : " << (m_frame_count / elapsed) << std::endl ;
+    fps_file.close();
 #endif
 }
 
