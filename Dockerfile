@@ -250,6 +250,8 @@ COPY --from=common ${GO_WORK_DIR}/common/util ${GO_WORK_DIR}/common/util
 COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python3.6/dist-packages
 
 ARG CMAKE_BUILD_TYPE
+ARG WITH_PROFILE
+
 # Build UDF loader lib
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./common/libs/UDFLoader && \
@@ -281,7 +283,7 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     rm -rf build && \
     mkdir build && \
     cd build && \
-    cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
+    cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DWITH_PROFILE=${WITH_PROFILE} .. && \
     make"
 
 # Removing build dependencies
