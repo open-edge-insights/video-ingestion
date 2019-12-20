@@ -1,8 +1,10 @@
 # `VideoIngestion Module`
 
-The VideoIngestion module is mainly responsibly for ingesting the video frames
+The VideoIngestion(VI) module is mainly responsibly for ingesting the video frames
 coming from a video source like video file or basler/RTSP/USB camera
-into the EIS stack for further processing.
+into the EIS stack for further processing. Additionally, by having VI run with
+classifier and post-processing UDFs, VI can perform the job of VA(VideoAnalytics)
+service also.
 
 The high level logical flow of VideoIngestion pipeline is as below:
 
@@ -13,10 +15,30 @@ The high level logical flow of VideoIngestion pipeline is as below:
 3. [`Optional`] The read frames are passed onto one or more chained native/python
    UDFs for doing any pre-processing (passing thru UDFs is an optional thing and
    not required if one doesn't want to perform any pre-processing on the
-   ingested frames). One can refer [UDFs README](../common/udfs/README.md) for more details
+   ingested frames). With chaining of UDFs supported, one can also have
+   classifier UDFs and any post-processing UDFs like resize etc., configured in
+   `udfs` key to get the classified results. One can refer
+   [UDFs README](../common/udfs/README.md) for more details.
 4. App gets the msgbus endpoint configuration from system environment and
    based on the configuration, app publishes the data on the mentioned topic
    on EIS MessageBus.
+
+---
+**NOTE**:
+Below usecases are suitable for single node deployment where one can avoid the
+overhead of VA(VideoAnalytics) service.
+
+1. If VI(VideoIngestion) service is configured with an UDF that does the
+   classification, then one may choose to not to have VA service as all
+   pre-processing, classification and any post-processing can be handled in VI
+   itself with the usage of multiple UDFs.
+2. If VI(VideoIngestion) service is using GVA(Gstreamer Video Analytics)
+   elements also, then one may choose to not to have VA service as all
+   pre-processing, classification and any post-processing(using vappi gstreamer
+   elements) can be done in gstreamer pipeline itself. Also, the post-processing
+   here can be configured by having multiple UDFs in VI if needed.
+
+---
 
 ## `Configuration`
 
@@ -135,6 +157,16 @@ Below is the JSON schema for app's config:
             "name": {
               "description": "Unique UDF name",
               "type": "string"
+            },
+            "device": {
+              "description": "Device on which inference occurs",
+              "type": "string",
+              "enum": [
+                "CPU",
+                "GPU",
+                "HDDL",
+                "MYRIAD"
+              ]
             }
           },
           "additionalProperties": true,
@@ -171,17 +203,24 @@ GStreamer framework.
   * If running on non-gfx systems or older systems which doesn't have hardware
     media decoders (like in Xeon m/c) it is recommended to use `opencv` ingestor
   * GVA elements can only be used with `gstreamer` ingestor
-  * In case one needs to use CPU/GPU device with GVA elements it
+  * In case one needs to use CPU/GPU/HDDL device with GVA elements it
     can be set using the device property of gvadetect and gvaclassify elements.
+    By default the device property is set to CPU. 
+    
+    >**NOTE**: 
+    > HDDL daemon needs to be started on the host m/c by following the steps in #Using video accelerators section in [../README.md](../README.md).
 
-    **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on CPU device**:
+    **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on HDDL device**:
 
     ```javascript
     {
         "type": "gstreamer",
-        "pipeline": "multifilesrc location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! gvadetect device=CPU model=models/frozen_inference_graph.xml ! appsink"
+        "pipeline": "multifilesrc location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! appsink"
     }
     ```
+  > **NOTE**:
+  > * Gstreamer Ingestor excepts the imageformat to be in `BGR` format so the output image format should be in `BGR`.
+
   ---
 
 #### `Camera Configuration`
@@ -204,7 +243,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
@@ -213,10 +252,10 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
       }
 
-   ---
+    ---
 
     **NOTE**:
     * Use video `./test_videos/Safety_Full_Hat_and_Vest.mp4` in the pipeline
@@ -233,7 +272,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "opencv",
-        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink",
+        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink"
       }
       ```
 
@@ -242,7 +281,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
@@ -258,7 +297,7 @@ GStreamer framework.
       Eg: pipeline value to connect to basler camera with
       serial number 22573664:
 
-      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx appsink"`
+      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     * In case you want to enable resizing with basler camera use the
       vaapipostproc element and specify the height and width parameter in the
@@ -266,7 +305,7 @@ GStreamer framework.
 
       Eg: Example pipeline to enable resizing with basler camera
 
-      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     * In case frame read is failing when multiple basler cameras are used, use
       the interpacketdelay property to increase the delay between the
@@ -276,20 +315,20 @@ GStreamer framework.
       Eg: pipeline value to increase the interpacket delay to 3000(default
       value for interpacket delay is 1500):
 
-      `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! decodebin ! video/x-raw,format=YUY2 ! video/x-raw,format=BGRx ! appsink"`
+      `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
-    * To work with monochrome Basler camera, please change the
+    * To work with monochrome Basler camera, please use `OpenCV` Ingestor and change the
       image format to mono8 in the Pipeline.
 
       Eg:pipeline value to connect to monochrome basler camera with serial number 22773747 :
 
-      `"pipeline":"pylonsrc serial=22773747 imageformat=mono8   exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+      `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
 
 
     * To work with USB Basler camera, please change the
       exposure parameter to exposureUsb in the Pipeline.
 
-      `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+      `"pipeline":"pylonsrc serial=22573650 imageformat=yuv422 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     ---
 
@@ -300,7 +339,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "opencv",
-        "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554",
+        "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554"
       }
       ```
 
@@ -311,7 +350,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
@@ -320,7 +359,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
       }
       ```
 
@@ -334,7 +373,7 @@ GStreamer framework.
 
         **Eg**: Example pipeline to enable resizing with RTSP camera
 
-        `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
+        `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     * If working behind a proxy, RTSP camera IP need to be updated
   *   to RTSP_CAMERA_IP in [../docker_setup/.env](../docker_setup/.env)
@@ -392,7 +431,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "opencv",
-        "pipeline": "/dev/video0",
+        "pipeline": "/dev/video0"
       }
       ```
 
@@ -401,7 +440,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
@@ -410,7 +449,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "v4l2src ! decodebin ! videoconvert ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+        "pipeline": "v4l2src ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
       }
       ```
 
@@ -422,14 +461,14 @@ GStreamer framework.
 
         **Eg**: Example pipeline to enable resizing with USB camera
 
-        `"pipeline":"v4l2src ! videoscale ! video/x-raw,format=YUY2,height=600,width=600 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+        `"pipeline":"v4l2src ! videoscale ! video/x-raw,format=YUY2,height=600,width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     * In case, multiple USB cameras are connected specify the
       camera using the `device` property in the configuration file.
 
         **Eg:**
 
-        `"pipeline": "v4l2src device=/dev/video0 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGRx ! appsink"`
+        `"pipeline": "v4l2src device=/dev/video0 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     ---
 
@@ -440,7 +479,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "opencv",
-        "pipeline": "rtsp://localhost:8554/",
+        "pipeline": "rtsp://localhost:8554/"
       }
       ```
 
@@ -453,7 +492,16 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! video/x-raw,format=BGRx ! appsink",
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+  * `GVA - Gstreamer ingestor with GVA elements`
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
       }
       ```
 
@@ -480,7 +528,7 @@ GStreamer framework.
 
           **Eg**: Example pipeline to enable resizing with RTSP camera
 
-          `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! video/x-raw,format=BGRx ! appsink"`
+          `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     ---
 
