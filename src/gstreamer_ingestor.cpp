@@ -44,7 +44,7 @@ using namespace eis::vi;
 using namespace eis::udf;
 
 static EncodeType g_enc_type;
-static int g_enc_lvl; 
+static int g_enc_lvl;
 // Prototypes
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data);
 
@@ -246,12 +246,12 @@ GstreamerIngestor* ctx) {
                 //const gchar* format = gst_structure_get_string(structure, "format");
                 //LOG_DEBUG("Name: %s, Format: %s, Size: %dx%d", name, format, width, height);
 
-                // TODO: Check BGRx
+                // TODO: Check BGR
                 GstreamerFrame* gst_frame = new GstreamerFrame(
                         sample, buf, info);
 
                 Frame* frame = new Frame(
-                        (void*) gst_frame, (int) width, (int) height, 4,
+                        (void*) gst_frame, (int) width, (int) height, 3,
                         info->data, free_gst_frame);
 
                 //Get the GVA metadata from the GST buffer
@@ -261,10 +261,10 @@ GstreamerIngestor* ctx) {
 
                 msg_envelope_elem_body_t* gva_meta_arr = msgbus_msg_envelope_new_array();
 		        if(gva_meta_arr == NULL) {
-                        LOG_ERROR_0("Failed to initialize gva metadata");
-                        delete frame;
-                        return GST_FLOW_ERROR;
-                    }
+                    LOG_ERROR_0("Failed to initialize gva metadata");
+                    delete frame;
+                    return GST_FLOW_ERROR;
+                }
 
                 for(GVA::RegionOfInterest& roi : roi_list) {
                     GstVideoRegionOfInterestMeta* meta = roi.meta();
@@ -279,14 +279,14 @@ GstreamerIngestor* ctx) {
                         return GST_FLOW_ERROR;
                     }
 
-		            msg_envelope_elem_body_t* x = msgbus_msg_envelope_new_integer(meta->x);
+                    msg_envelope_elem_body_t* x = msgbus_msg_envelope_new_integer(meta->x);
                     if(x == NULL) {
                         LOG_ERROR_0("Failed to initialize horizontal offset metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
-		            msg_envelope_elem_body_t* y = msgbus_msg_envelope_new_integer(meta->y);
+                    msg_envelope_elem_body_t* y = msgbus_msg_envelope_new_integer(meta->y);
                     if(y == NULL) {
                         LOG_ERROR_0("Failed to initialize vertical offset metadata");
                         delete frame;
@@ -294,15 +294,15 @@ GstreamerIngestor* ctx) {
                     }
 
 
-		            msg_envelope_elem_body_t* w = msgbus_msg_envelope_new_integer(meta->w);
+                    msg_envelope_elem_body_t* w = msgbus_msg_envelope_new_integer(meta->w);
                     if(w == NULL) {
                         LOG_ERROR_0("Failed to initialize width metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
-		            msg_envelope_elem_body_t* h = msgbus_msg_envelope_new_integer(meta->h);
-		            if(h == NULL) {
+                    msg_envelope_elem_body_t* h = msgbus_msg_envelope_new_integer(meta->h);
+                    if(h == NULL) {
                         LOG_ERROR_0("Failed to initialize height metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
@@ -362,7 +362,7 @@ GstreamerIngestor* ctx) {
                             return GST_FLOW_ERROR;
                         }
 
-			            msg_envelope_elem_body_t* label = msgbus_msg_envelope_new_string(tensor.label().c_str());
+	                    msg_envelope_elem_body_t* label = msgbus_msg_envelope_new_string(tensor.label().c_str());
                         if(label == NULL) {
                             LOG_ERROR_0("Failed to initialize label metadata");
                             delete frame;
@@ -448,7 +448,7 @@ GstreamerIngestor* ctx) {
                     return GST_FLOW_ERROR;
                 }
 
-                // Adding image handle to frame 
+                // Adding image handle to frame
                 std::string randuuid = ctx->generate_image_handle(UUID_LENGTH);
                 msg_envelope_t* meta_data = frame->get_meta_data();
                 // Profiling start
