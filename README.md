@@ -49,7 +49,7 @@ overhead of VA(VideoAnalytics) service.
   For more details on udf configuration, please visit
   [../common/udfs/README.md](../common/udfs/README.md)
 * For details on Etcd and MessageBus endpoint configuration, visit
-  [Etcd_and_MsgBus_Endpoint_Configuration](../Etcd_and_MsgBus_Endpoint_Configuration.md).
+  [Etcd_Secrets_and_MsgBus_Endpoint_Configuration](../Etcd_Secrets_and_MsgBus_Endpoint_Configuration.md).
 
 ---
 
@@ -242,8 +242,8 @@ GStreamer framework.
 
       ```javascript
       {
-        "type": "gstreamer",
-        "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
+          "type": "gstreamer",
+          "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
