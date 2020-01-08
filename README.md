@@ -215,7 +215,7 @@ GStreamer framework.
     ```javascript
     {
         "type": "gstreamer",
-        "pipeline": "multifilesrc location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect device=HDDL model=models/frozen_inference_graph.xml ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect device=HDDL  model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
     }
     ```
   > **NOTE**:
@@ -284,6 +284,15 @@ GStreamer framework.
         "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+  
+  * `GVA - Gstreamer ingestor with GVA elements`
+
+    ```javascript
+    {
+      "type": "gstreamer",
+      "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc format=bgrx ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert !  video/x-raw,format=BGR ! appsink"
+    }
+    ```    
 
     ---
 
@@ -359,7 +368,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
@@ -501,7 +510,7 @@ GStreamer framework.
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
