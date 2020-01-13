@@ -218,9 +218,9 @@ GStreamer framework.
         "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect device=HDDL  model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
     }
     ```
-  > **NOTE**:
-  > * Gstreamer Ingestor excepts the imageformat to be in `BGR` format so the output image format should be in `BGR`.
 
+  > **NOTE**:
+  > * Gstreamer Ingestor expects the image format to be in `BGR` format so the output image format should be in `BGR`
   ---
 
 #### `Camera Configuration`
@@ -246,6 +246,13 @@ GStreamer framework.
           "pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+
+      **NOTE**:
+      * If `./test_videos/Safety_Full_Hat_and_Vest.mp4` video file is used in
+        above configuration, then use the pipeline value in the above config as
+        below (basically, we don't need `h264parse` with this video file):
+        `"pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+
 
   * `GVA - Gstreamer ingestor with GVA elements`
 
