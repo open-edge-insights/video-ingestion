@@ -167,28 +167,25 @@ VideoIngestion::VideoIngestion(
 
 
     char** pub_topics = env_config->get_topics_from_env(PUB);
+    size_t num_of_pub_topics = env_config->get_topics_count(pub_topics);
 
-    int pub_topic_length = 0;
-    while (pub_topics[pub_topic_length] != NULL) {
-        pub_topic_length++;
-        if(pub_topic_length != 1){
-            const char* err = "Only one topic is supported. Neither more, nor less";
-            LOG_ERROR("%s", err);
-            config_destroy(config);
-            throw(err);
-        }
+    if(num_of_pub_topics != 1){
+        const char* err = "Only one topic is supported. Neither more, nor less";
+        LOG_ERROR("%s", err);
+        config_destroy(config);
+        throw(err);
     }
 
     LOG_DEBUG_0("Successfully read PubTopics env value...");
 
-    config_t* pub_config = env_config->get_messagebus_config(g_config_mgr,pub_topics[0], PUB);      
+    config_t* pub_config = env_config->get_messagebus_config(g_config_mgr, pub_topics, num_of_pub_topics, PUB);
     if(pub_config == NULL) {
         const char* err = "Failed to get publisher message bus config";
         LOG_ERROR("%s", err);
         config_destroy(config);
         throw(err);
     }
-    LOG_DEBUG_0("Publisher Config received...");                                                
+    LOG_DEBUG_0("Publisher Config received...");
 
 
     m_publisher = new Publisher(
