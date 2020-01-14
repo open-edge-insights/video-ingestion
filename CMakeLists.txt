@@ -40,9 +40,9 @@ set(CMAKE_SHARED_LINKER_FLAGS "-z noexecstack -z relro -z now")
 # Add cmake module path
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${EIS_COMMON_CMAKE}")
 
-if(WITH_PROFILE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-endif()
+#if(WITH_PROFILE)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+#endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
