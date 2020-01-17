@@ -219,8 +219,24 @@ GStreamer framework.
     }
     ```
 
-  > **NOTE**:
-  > * Gstreamer Ingestor expects the image format to be in `BGR` format so the output image format should be in `BGR`
+  ----
+  **NOTE**:
+  * Gstreamer Ingestor expects the image format to be in `BGR` format so the output image format should be in `BGR`
+  
+  * In case one notices the VideoIngestion not publishing any frames when working with GVA use case the `queue` element of Gstramer can be used to limit the     max size of the buffers and the upstreaming/downstreaming can be set to leak to drop the buffers
+
+    **Example pipeline to use the `queue` element**:
+
+    ```javascript
+    {
+      "type": "gstreamer",
+      "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP_CAMERA_IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! queue max-size-buffers=10 leaky=downstream ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink",
+    }
+    ```
+  
+    For more information reagarding the queue element refer the below link:
+      https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-plugins/html/gstreamer-plugins-queue.html
+
   ---
 
 #### `Camera Configuration`
@@ -251,7 +267,7 @@ GStreamer framework.
       * If `./test_videos/Safety_Full_Hat_and_Vest.mp4` video file is used in
         above configuration, then use the pipeline value in the above config as
         below (basically, we don't need `h264parse` with this video file):
-        `"pipeline": "multifilesrc loop=TRUE location=./test_videos/pcb_d2000.avi ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+        `"pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
 
   * `GVA - Gstreamer ingestor with GVA elements`
