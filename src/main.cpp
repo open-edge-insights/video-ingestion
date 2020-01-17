@@ -118,12 +118,17 @@ void vi_initialize(char* vi_config){
 
 void on_change_config_callback(char* key, char* vi_config){
     if(strcmp(g_vi_config, vi_config)){
-        if(g_vi) {
+	// Deleting of g_vi, g_vi_config was hanging with gstreamer ingestor.
+	// Making a forceful exit until this is fixed.
+	// This shouldnt cause memory leaks as the application process is
+	// exiting and re-spawned by docker clearing all process allocated
+	// memory.
+        _Exit(-1);
+        /*if(g_vi) {
             delete g_vi;
             g_vi = NULL;
         }
-        delete g_vi_config;
-        _Exit(-1);
+        delete g_vi_config;*/
         // TODO: Uncomment the below logic once the dynamic cfg fix works as
         // expected
         //g_vi_config = vi_config;
