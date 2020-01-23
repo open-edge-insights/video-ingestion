@@ -1,0 +1,59 @@
+version: '3.6'
+
+services:
+  ## Define VideoIngestion service
+  ia_video_ingestion:
+    depends_on:
+      - ia_openvino_base
+    build:
+      context: $PWD/../VideoIngestion
+      dockerfile: $PWD/../VideoIngestion/Dockerfile
+      args:
+        EIS_VERSION: ${EIS_VERSION}
+        EIS_UID: ${EIS_UID}
+        EIS_USER_NAME: ${EIS_USER_NAME}
+        # set CMAKE_BUILD_TYPE value to "Debug" to generate debug symbols
+        CMAKE_BUILD_TYPE: "Release"
+    read_only: true
+    image: ${DOCKER_REGISTRY}ia_video_ingestion:${EIS_VERSION}
+    container_name: ia_video_ingestion
+    hostname: ia_video_ingestion
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      AppName: "VideoIngestion"
+      DEV_MODE: ${DEV_MODE}
+      PROFILING_MODE: ${PROFILING_MODE}
+      no_proxy: ${no_proxy},${RTSP_CAMERA_IP}
+
+      # MessageBus Endpoint Configuration
+      # Setting Visualizer as a subscriber here for FpsCalculator
+      Clients: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLS_RemoteAgent"
+      CertType: "zmq"
+      ZMQ_RECV_HWM: "1000"
+
+      # Use IPC mode (zmq_ipc) when VideoIngestion and VideoAnalytics based
+      # containers are running on the same host. If they are running on diff
+      # host, please use TCP mode for communication.
+      # Eg: Stream cfg for
+      # IPC: zmq_ipc, <absolut_socket_directory_path>
+      # TPC: zmq_tcp, <publisher_host>:<publisher_port>
+      PubTopics: "camera1_stream"
+      camera1_stream_cfg: "zmq_ipc,${SOCKET_DIR}/"
+    volumes:
+      - "vol_eis_socket:${SOCKET_DIR}"
+      - "/var/tmp:/var/tmp"
+    privileged: true
+    devices:
+      - "/dev/dri"
+      - "/dev/:/dev/"
+    secrets:
+      - ca_etcd
+      - etcd_VideoIngestion_cert
+      - etcd_VideoIngestion_key
+
+secrets:
+  etcd_VideoIngestion_cert:
+    file: provision/Certificates/VideoIngestion/VideoIngestion_client_certificate.pem
+  etcd_VideoIngestion_key:
+    file: provision/Certificates/VideoIngestion/VideoIngestion_client_key.pem
