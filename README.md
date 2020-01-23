@@ -472,7 +472,7 @@ GStreamer framework.
         `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     * If working behind a proxy, RTSP camera IP need to be updated
-  *   to RTSP_CAMERA_IP in [../docker_setup/.env](../docker_setup/.env)
+  *   to RTSP_CAMERA_IP in [../build/.env](../build/.env)
 
     * For working both with simulated RTSP server via cvlc or
       direct streaming from RTSP camera, we can use the below Gstreamer
@@ -639,7 +639,7 @@ GStreamer framework.
 
     1. Build and Run VideoIngestion as container
         ```
-        $ cd [repo]/docker_setup
+        $ cd [repo]/build
         $ docker-compose up --build ia_video_ingestion
         ```
     2. Update EIS VideoIngestion config key in distributed key-value

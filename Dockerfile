@@ -243,6 +243,7 @@ RUN pip3.6 install -r vi_requirements.txt && \
     rm -rf vi_requirements.txt
 
 FROM ia_common:$EIS_VERSION as common
+FROM ia_video_common:$EIS_VERSION as video_common
 
 FROM openvino
 
@@ -257,6 +258,9 @@ COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python
 
 ARG CMAKE_BUILD_TYPE
 
+COPY --from=video_common ${GO_WORK_DIR}/common/UDFLoader ./common/libs/UDFLoader
+COPY --from=video_common ${GO_WORK_DIR}/common/udfs ./common/udfs
+
 # Build UDF loader lib
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./common/libs/UDFLoader && \
@@ -266,7 +270,7 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
     make install"
 
-COPY --from=common ${GO_WORK_DIR}/common/udfs/native ./common/udfs/native
+COPY --from=video_common ${GO_WORK_DIR}/common/udfs/native ./common/udfs/native
 # Build native UDF samples
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./common/udfs/native && \
