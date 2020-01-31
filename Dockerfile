@@ -289,7 +289,7 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
 # Removing build dependencies
 RUN apt-get remove -y wget && \
     apt-get remove -y git && \
-    apt-get remove curl && \
+    apt-get remove -y curl && \
     apt-get autoremove -y
 
 ENV PYTHONPATH ${PYTHONPATH}:${GO_WORK_DIR}/common/udfs/python:${GO_WORK_DIR}/common/
