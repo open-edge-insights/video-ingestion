@@ -114,24 +114,32 @@ void free_cv_frame(void* obj) {
 }
 
 void OpenCvIngestor::read(Frame*& frame) {
+
     cv::Mat* cv_frame = new cv::Mat();
 
     if(!m_cap->read(*cv_frame)) {
-        // Re-opening the video capture
-        if(m_loop_video == true) {
-            LOG_WARN_0("Video ended. Looping...");
-            m_cap->release();
-            delete m_cap;
-            m_cap = new cv::VideoCapture(m_pipeline);
-        } else {
-            const char* err = "Video ended...";
-            LOG_WARN("%s", err);
-            // Sleeping indefinitely to avoid restart
-            while(true) {
-                std::this_thread::sleep_for(std::chrono::seconds(5));
+        if(cv_frame->empty()) {
+            // cv_frame->empty signifies video has ended
+            if(m_loop_video == true) {
+                // Re-opening the video capture
+                LOG_WARN_0("Video ended. Looping...");
+                m_cap->release();
+                delete m_cap;
+                m_cap = new cv::VideoCapture(m_pipeline);
+            } else {
+                const char* err = "Video ended...";
+                LOG_WARN("%s", err);
+                // Sleeping indefinitely to avoid restart
+                while(true) {
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
+                }
             }
+            m_cap->read(*cv_frame);
+        } else {
+            // Error due to malformed frame
+            const char* err = "Failed to read frame from OpenCV video capture";
+            LOG_ERROR("%s", err);
         }
-        m_cap->read(*cv_frame);
     }
 
     LOG_DEBUG_0("Frame read successfully");
