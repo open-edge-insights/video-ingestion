@@ -214,9 +214,12 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libxcb-dri3.so"
 
 # Installing GVA plugins
+ARG GVA_VERSION=v0.7.0
 RUN mkdir gva && \
     cd gva && \
-    git clone https://github.com/opencv/gst-video-analytics.git
+    git clone https://github.com/opencv/gst-video-analytics.git && \
+    cd gst-video-analytics && \
+    git checkout ${GVA_VERSION}
 
 RUN apt-get update && apt install -y --no-install-recommends \
        gcc \
