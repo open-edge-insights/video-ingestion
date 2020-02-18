@@ -1,0 +1,102 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ingestor"
+  ],
+  "properties": {
+    "encoding": {
+      "description": "Encoding object",
+      "type": "object",
+      "required": [
+        "type",
+        "level"
+      ],
+      "properties": {
+        "type": {
+          "description": "Encoding type",
+          "type": "string",
+          "enum": [
+              "jpeg",
+              "png"
+            ]
+        },
+        "level": {
+          "description": "Encoding value",
+          "type": "integer",
+          "default": 0
+        }
+      }
+    },
+    "ingestor": {
+      "description": "Ingestor object",
+      "type": "object",
+      "required": [
+        "type",
+        "pipeline"
+      ],
+      "properties": {
+        "type": {
+          "description": "Ingestor type",
+          "type": "string",
+          "enum": [
+              "opencv",
+              "gstreamer"
+            ]
+        },
+        "pipeline": {
+          "description": "gstreamer/opencv pipeline",
+          "type": "string"
+        },
+        "loop_video": {
+          "description": "whether to loop vidoe or not",
+          "type": "string",
+          "default": "false"
+        },
+        "queue_size": {
+          "description": "ingestor queue size for frames",
+          "type": "integer"
+        },
+        "poll_interval": {
+          "description": "polling interval for reading ingested frames",
+          "type": "number",
+          "default": 0.0
+        }
+      }
+    },
+    "max_jobs": {
+      "description": "Number of queued UDF jobs",
+      "type": "integer",
+      "default": 20
+    },
+    "max_workers": {
+      "description": "Number of threads acting on queued jobs",
+      "type": "integer",
+      "default": 4
+    },
+    "udfs": {
+      "description": "Array of UDF config objects",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^(.*)$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "native",
+              "python"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

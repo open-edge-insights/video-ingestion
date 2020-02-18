@@ -30,6 +30,10 @@
 #include <atomic>
 #include <csignal>
 #include <safe_lib.h>
+#include <stdbool.h>
+#include <eis/utils/json_validator.h>
+#include <fstream>
+#include <iostream>
 
 #define MAX_CONFIG_KEY_LENGTH 40
 
@@ -145,6 +149,48 @@ void clean_up(){
     env_config_destroy(g_env_config_client);
 }
 
+bool validate_config(char config_key[]) {
+    // Writing to external file
+    std::ofstream out;
+    out.open("./config.json", std::ios::binary);
+    out << config_key;
+    out.close();
+
+    WJReader readjson;
+    WJReader readschema;
+    WJElement json;
+    WJElement schema;
+
+    readjson = WJROpenFILEDocument(fopen("./VideoIngestion/config.json", "r"), NULL, 0);
+    json = WJEOpenDocument(readjson, NULL, NULL, NULL);
+    if(readjson == NULL || json == NULL) {
+        LOG_ERROR_0("config json could not be read");
+        return false;
+    }
+
+    readschema = WJROpenFILEDocument(fopen("./VideoIngestion/schema.json", "r"), NULL, 0);
+    schema = WJEOpenDocument(readschema, NULL, NULL, NULL);
+    if(readschema == NULL || schema == NULL) {
+        LOG_ERROR_0("schema json could not be read");
+        return false;
+    }
+
+    bool result = validate_json(schema, json);
+
+    WJECloseDocument(json);
+    WJECloseDocument(schema);
+    WJRCloseDocument(readjson);
+    WJRCloseDocument(readschema);
+
+    if(!result) {
+        // Clean up and return if failure
+        clean_up();
+        return false;
+    }
+
+    return true;
+}
+
 int main(int argc, char** argv) {
     signal(SIGINT, signal_callback_handler);
     signal(SIGABRT, signal_callback_handler);
@@ -190,12 +236,18 @@ int main(int argc, char** argv) {
         // Get the configuration from the configuration manager
         char config_key[MAX_CONFIG_KEY_LENGTH];
         snprintf(config_key, MAX_CONFIG_KEY_LENGTH, "/%s/config", app_name.c_str());
+        
+        // Validating config against schema
+        if(!validate_config(config_key)) {
+            return -1;
+        }
+        
+
         g_vi_config = g_config_mgr->get_config(config_key);
         LOG_DEBUG("App config: %s", g_vi_config);
 
         LOG_DEBUG("Registering watch on config key: %s", config_key);
         g_config_mgr->register_watch_key(config_key, on_change_config_callback);
-
         vi_initialize(g_vi_config);
 
         std::mutex mtx;
