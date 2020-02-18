@@ -96,7 +96,9 @@ target_link_libraries(video-ingestion
     PRIVATE
         ${ZMQ_LIBRARIES}
         ${CJSON_LIBRARIEES}
-        ${IntelSafeString_LIBRARIES})
+        ${IntelSafeString_LIBRARIES}
+        wjelement
+        wjreader)
 
 # If compile in debug mode, set DEBUG flag for C code
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
