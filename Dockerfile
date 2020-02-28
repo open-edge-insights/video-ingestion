@@ -12,8 +12,6 @@ RUN useradd -r -u ${EIS_UID} -G video ${EIS_USER_NAME}
 RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-5.1.0.12682-x86_64.tar.gz && \
     tar xvf pylon-5.1.0.12682-x86_64.tar.gz && \
     cd pylon-5.1.0.12682-x86_64 && \
-    pip3.6 install numpy==1.14.5 && \
-    pip3.6 install setuptools==40.7.3 && \
     tar -C /opt -zxf pylonSDK-5.1.0.12682-x86_64.tar.gz && \
     rm -rf pylon-5.1.0.12682-x86_64.tar.gz && \
     rm -rf pylon-5.1.0.12682-x86_64/pylonSDK-5.1.0.12682-x86_64.tar.gz
@@ -255,6 +253,11 @@ COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python
 ARG CMAKE_BUILD_TYPE
 ARG WITH_PROFILE
 
+# Installing dependent python modules - needed by opencv
+COPY vi_requirements.txt .
+RUN pip3.6 install -r vi_requirements.txt && \
+    rm -rf vi_requirements.txt
+
 # Build UDF loader lib
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./common/libs/UDFLoader && \
@@ -263,12 +266,6 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd build && \
     cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
     make install"
-
-# Installing dependent python modules - needed by opencv
-COPY vi_requirements.txt .
-RUN pip3.6 install -r vi_requirements.txt && \
-    rm -rf vi_requirements.txt
-
 
 COPY --from=common ${GO_WORK_DIR}/common/udfs/native ./common/udfs/native
 # Build native UDF samples
