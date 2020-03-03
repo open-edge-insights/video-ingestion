@@ -207,8 +207,9 @@ GStreamer framework.
     can be set using the device property of gvadetect and gvaclassify elements.
     By default the device property is set to CPU. 
     
-    >**NOTE**: 
-    > HDDL daemon needs to be started on the host m/c by following the steps in #Using video accelerators section in [../README.md](../README.md).
+    **NOTE**: 
+    
+     * HDDL daemon needs to be started on the host m/c by following the steps in #Using video accelerators section in [../README.md](../README.md).
 
     **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on HDDL device**:
 
