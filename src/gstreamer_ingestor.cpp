@@ -36,7 +36,7 @@
 #include <sstream>
 #include <fstream>
 #include <random>
-#include <string>
+#include <safe_lib.h>
 
 #define UUID_LENGTH 5
 #define PIPELINE "pipeline"
@@ -45,6 +45,7 @@ using namespace eis::vi;
 using namespace eis::udf;
 
 static EncodeType g_enc_type;
+static bool g_first_frame = true;
 static int g_enc_lvl;
 // Prototypes
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data);
@@ -251,11 +252,24 @@ GstreamerIngestor* ctx) {
                 gint height;
                 gst_structure_get_int(structure, "width", &width);
                 gst_structure_get_int(structure, "height", &height);
-                //const gchar* name = gst_structure_get_name(structure);
-                //const gchar* format = gst_structure_get_string(structure, "format");
-                //LOG_DEBUG("Name: %s, Format: %s, Size: %dx%d", name, format, width, height);
+                // Check for image format is done for the first frame
+                // The only accepted image format is BGR
+                if (g_first_frame) {
+                    g_first_frame = false; // first frame has been recieved
+                    const gchar* format = gst_structure_get_string(structure, "format");
+                    if (format != NULL) {
+                        LOG_INFO("Format: %s, Size: %dx%d", format, width, height);
+                        int ind_bgr = 0;
+                        strcmp_s(format, strlen(format), "BGR", &ind_bgr);
+                        if (ind_bgr != 0) {
+                            LOG_ERROR("%s image format is not supported please use BGR", format);
+                            return GST_FLOW_ERROR;
+                        }
+                    } else {
+                        LOG_ERROR_0("Failed to read image format");
+                    }
+                }
 
-                // TODO: Check BGR
                 GstreamerFrame* gst_frame = new GstreamerFrame(
                         sample, buf, info);
 
