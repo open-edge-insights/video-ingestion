@@ -237,6 +237,11 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
 ENV MODELS_PATH="${PY_WORK_DIR}/VideoIngestion/models/" \
     GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"${PY_WORK_DIR}/gva/gst-video-analytics/build/intel64/Release/lib"
 
+# Installing dependent python modules - needed by opencv
+COPY vi_requirements.txt .
+RUN pip3.6 install -r vi_requirements.txt && \
+    rm -rf vi_requirements.txt
+
 FROM ia_common:$EIS_VERSION as common
 
 FROM openvino
@@ -252,11 +257,6 @@ COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python
 
 ARG CMAKE_BUILD_TYPE
 ARG WITH_PROFILE
-
-# Installing dependent python modules - needed by opencv
-COPY vi_requirements.txt .
-RUN pip3.6 install -r vi_requirements.txt && \
-    rm -rf vi_requirements.txt
 
 # Build UDF loader lib
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
