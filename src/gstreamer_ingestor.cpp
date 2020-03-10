@@ -27,7 +27,7 @@
 #include <chrono>
 #endif
 
-#include<string>
+#include <cstring>
 
 #include "eis/utils/logger.h"
 #include "eis/vi/gstreamer_ingestor.h"
