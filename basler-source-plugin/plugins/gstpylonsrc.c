@@ -127,6 +127,7 @@ enum
   PROP_RESET,
   PROP_TESTIMAGE,
   PROP_CONTINUOUSMODE,
+  PROP_TRIGGERSOURCE,
   PROP_IMAGEFORMAT,
   PROP_USERID,
   PROP_BASLERDEMOSAICING,
@@ -153,7 +154,8 @@ enum
   PROP_TRANSFORMATION12,
   PROP_TRANSFORMATION20,
   PROP_TRANSFORMATION21,
-  PROP_TRANSFORMATION22
+  PROP_TRANSFORMATION22,
+  PROP_HWTRIGGERTIMEOUT
 };
 
 /* pad templates */
@@ -242,7 +244,9 @@ gst_pylonsrc_class_init (GstPylonsrcClass * klass)
   g_object_class_install_property (gobject_class, PROP_INTERPACKETDELAY,
       g_param_spec_int ("interpacketdelay", "Inter packet delay", "Setting delay in Milliseconds", 0, 840205, 1500,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
+  g_object_class_install_property (gobject_class, PROP_TRIGGERSOURCE,
+      g_param_spec_string ("triggersource", "Trigger Source", "Sets the source of the trigger in trigger mode", "Software",
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
   g_object_class_install_property (gobject_class, PROP_AUTOWHITEBALANCE,
       g_param_spec_string ("autowhitebalance", "Automatic colour balancing", "(off, once, continuous) Controls whether or not the camera will try to adjust the white balance settings. Setting this parameter to anything but \"off\" will override the exposure parameter. Running the plugin without specifying this parameter will reset the value stored on the camera to \"off\"", "off",
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
@@ -396,6 +400,9 @@ gst_pylonsrc_class_init (GstPylonsrcClass * klass)
   g_object_class_install_property (gobject_class, PROP_TRANSFORMATIONSELECTOR,
       g_param_spec_string  ("transformationselector", "Color Transformation Selector", "(RGBRGB, RGBYUV, YUVRGB) Sets the type of color transformation done by the color transformation selectors.", "RGBRGB",
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+  g_object_class_install_property (gobject_class, PROP_HWTRIGGERTIMEOUT,
+      g_param_spec_int ("hwtriggertimeout", "Hardware trigger timeout", "(Milliseconds) The hardware trigger timeout or the maximum time to wait for the hardware trigger to be generated in order to grab the frame from the camera", 5000, 86400000, 500000,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 }
 
 static gboolean
@@ -435,6 +442,7 @@ gst_pylonsrc_init (GstPylonsrc *pylonsrc)
   // Default parameter values
   pylonsrc->serial="\0";
   pylonsrc->continuousMode = TRUE;
+  pylonsrc->triggersource = "Software";
   pylonsrc->limitBandwidth = TRUE;
   pylonsrc->setFPS = FALSE;
   pylonsrc->demosaicing = FALSE;
@@ -497,6 +505,7 @@ gst_pylonsrc_init (GstPylonsrc *pylonsrc)
   pylonsrc->transformation20 = 999.0;
   pylonsrc->transformation21 = 999.0;
   pylonsrc->transformation22 = 999.0;
+  pylonsrc->hwtriggertimeout = 500000;
 
   // Mark this element as a live source (disable preroll)
   gst_base_src_set_live(GST_BASE_SRC(pylonsrc), TRUE);
@@ -636,6 +645,9 @@ gst_pylonsrc_set_property (GObject * object, guint property_id,
     case PROP_CONTINUOUSMODE:
       pylonsrc->continuousMode = g_value_get_boolean(value);
       break;
+    case PROP_TRIGGERSOURCE:
+      pylonsrc->triggersource = g_value_dup_string(value+'\0');
+      break;
     case PROP_BASLERDEMOSAICING:
       pylonsrc->demosaicing = g_value_get_boolean(value);
       break;
@@ -707,6 +719,9 @@ gst_pylonsrc_set_property (GObject * object, guint property_id,
       break;
     case PROP_TRANSFORMATION22:
       pylonsrc->transformation22 = g_value_get_double(value);
+      break;
+    case PROP_HWTRIGGERTIMEOUT:
+      pylonsrc->hwtriggertimeout = g_value_get_int(value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -842,6 +857,9 @@ gst_pylonsrc_get_property (GObject * object, guint property_id,
     case PROP_CONTINUOUSMODE:
       g_value_set_boolean(value, pylonsrc->continuousMode);
       break;
+    case PROP_TRIGGERSOURCE:
+      g_value_set_string(value, pylonsrc->triggersource);
+      break;
     case PROP_BASLERDEMOSAICING:
       g_value_set_boolean(value, pylonsrc->demosaicing);
       break;
@@ -914,6 +932,9 @@ gst_pylonsrc_get_property (GObject * object, guint property_id,
       break;
     case PROP_TRANSFORMATION22:
       g_value_set_double(value, pylonsrc->transformation22);
+      break;
+    case PROP_HWTRIGGERTIMEOUT:
+      g_value_set_int(value, pylonsrc->hwtriggertimeout);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -1039,7 +1060,7 @@ gst_pylonsrc_start (GstBaseSrc * src)
         pylonc_print_camera_info(pylonsrc, deviceHandle, i);
         PylonDeviceClose(deviceHandle);
         PylonDestroyDevice(deviceHandle);
-        break; 
+        break;
       }
       else {
         GST_DEBUG_OBJECT(pylonsrc, "Serial No:%s not matching or not specified using serial parameter", pDi.SerialNumber);
@@ -1975,6 +1996,7 @@ gst_pylonsrc_start (GstBaseSrc * src)
 
   // Check to see if the camera implements the acquisition start trigger mode only
   if (isAvailAcquisitionStart && !isAvailFrameStart) {
+    GST_MESSAGE_OBJECT(pylonsrc,"Camera supports acquisition start trigger mode only");
     // Select the software trigger as the trigger source
     res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "TriggerSelector", "AcquisitionStart");
     PYLONC_CHECK_ERROR(pylonsrc, res);
@@ -1986,6 +2008,7 @@ gst_pylonsrc_start (GstBaseSrc * src)
   {
     // Camera may have the acquisition start trigger mode and the frame start trigger mode implemented.
     // In this case, the acquisition trigger mode must be switched off.
+    GST_MESSAGE_OBJECT(pylonsrc,"Camera supports acquisition start and frame start trigger mode");
     if (isAvailAcquisitionStart) {
       res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "TriggerSelector", "AcquisitionStart");
       PYLONC_CHECK_ERROR(pylonsrc, res);
@@ -2011,13 +2034,15 @@ gst_pylonsrc_start (GstBaseSrc * src)
     res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "AcquisitionStatusSelector", "FrameTriggerWait");
     PYLONC_CHECK_ERROR(pylonsrc, res);
   }
-  GST_DEBUG_OBJECT(pylonsrc, "Using \"%s\" trigger selector. Software trigger mode is %s.", triggerSelectorValue, triggerMode);
   res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "TriggerSelector", triggerSelectorValue);
   PYLONC_CHECK_ERROR(pylonsrc, res);
-  res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "TriggerSource", "Software");
+  res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "TriggerSource", pylonsrc->triggersource);
   PYLONC_CHECK_ERROR(pylonsrc, res);
   res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "AcquisitionMode", "Continuous" );
   PYLONC_CHECK_ERROR(pylonsrc, res);
+
+  GST_MESSAGE_OBJECT(pylonsrc, "Using \"%s\" trigger selector. Software trigger mode is %s. Trigger source is %s", triggerSelectorValue, triggerMode, pylonsrc->triggersource);
+
 
   // Create a stream grabber
   size_t streams;
@@ -2151,9 +2176,15 @@ static GstFlowReturn gst_pylonsrc_create (GstPushSrc *src, GstBuffer **buf)
   GstMapInfo mapInfo;
 
 while(grabResult.Status != Grabbed){
+  if(pylonsrc->triggersource == "Software") {
   // Wait for the buffer to be filled  (up to 5000 ms)
   res = PylonWaitObjectWait(pylonsrc->waitObject, 5000, &bufferReady);
   PYLONC_CHECK_ERROR(pylonsrc, res);
+  } else {
+    // Wait for the buffer to be filled after receiving h/w trigger
+    res = PylonWaitObjectWait(pylonsrc->waitObject, pylonsrc->hwtriggertimeout, &bufferReady);
+    PYLONC_CHECK_ERROR(pylonsrc, res);
+  }
   if(!bufferReady) {
     GST_MESSAGE_OBJECT(pylonsrc, "Camera couldn't prepare the buffer in time. Increase Inter Packet Delay.");
     goto error;
