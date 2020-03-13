@@ -327,6 +327,14 @@ GStreamer framework.
         "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink"
       }
       ```
+    * Hardware trigger based ingestion with opencv ingestor :
+
+     ```javascript
+     {
+      "type": "opencv",
+      "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 continuous=false triggersource=Line1 hwtriggertimeout=50000 ! videoconvert ! appsink"
+     }
+     ```
 
   * `Gstreamer Ingestor`
 
@@ -336,6 +344,14 @@ GStreamer framework.
         "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+    * Hardware trigger based ingestion with gstreamer ingestor :
+
+    ```javascrpit
+    {
+     "type": "gstreamer",
+     "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 continuous=false triggersource=Line1 hwtriggertimeout=50000 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink",
+    }
+    ```
   
   * `GVA - Gstreamer ingestor with GVA elements`
 
@@ -391,7 +407,26 @@ GStreamer framework.
 
       `"pipeline":"pylonsrc serial=22573650 imageformat=yuv422 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
-    ---
+    ##### `Basler camera hardware triggering`
+
+    * If the camera is configured for triggered image acquisition, one can trigger image captures at particular points in time.
+
+    * With respect to hardware triggering if the camera supports it then an electrical signal can be applied to one of the camera's input lines which can act as a trigger signal.
+
+    * In order to configure the camera for hardware triggering, trigger mode must be enabled and the right trigger source depending on the Hardware Setup must be specified.
+    
+    * Trigger mode is enabled by setting the `continuous` property to `false` and based on the h/w setup, the right trigger source needs to be set for `triggersource` property
+
+    ##### `Validated test setup for basler camera hardware triggering`
+
+    * In case of trigger mode the maximum time to wait for the hardware trigger to get generated can be set (in milliseconds) using the ` hwtriggertimeout` property.
+
+    * In our test setup a python script was used to control a ModBus I/O module to generate a digital output to Opto-insulated input line(Line1) of the basler camera.
+
+    * Please note that in order to test the hardware trigger functionality Basler `acA1920-40gc` camera model had been used.
+    **Note**: Other triggering capabilities with different camera models are not tested. 
+
+   ----
 
 * `RTSP Camera`
 
