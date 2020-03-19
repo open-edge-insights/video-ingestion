@@ -68,6 +68,7 @@ void Ingestor::run() {
 
     Frame* frame = NULL;
 
+    int64_t frame_count = 0;
     while(!m_stop.load()) {
         this->read(frame);
 
@@ -76,14 +77,41 @@ void Ingestor::run() {
         msg_envelope_t* meta_data = frame->get_meta_data();
         // Profiling start
         DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
+
         // Profiling end
-        msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(randuuid.c_str());
-        if (elem == NULL) {
-            throw "Failed to create image handle element";
+
+
+        msg_envelope_elem_body_t* elem = NULL;
+        msgbus_ret_t ret;
+        if(frame_count == INT64_MAX) {
+            LOG_WARN_0("frame count has reached INT64_MAX, so resetting \
+                        it back to zero");
+            frame_count = 0;
         }
-        msgbus_ret_t ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
+        frame_count++;
+
+        elem = msgbus_msg_envelope_new_integer(frame_count);
+        if (elem == NULL) {
+            LOG_ERROR_0("Failed to create frame_number element");
+            delete frame;
+        }
+        ret = msgbus_msg_envelope_put(meta_data, "frame_number", elem);
+        if(ret != MSG_SUCCESS) {
+            LOG_ERROR_0("Failed to put frame_number meta-data");
+            delete frame;
+            continue;
+        }
+        LOG_DEBUG("Frame number: %d", frame_count);
+
+        elem = msgbus_msg_envelope_new_string(randuuid.c_str());
+        if (elem == NULL) {
+            LOG_ERROR_0("Failed to create image handle element");
+            delete frame;
+        }
+        ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
         if(ret != MSG_SUCCESS) {
             LOG_ERROR_0("Failed to put image handle meta-data");
+            delete frame;
             continue;
         }
 

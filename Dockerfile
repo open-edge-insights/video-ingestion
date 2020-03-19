@@ -256,7 +256,6 @@ COPY --from=common ${GO_WORK_DIR}/common/util ${GO_WORK_DIR}/common/util
 COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python3.6/dist-packages
 
 ARG CMAKE_BUILD_TYPE
-ARG WITH_PROFILE
 
 # Build UDF loader lib
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
@@ -284,6 +283,7 @@ ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/usr/local/lib/udfs/
 COPY . ./VideoIngestion/
 RUN mv VideoIngestion/models . && mv VideoIngestion/test_videos .
 
+ARG WITH_PROFILE
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./VideoIngestion && \
     rm -rf build && \

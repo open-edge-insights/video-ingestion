@@ -50,9 +50,7 @@ namespace eis {
 
                 // Glib main loop
                 GMainLoop* m_loop;
-    #ifdef WITH_PROFILE
-                int m_frame_count;
-    #endif
+                int64_t m_frame_count;
 
                 static GstFlowReturn new_sample(GstElement* sink, GstreamerIngestor* ctx);
 
