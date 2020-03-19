@@ -83,9 +83,7 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
     }
     LOG_INFO("Poll interval: %lf", m_poll_interval);
 
-#ifdef WITH_PROFILE
     m_frame_count = 0;
-#endif
 
     int argc = 1;
     m_loop = NULL ;
@@ -385,14 +383,14 @@ GstreamerIngestor* ctx) {
                             return GST_FLOW_ERROR;
                         }
 
-	                    msg_envelope_elem_body_t* label = msgbus_msg_envelope_new_string(tensor.label().c_str());
+                        msg_envelope_elem_body_t* label = msgbus_msg_envelope_new_string(tensor.label().c_str());
                         if(label == NULL) {
                             LOG_ERROR_0("Failed to initialize label metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
-			            msg_envelope_elem_body_t* confidence = msgbus_msg_envelope_new_floating(tensor.confidence());
+                        msg_envelope_elem_body_t* confidence = msgbus_msg_envelope_new_floating(tensor.confidence());
                         if(confidence == NULL) {
                             LOG_ERROR_0("Failed to initialize confidence metadata");
                             delete frame;
@@ -464,12 +462,33 @@ GstreamerIngestor* ctx) {
                     return GST_FLOW_ERROR;
                 }
 
-	            ret = msgbus_msg_envelope_put(gva_meta_data, "gva_meta", gva_meta_arr);
+                ret = msgbus_msg_envelope_put(gva_meta_data, "gva_meta", gva_meta_arr);
                 if(ret != MSG_SUCCESS) {
                     LOG_ERROR_0("Failed to put gva metadata");
                     delete frame;
                     return GST_FLOW_ERROR;
                 }
+
+                msg_envelope_elem_body_t* elem = NULL;
+                if(ctx->m_frame_count == INT64_MAX) {
+                    LOG_WARN_0("frame count has reached INT64_MAX, so resetting \
+                                it back to zero");
+                    ctx->m_frame_count = 0;
+                }
+                ctx->m_frame_count++;
+                elem = msgbus_msg_envelope_new_integer(ctx->m_frame_count);
+                if (elem == NULL) {
+                    LOG_ERROR_0("Failed to create frame_number element");
+                    delete frame;
+                    return GST_FLOW_ERROR;
+                }
+                ret = msgbus_msg_envelope_put(gva_meta_data, "frame_number", elem);
+                if(ret != MSG_SUCCESS) {
+                    LOG_ERROR_0("Failed to put frame_number meta-data");
+                    delete frame;
+                    return GST_FLOW_ERROR;
+                }
+                LOG_DEBUG("Frame number: %d", ctx->m_frame_count);
 
                 // Adding image handle to frame
                 std::string randuuid = ctx->generate_image_handle(UUID_LENGTH);
@@ -477,7 +496,7 @@ GstreamerIngestor* ctx) {
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_Ingestor_entry");
                 // Profiling end
-                msg_envelope_elem_body_t* elem = msgbus_msg_envelope_new_string(randuuid.c_str());
+                elem = msgbus_msg_envelope_new_string(randuuid.c_str());
                 if (elem == NULL) {
                     delete frame;
                     throw "Failed to create image handle element";
@@ -497,9 +516,7 @@ GstreamerIngestor* ctx) {
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_exit");
                 // Profiling end
-#ifdef WITH_PROFILE
-                ctx->m_frame_count++;
-#endif
+
             }
         } else {
             LOG_ERROR_0("Failed to get GstBuffer");
