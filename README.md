@@ -211,17 +211,18 @@ GStreamer framework.
     
      * HDDL daemon needs to be started on the host m/c by following the steps in #Using video accelerators section in [../README.md](../README.md).
 
-    **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on HDDL device**:
+     **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on HDDL device**:
 
-    ```javascript
-    {
+     ```javascript
+     {
         "type": "gstreamer",
         "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect device=HDDL  model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
-    }
-    ```
+     }
+     ```
 
   ----
   **NOTE**:
+
   * Gstreamer Ingestor expects the image format to be in `BGR` format so the output image format should be in `BGR`
   
   * In case one notices the VideoIngestion not publishing any frames when working with GVA use case the `queue` element of Gstramer can be used to limit the     max size of the buffers and the upstreaming/downstreaming can be set to leak to drop the buffers
@@ -237,6 +238,22 @@ GStreamer framework.
   
     For more information reagarding the queue element refer the below link:
       https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-plugins/html/gstreamer-plugins-queue.html
+
+  * The gvaclassify element is typically inserted into pipeline after gvadetect and
+    executes inference on all objects detected by gvadetect with input on crop area
+    specified by GstVideoRegionOfInterestMeta. In case gvaclassify needs to be used
+    without gvadetect then one can use the `gvametaconvert` element (before gvaclassify
+    in the gstreamer pipleine) with converter `add-fullframe-roi` which will add a region
+    of interest covering the full frame.
+
+    **Example pipeline to use `gvametaconvert` element with gvaclassify**:
+    ```javascript
+    {
+    "type": "gstreamer",
+            "pipeline": "multifilesrc loop=TRUE location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvametaconvert converter=add-fullframe-roi ! gvaclassify model=models/age-gender-recognition-retail-0013/FP32/age-gender-recognition-retail-0013.xml model-proc=models/model_proc/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+    }
+    ```
+    Please note that the above pipeline is an example for the usage of `gvametaconvert` only and the models used are not provided as part of the repo.
 
   * In case of extended run with gstreamer ingestor one can consider the properties of `appsink` element such as `max-buffers` and `drop` to overcome issues like ingestion of frames getting blocked. The `appsink` element internally uses a queue to collect buffers from the streaming thread. The `max-buffers` property can be used to limit the queue size. The `drop` property is used to specify whether to block the streaming thread or to drop the old buffers when maximum size of queue is reached.
 
