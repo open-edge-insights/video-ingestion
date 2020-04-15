@@ -1,7 +1,7 @@
 version: '3.6'
 
 services:
-  ## Define VideoIngestion service
+## Define VideoIngestion service
   ia_video_ingestion:
     depends_on:
       - ia_openvino_base
@@ -14,7 +14,9 @@ services:
         EIS_USER_NAME: ${EIS_USER_NAME}
         # set CMAKE_BUILD_TYPE value to "Debug" to generate debug symbols
         CMAKE_BUILD_TYPE: "Release"
-    read_only: true
+        # TODO: Debug the issue of double quotes going off of "OFF"
+        # upon eis_builder.py generated docker-compose.yml file
+        # WITH_PROFILE: "OFF"
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EIS_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
@@ -24,7 +26,9 @@ services:
       AppName: "VideoIngestion"
       DEV_MODE: ${DEV_MODE}
       PROFILING_MODE: ${PROFILING_MODE}
-      no_proxy: ${no_proxy},${RTSP_CAMERA_IP}
+      no_proxy: ${eis_no_proxy},${RTSP_CAMERA_IP},${ETCD_HOST}
+      ETCD_HOST: ${ETCD_HOST}
+      ETCD_PREFIX: ${ETCD_PREFIX}
 
       # MessageBus Endpoint Configuration
       # Setting Visualizer as a subscriber here for FpsCalculator
@@ -42,11 +46,18 @@ services:
       camera1_stream_cfg: "zmq_ipc,${SOCKET_DIR}/"
     volumes:
       - "vol_eis_socket:${SOCKET_DIR}"
+      - "/dev:/dev"
       - "/var/tmp:/var/tmp"
+      - "/opt/Intel/OpenCL/Boards:/opt/Intel/OpenCL/Boards"
+      - "/opt/altera:/opt/altera"
+      - "/opt/intel/intelFPGA:/opt/intel/intelFPGA"
     privileged: true
     devices:
       - "/dev/dri"
+      # We are volume mounting the entire /dev filesystem here for the usecase
+      # of reading from multiple USB cameras
       - "/dev/:/dev/"
+      - "/dev/acla10_1150_sg10:/dev/acla10_1150_sg10"
     secrets:
       - ca_etcd
       - etcd_VideoIngestion_cert

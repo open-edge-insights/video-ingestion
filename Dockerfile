@@ -302,7 +302,7 @@ RUN apt-get remove -y wget && \
     apt-get remove -y curl && \
     apt-get autoremove -y
 
-COPY --from=common ${GO_WORK_DIR}/common/udfs/python ./common/udfs/python
+COPY --from=video_common ${GO_WORK_DIR}/common/udfs/python ./common/udfs/python
 
 ENV PYTHONPATH ${PYTHONPATH}:${GO_WORK_DIR}/common/udfs/python:${GO_WORK_DIR}/common/
 
