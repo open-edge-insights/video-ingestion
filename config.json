@@ -15,6 +15,7 @@
     "udfs": [{
         "name": "pcb.pcb_filter",
         "type": "python",
+        "scale_ratio": 4,
         "training_mode": "false",
         "n_total_px": 300000,
         "n_left_px": 1000,
