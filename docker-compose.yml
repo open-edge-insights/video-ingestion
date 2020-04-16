@@ -14,9 +14,7 @@ services:
         EIS_USER_NAME: ${EIS_USER_NAME}
         # set CMAKE_BUILD_TYPE value to "Debug" to generate debug symbols
         CMAKE_BUILD_TYPE: "Release"
-        # TODO: Debug the issue of double quotes going off of "OFF"
-        # upon eis_builder.py generated docker-compose.yml file
-        # WITH_PROFILE: "OFF"
+        WITH_PROFILE: "OFF"
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EIS_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
