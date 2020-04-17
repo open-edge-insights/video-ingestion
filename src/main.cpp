@@ -79,6 +79,14 @@ void get_config_mgr(){
         pub_cert_file = "/run/secrets/etcd_" + app_name + "_cert";
         pri_key_file = "/run/secrets/etcd_" + app_name + "_key";
         trust_file = "/run/secrets/ca_etcd";
+        char* confimgr_cert = getenv("CONFIGMGR_CERT");
+        char* confimgr_key = getenv("CONFIGMGR_KEY");
+        char* confimgr_cacert = getenv("CONFIGMGR_CACERT");
+        if(confimgr_cert && confimgr_key && confimgr_key) {
+            pub_cert_file = confimgr_cert;
+            pri_key_file = confimgr_key;
+            trust_file = confimgr_cacert;
+        }
     }
 
     g_config_mgr = config_mgr_new("etcd",
@@ -236,12 +244,11 @@ int main(int argc, char** argv) {
         // Get the configuration from the configuration manager
         char config_key[MAX_CONFIG_KEY_LENGTH];
         snprintf(config_key, MAX_CONFIG_KEY_LENGTH, "/%s/config", app_name.c_str());
-        
+
         // Validating config against schema
         if(!validate_config(config_key)) {
             return -1;
         }
-        
 
         g_vi_config = g_config_mgr->get_config(config_key);
         LOG_DEBUG("App config: %s", g_vi_config);
