@@ -236,10 +236,10 @@ gst_pylonsrc_class_init (GstPylonsrcClass * klass)
       g_param_spec_string  ("autoexposure", "Automatic exposure setting", "(off, once, continuous) Controls whether or not the camera will try to adjust the exposure settings. Setting this parameter to anything but \"off\" will override the exposure parameter. Running the plugin without specifying this parameter will reset the value stored on the camera to \"off\"", "off",
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
   g_object_class_install_property (gobject_class, PROP_EXPOSUREGIGE,
-      g_param_spec_int ("exposureGigE", "Exposure", "(Microseconds) Exposure time for the GIGE camera in microseconds. Will only have an effect if autoexposure is set to off (default). Higher numbers will cause lower frame rate. Note that the camera will remember this setting, and will use values from the previous runs if you relaunch without specifying this parameter. Reconnect the camera or use the reset parameter to reset.", 32, 1000000, 32,
+      g_param_spec_double ("exposureGigE", "Exposure", "(Microseconds) Exposure time for the GIGE camera in microseconds. Will only have an effect if autoexposure is set to off (default). Higher numbers will cause lower frame rate. Note that the camera will remember this setting, and will use values from the previous runs if you relaunch without specifying this parameter. Reconnect the camera or use the reset parameter to reset.", 0.0, 1000000.0, 500.0,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
           g_object_class_install_property (gobject_class, PROP_EXPOSUREUSB,
-      g_param_spec_double ("exposureUsb", "Exposure", "(Microseconds) Exposure time for the USB camera in microseconds. Will only have an effect if autoexposure is set to off (default). Higher numbers will cause lower frame rate. Note that the camera will remember this setting, and will use values from the previous runs if you relaunch without specifying this parameter. Reconnect the camera or use the reset parameter to reset.", 32.0, 1000000.0, 32.0,
+      g_param_spec_double ("exposureUsb", "Exposure", "(Microseconds) Exposure time for the USB camera in microseconds. Will only have an effect if autoexposure is set to off (default). Higher numbers will cause lower frame rate. Note that the camera will remember this setting, and will use values from the previous runs if you relaunch without specifying this parameter. Reconnect the camera or use the reset parameter to reset.", 0.0, 1000000.0, 500.0,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
   g_object_class_install_property (gobject_class, PROP_INTERPACKETDELAY,
       g_param_spec_int ("interpacketdelay", "Inter packet delay", "Setting delay in Milliseconds", 0, 840205, 1500,
@@ -469,8 +469,8 @@ gst_pylonsrc_init (GstPylonsrc *pylonsrc)
   pylonsrc->autoprofile = "default\0";
   pylonsrc->transformationselector = "default\0";
   pylonsrc->fps = 0.0;
-  pylonsrc->exposureGigE = 32;
-  pylonsrc->exposureUsb = 32;
+  pylonsrc->exposureGigE = 500.0;
+  pylonsrc->exposureUsb = 500.0;
   pylonsrc->gain = 0.0;
   pylonsrc->blacklevel = 0.0;
   pylonsrc->gamma = 1.0;
@@ -655,10 +655,10 @@ gst_pylonsrc_set_property (GObject * object, guint property_id,
       pylonsrc->fps = g_value_get_double(value);
       break;
     case PROP_EXPOSUREGIGE:
-      pylonsrc->exposureGigE = g_value_get_int(value);
+      pylonsrc->exposureGigE = g_value_get_double(value);
       break;
     case PROP_EXPOSUREUSB:
-      pylonsrc->exposureUsb = g_value_get_float(value);
+      pylonsrc->exposureUsb = g_value_get_double(value);
       break;
     case PROP_INTERPACKETDELAY:
       pylonsrc->interpacketdelay = g_value_get_int(value);
@@ -867,10 +867,10 @@ gst_pylonsrc_get_property (GObject * object, guint property_id,
       g_value_set_double(value, pylonsrc->fps);
       break;
     case PROP_EXPOSUREGIGE:
-      g_value_set_int(value, pylonsrc->exposureGigE);
+      g_value_set_double(value, pylonsrc->exposureGigE);
       break;
     case PROP_EXPOSUREUSB:
-      g_value_set_float(value, pylonsrc->exposureUsb);
+      g_value_set_double(value, pylonsrc->exposureUsb);
       break;
     case PROP_INTERPACKETDELAY:
       g_value_set_int(value, pylonsrc->interpacketdelay);
@@ -958,13 +958,13 @@ gst_pylonsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
 
     if(strncmp("bayer", pylonsrc->imageFormat, 5) == 0) {
       type = "video/x-bayer\0";
-      format = "bggr\0";
+      format = "rggb\0";
       if(pylonsrc->flipx && !pylonsrc->flipy) {
-        format = "gbrg\0";
-      } else if (!pylonsrc->flipx && pylonsrc->flipy) {
         format = "grbg\0";
+      } else if (!pylonsrc->flipx && pylonsrc->flipy) {
+        format = "gbrg\0";
       } else if (pylonsrc->flipx && pylonsrc->flipy){
-        format = "rggb\0";
+        format = "bggr\0";
       }
     } else {
       type = "video/x-raw\0";
@@ -1254,13 +1254,13 @@ gst_pylonsrc_start (GstBaseSrc * src)
     g_autoptr(GString) filter = g_string_new(NULL);
 
     if(!pylonsrc->flipx && !pylonsrc->flipy) {
-      g_string_printf(filter, "BG");
-    } else if(pylonsrc->flipx && !pylonsrc->flipy) {
-      g_string_printf(filter, "GB");
-    } else if(!pylonsrc->flipx && pylonsrc->flipy) {
-      g_string_printf(filter, "GR");
-    } else {
       g_string_printf(filter, "RG");
+    } else if(pylonsrc->flipx && !pylonsrc->flipy) {
+      g_string_printf(filter, "GR");
+    } else if(!pylonsrc->flipx && pylonsrc->flipy) {
+      g_string_printf(filter, "GB");
+    } else {
+      g_string_printf(filter, "BG");
     }
     g_string_printf(pixelFormat, "Bayer%s%s", filter->str, &pylonsrc->imageFormat[5]);
     g_string_printf(format, "EnumEntry_PixelFormat_%s", pixelFormat->str);
@@ -1885,8 +1885,8 @@ gst_pylonsrc_start (GstBaseSrc * src)
   // Configure exposure for GigE
   if(PylonDeviceFeatureIsAvailable(pylonsrc->deviceHandle, "ExposureTimeRaw")) {
     if(strcmp(pylonsrc->autoexposure, "off") == 0) {
-      if(pylonsrc->exposureGigE != 0) {
-        GST_MESSAGE_OBJECT(pylonsrc, "Setting exposureGigE to %ld", pylonsrc->exposureGigE);
+      if(pylonsrc->exposureGigE != 0.0) {
+        GST_MESSAGE_OBJECT(pylonsrc, "Setting exposureGigE to %lf", pylonsrc->exposureGigE);
         res = PylonDeviceSetIntegerFeature(pylonsrc->deviceHandle, "ExposureTimeRaw", pylonsrc->exposureGigE);
         PYLONC_CHECK_ERROR(pylonsrc, res);
       } else {
@@ -1903,7 +1903,7 @@ gst_pylonsrc_start (GstBaseSrc * src)
   if(PylonDeviceFeatureIsAvailable(pylonsrc->deviceHandle, "ExposureTime")) {
     if(strcmp(pylonsrc->autoexposure, "off") == 0) {
       if(pylonsrc->exposureUsb != 0.0) {
-        GST_MESSAGE_OBJECT(pylonsrc, "Setting exposureUsb to %ld", pylonsrc->exposureUsb);
+        GST_MESSAGE_OBJECT(pylonsrc, "Setting exposureUsb to %lf", pylonsrc->exposureUsb);
         res = PylonDeviceSetFloatFeature(pylonsrc->deviceHandle, "ExposureTime", pylonsrc->exposureUsb);
         PYLONC_CHECK_ERROR(pylonsrc, res);
       } else {
@@ -2176,7 +2176,7 @@ static GstFlowReturn gst_pylonsrc_create (GstPushSrc *src, GstBuffer **buf)
   GstMapInfo mapInfo;
 
 while(grabResult.Status != Grabbed){
-  if(pylonsrc->triggersource == "Software") {
+  if(strcmp(pylonsrc->triggersource, "Software") == 0) {
   // Wait for the buffer to be filled  (up to 5000 ms)
   res = PylonWaitObjectWait(pylonsrc->waitObject, 5000, &bufferReady);
   PYLONC_CHECK_ERROR(pylonsrc, res);
@@ -2342,10 +2342,8 @@ pylonc_connect_camera(GstPylonsrc* pylonsrc)
         for(i = 0; i < numDevices; i++){
             PylonDeviceInfo_t pDi;
             res = PylonGetDeviceInfo(i, &pDi);
-            res = PylonCreateDeviceByIndex(i, &pylonsrc->deviceHandle);
-            //GST_MESSAGE_OBJECT(pylonsrc, "Avalaible Camera Serial Number:%s", pDi.SerialNumber);
             if (strcmp(pDi.SerialNumber, pylonsrc->serial)==0){
-              //GST_MESSAGE_OBJECT(pylonsrc, "serial number matching");
+              res = PylonCreateDeviceByIndex(i, &pylonsrc->deviceHandle);
               res = PylonDeviceOpen(pylonsrc->deviceHandle, PYLONC_ACCESS_MODE_CONTROL | PYLONC_ACCESS_MODE_STREAM);
               PYLONC_CHECK_ERROR(pylonsrc,res);
               deviceConnected = TRUE;
