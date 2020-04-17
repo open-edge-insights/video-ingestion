@@ -205,10 +205,10 @@ GStreamer framework.
   * GVA elements can only be used with `gstreamer` ingestor
   * In case one needs to use CPU/GPU/HDDL device with GVA elements it
     can be set using the device property of gvadetect and gvaclassify elements.
-    By default the device property is set to CPU. 
-    
-    **NOTE**: 
-    
+    By default the device property is set to CPU.
+
+    **NOTE**:
+
      * HDDL daemon needs to be started on the host m/c by following the steps in #Using video accelerators section in [../README.md](../README.md).
 
      **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on HDDL device**:
@@ -224,7 +224,7 @@ GStreamer framework.
   **NOTE**:
 
   * Gstreamer Ingestor expects the image format to be in `BGR` format so the output image format should be in `BGR`
-  
+
   * In case one notices the VideoIngestion not publishing any frames when working with GVA use case the `queue` element of Gstramer can be used to limit the     max size of the buffers and the upstreaming/downstreaming can be set to leak to drop the buffers
 
     **Example pipeline to use the `queue` element**:
@@ -235,7 +235,7 @@ GStreamer framework.
       "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP_CAMERA_IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! queue max-size-buffers=10 leaky=downstream ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink",
     }
     ```
-  
+
     For more information reagarding the queue element refer the below link:
       https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-plugins/html/gstreamer-plugins-queue.html
 
@@ -352,7 +352,7 @@ GStreamer framework.
      "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 continuous=false triggersource=Line1 hwtriggertimeout=50000 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink",
     }
     ```
-  
+
   * `GVA - Gstreamer ingestor with GVA elements`
 
     ```javascript
@@ -360,11 +360,27 @@ GStreamer framework.
       "type": "gstreamer",
       "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc format=bgrx ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert !  video/x-raw,format=BGR ! appsink"
     }
-    ```    
+    ```
 
     ---
 
     **NOTE**:
+
+    * `Image Formats`
+
+    | Camera Model | Tested Image Formats |
+    |:------------:|:--------------------:|
+    | Basler acA1920-40gc | mono8<br>yuv422<br>bayer8 |
+
+    * In case one wants to use `bayer8` imageformat then `bayer2rgb` element needs to be used to covert raw bayer data to RGB. Refer the below pipeline.
+
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline": "pylonsrc imageformat=bayer8 exposureGigE=3250 interpacketdelay=1500 ! bayer2rgb ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+     ```
+
     * In case multiple Basler cameras are connected use serial parameter to
       specify the camera to be used in the gstreamer pipeline in the video
       config file for camera mode. If multiple cameras are connected and the
@@ -374,7 +390,12 @@ GStreamer framework.
       Eg: pipeline value to connect to basler camera with
       serial number 22573664:
 
-      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline": "pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
 
     * In case you want to enable resizing with basler camera use the
       vaapipostproc element and specify the height and width parameter in the
@@ -382,7 +403,12 @@ GStreamer framework.
 
       Eg: Example pipeline to enable resizing with basler camera
 
-      `"pipeline":"pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline": "pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
 
     * In case frame read is failing when multiple basler cameras are used, use
       the interpacketdelay property to increase the delay between the
@@ -392,20 +418,44 @@ GStreamer framework.
       Eg: pipeline value to increase the interpacket delay to 3000(default
       value for interpacket delay is 1500):
 
-      `"pipeline":"pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
 
-    * To work with monochrome Basler camera, please use `OpenCV` Ingestor and change the
-      image format to mono8 in the Pipeline.
+    * To work with monochrome Basler camera (or to use `mono8` imageformat), please use `opencv` Ingestor and change the
+      image format to mono8 in the pipeline.
 
       Eg:pipeline value to connect to monochrome basler camera with serial number 22773747 :
 
-      `"pipeline":"pylonsrc serial=22773747 imageformat=mono8 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"`
+      ```javascript
+      {
+       "type": "opencv",
+       "pipeline": "pylonsrc serial=22773747 imageformat=mono8 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"
+      }
+      ```
 
+    * In case one wants to use `gstreamer` ingestor with `mono8` pixel format or monochrome camera then change the image format to mono8 in the pipeline. Since `gstreamer` ingestor expects a `BGR` image format, a single channel GRAY8 format would be converted to 3 channel BGR format.
+
+     Example pipeline to use `mono8` imageformat or work with monochrome basler camera
+
+     ```javascript
+     {
+      "type": "gstreamer",
+      "pipeline": "pylonsrc imageformat=mono8 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=GRAY8 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+     }
+     ```
 
     * To work with USB Basler camera, please change the
       exposure parameter to exposureUsb in the Pipeline.
 
-      `"pipeline":"pylonsrc serial=22573650 imageformat=yuv422 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline":"pylonsrc serial=22573650 imageformat=yuv422 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
 
     ##### `Basler camera hardware triggering`
 
@@ -414,7 +464,7 @@ GStreamer framework.
     * With respect to hardware triggering if the camera supports it then an electrical signal can be applied to one of the camera's input lines which can act as a trigger signal.
 
     * In order to configure the camera for hardware triggering, trigger mode must be enabled and the right trigger source depending on the Hardware Setup must be specified.
-    
+
     * Trigger mode is enabled by setting the `continuous` property to `false` and based on the h/w setup, the right trigger source needs to be set for `triggersource` property
 
     ##### `Validated test setup for basler camera hardware triggering`
@@ -424,7 +474,7 @@ GStreamer framework.
     * In our test setup a python script was used to control a ModBus I/O module to generate a digital output to Opto-insulated input line(Line1) of the basler camera.
 
     * Please note that in order to test the hardware trigger functionality Basler `acA1920-40gc` camera model had been used.
-    **Note**: Other triggering capabilities with different camera models are not tested. 
+    **Note**: Other triggering capabilities with different camera models are not tested.
 
    ----
 
