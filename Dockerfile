@@ -193,8 +193,6 @@ RUN apt-get install -y \
     libavformat-dev \
     libswscale-dev
 
-RUN apt-get install -y gtk-doc-tools
-
 ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
 
 ENV PYTHONPATH ${PYTHONPATH}:.
@@ -209,33 +207,8 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     TERM="xterm" \
     GST_PLUGIN_PATH="/usr/local/lib/gstreamer-1.0" \
     GST_DEBUG="1" \
-    LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libxcb-dri3.so"
-
-# Installing GVA plugins
-ARG GVA_VERSION=v0.7.0
-RUN mkdir gva && \
-    cd gva && \
-    git clone https://github.com/opencv/gst-video-analytics.git && \
-    cd gst-video-analytics && \
-    git checkout ${GVA_VERSION}
-
-RUN apt-get update && apt install -y --no-install-recommends \
-       gcc \
-       mesa-utils \
-       ocl-icd-libopencl1 \
-       clinfo \
-       vainfo
-
-# Build GVA plugin
-RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
-      mkdir gva/gst-video-analytics/build && \
-      cd gva/gst-video-analytics/build && \
-      cmake .. && \
-      make -j$(nproc --ignore=2)"
-
-# Export environment variables
-ENV MODELS_PATH="${PY_WORK_DIR}/VideoIngestion/models/" \
-    GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"${PY_WORK_DIR}/gva/gst-video-analytics/build/intel64/Release/lib"
+    LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libxcb-dri3.so" \
+    MODELS_PATH=$MODELS_PATH:"${PY_WORK_DIR}/VideoIngestion/models/"
 
 # Installing dependent python modules - needed by opencv
 COPY vi_requirements.txt .
@@ -271,6 +244,7 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     make install"
 
 COPY --from=video_common ${GO_WORK_DIR}/common/udfs/native ./common/udfs/native
+
 # Build native UDF samples
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     cd ./common/udfs/native && \
