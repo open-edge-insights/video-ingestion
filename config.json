@@ -10,6 +10,9 @@
         "queue_size": 10,
         "poll_interval": 0.2
     },
+    "sw_trigger": {
+        "init_state": "running"
+    },
     "max_jobs": 20,
     "max_workers":4,
     "udfs": [{

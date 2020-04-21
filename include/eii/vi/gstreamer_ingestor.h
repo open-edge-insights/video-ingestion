@@ -52,6 +52,11 @@ namespace eis {
                 GMainLoop* m_loop;
                 int64_t m_frame_count;
 
+                /**
+                 * Gstreamer initialization function
+                 */
+                void gstreamer_init();
+
                 static GstFlowReturn new_sample(GstElement* sink, GstreamerIngestor* ctx);
 
             protected:

@@ -476,6 +476,19 @@ GStreamer framework.
     * Please note that in order to test the hardware trigger functionality Basler `acA1920-40gc` camera model had been used.
     **Note**: Other triggering capabilities with different camera models are not tested.
 
+  ##### Camera independent Software Trigger way of video ingestion
+
+  * Software triggering way of video ingestion is a solution which enables to control video ingestion from all types of cameras, any configuration (Gstreamer & Opencv) / video files.
+
+  * The regular way of video ingestion is autonomous i.e. as soon as the Video Ingestion micro-service is started the ingestion starts automatically using the video source (file/camera). There is no way to control the ingestion without stopping the ingestion micro-service itself. Software trigger
+  feature provides a mechanism to start & stop video ingestion using software triggers sent by the client application.
+
+  VideoIngestion micro-service exposes the functionality of software trigger in the following ways:
+
+  1) It can accept software trigger to "START_INGESTION"/ "STOP_INGESTION" from any client utility which uses the EIS messagebus over server-client model on a common agreed port number.
+
+  2) The software trigger functionality of VI is demonstrated using an sample baremetal utility called "SW_Trigger_utility", which is shipped with the VideoIngestion code in tools repo, the details of the usage of this utility is mentioned in the READMe.md of tools/sw_trigger_utility.
+
    ----
 
 * `RTSP Camera`
