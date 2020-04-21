@@ -109,8 +109,10 @@ namespace eis {
 		        // Underlying ingestion thread
                 std::thread* m_th;
 
-            protected:
+                // Flag indicating the ingestor thread (running run()) has started & is running;
+                std::atomic<bool> m_running;
 
+            protected:
                 // Flag for if the ingestor has been initialized
                 std::atomic<bool> m_initialized;
 
@@ -152,7 +154,6 @@ namespace eis {
                 std::string generate_image_handle(const int len);
 
             public:
-
                 /**
                  * Constructor
                  */

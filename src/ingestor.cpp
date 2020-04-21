@@ -46,30 +46,29 @@ Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_typ
         // Setting default poll interval
         // This will be over written with the sub class poll interval
         m_poll_interval = 0;
+        m_running.store(false);
         this->m_profile = new Profiling();
 }
 
 Ingestor::~Ingestor() {
     LOG_DEBUG_0("Ingestor destructor");
     if(m_initialized.load()) {
-        // Stop the thread (if it is running)
-        this->stop();
-
         // Delete the thread
         delete m_th;
-
         // Delete profiling variable
         delete m_profile;
     }
 }
 
 void Ingestor::run() {
+    // indicate that the run() function corresponding to the m_th thread has started
+    m_running.store(true);
     LOG_INFO_0("Ingestor thread running publishing on stream");
 
     Frame* frame = NULL;
 
     int64_t frame_count = 0;
-    while(!m_stop.load()) {
+    while (!m_stop.load()) {
         this->read(frame);
 
         // Adding image handle to frame
@@ -132,7 +131,6 @@ void Ingestor::run() {
         if(m_poll_interval > 0) {
             usleep(m_poll_interval * 1000 * 1000);
         }
-
     }
     if(frame != NULL)
         delete frame;
@@ -143,15 +141,22 @@ void Ingestor::stop() {
     if(m_initialized.load()) {
         if(!m_stop.load()) {
             m_stop.store(true);
-            m_th->join();
+            // wait for the ingestor thread function run() to finish its execution.
+            if(m_th != NULL) {
+                m_th->join();
+            }
         }
     }
+    // After its made sure that the Ingestor run() function has been stopped (as in m_th-> join() above), m_stop flag is reset
+    // so that the ingestor is ready for the next ingestion.
+    m_running.store(false);
+    m_stop.store(false);
 }
 
 IngestRetCode Ingestor::start() {
-    if(m_stop.load())
+    if (m_stop.load())
         return IngestRetCode::STOPPED;
-    else if(m_th != NULL)
+    else if (m_running.load())
         return IngestRetCode::ALREAD_RUNNING;
 
     m_th = new std::thread(&Ingestor::run, this);
@@ -169,7 +174,6 @@ Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const
     } else {
         throw("Unknown ingestor");
     }
-
     return ingestor;
 }
 

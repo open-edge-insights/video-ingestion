@@ -47,20 +47,11 @@ static config_mgr_t* g_config_mgr = NULL;
 static env_config_t* g_env_config_client = NULL;
 static std::atomic<bool> g_cfg_change;
 
-void get_config_mgr(){
+void get_config_mgr(std::string app_name){
     std::string pub_cert_file = "";
     std::string pri_key_file = "";
     std::string trust_file = "";
-    std::string app_name = "";
     std::string dev_mode_str = "";
-    
-    char* str_app_name = NULL;
-    str_app_name = getenv("AppName");
-    if(str_app_name == NULL) {
-        throw "\"AppName\" env not set";
-    } else {
-        app_name = str_app_name;
-    }
 
     char* str_dev_mode = NULL;
     str_dev_mode = getenv("DEV_MODE");
@@ -115,16 +106,16 @@ void signal_callback_handler(int signum){
     exit(0);
 }
 
-void vi_initialize(char* vi_config){
+void vi_initialize(char* vi_config, std::string app_name){
     if(g_vi){
         delete g_vi;
         g_vi = NULL;
     }
     if(!g_config_mgr){
-        get_config_mgr();
+        get_config_mgr(app_name);
     }
     g_env_config_client = env_config_new();
-    g_vi = new VideoIngestion(g_err_cv, g_env_config_client, vi_config, g_config_mgr);
+    g_vi = new VideoIngestion(app_name, g_err_cv, g_env_config_client, vi_config, g_config_mgr);
     g_vi->start();
 }
 
@@ -209,7 +200,18 @@ int main(int argc, char** argv) {
             usage(argv[0]);
             return -1;
         }
-        get_config_mgr();
+
+        // read app_name env variable
+        std::string app_name = "";
+        char* str_app_name = NULL;
+        str_app_name = getenv("AppName");
+        if(str_app_name == NULL) {
+            throw "\"AppName\" env not set";
+        } else {
+            app_name = str_app_name;
+        }
+
+        get_config_mgr(app_name);
 
         char* str_log_level = NULL;
         log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
@@ -232,15 +234,6 @@ int main(int argc, char** argv) {
 
         set_log_level(log_level);
 
-        std::string app_name = "";
-        char* str_app_name = NULL;
-        str_app_name = getenv("AppName");
-        if(str_app_name == NULL) {
-            throw "\"AppName\" env not set";
-        } else {
-            app_name = str_app_name;
-        }
-
         // Get the configuration from the configuration manager
         char config_key[MAX_CONFIG_KEY_LENGTH];
         snprintf(config_key, MAX_CONFIG_KEY_LENGTH, "/%s/config", app_name.c_str());
@@ -255,7 +248,8 @@ int main(int argc, char** argv) {
 
         LOG_DEBUG("Registering watch on config key: %s", config_key);
         g_config_mgr->register_watch_key(config_key, on_change_config_callback);
-        vi_initialize(g_vi_config);
+
+        vi_initialize(g_vi_config, app_name);
 
         std::mutex mtx;
 
@@ -263,7 +257,7 @@ int main(int argc, char** argv) {
             std::unique_lock<std::mutex> lk(mtx);
             g_err_cv.wait(lk);
             if(g_cfg_change.load()) {
-                vi_initialize(g_vi_config);
+                vi_initialize(g_vi_config, app_name);
                 g_cfg_change.store(false);
             } else {
                 break;

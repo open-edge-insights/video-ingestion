@@ -86,13 +86,24 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
     m_frame_count = 0;
 
     int argc = 1;
-    m_loop = NULL ;
-    m_gst_pipeline = NULL ;
+    m_loop = NULL;
+    m_gst_pipeline = NULL;
     m_sink = NULL;
-    gulong ret;
     char** argv = new char*[1];
     gst_init(&argc, &argv);
+}
 
+GstreamerIngestor::~GstreamerIngestor() {
+    if(m_gst_pipeline != NULL)
+        gst_object_unref(GST_OBJECT(m_gst_pipeline));
+    if(m_bus_watch_id != 0)
+        g_source_remove(m_bus_watch_id);
+    if(m_loop != NULL)
+        g_main_loop_unref(m_loop);
+    // TODO: What about the m_sink? TO BE VERIFIED...
+}
+
+void GstreamerIngestor::gstreamer_init() {
     // Initialize Glib loop
     m_loop = g_main_loop_new(NULL, FALSE);
     // TODO: Verify correctly initialized
@@ -106,28 +117,22 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
     m_sink = gst_bin_get_by_name(GST_BIN(m_gst_pipeline), "sink");
     // TODO: Check that the sink was correctly found
     g_object_set(m_sink, "emit-signals", TRUE, NULL);
-    ret = g_signal_connect(m_sink, "new-sample", G_CALLBACK(this->new_sample), this);
-    if (!ret){
-        LOG_ERROR_0("Connection to GCallback not successfull");
+    gulong ret = g_signal_connect(m_sink, "new-sample", G_CALLBACK(this->new_sample), this);
+    if (!ret) {
+        const char* err = "Connection to GCallback not successfull";
+        LOG_ERROR("%s", err);
+        throw err;
     }
     // Get the GST bus
     GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_gst_pipeline));
-    if (bus == NULL){
-    	LOG_ERROR_0("Failed to initialize GST bus");
+    if ( bus == NULL ) {
+        const char* err = "Failed to initialize GST bus";
+        LOG_ERROR("%s", err);
+        throw err;
     }
     m_bus_watch_id = gst_bus_add_watch(bus, bus_call, m_loop);
     gst_object_unref(bus);
     // TODO: Verify bus actions happened correctly
-}
-
-GstreamerIngestor::~GstreamerIngestor() {
-    if(m_gst_pipeline != NULL)
-        gst_object_unref(GST_OBJECT(m_gst_pipeline));
-    if(m_bus_watch_id != 0)
-        g_source_remove(m_bus_watch_id);
-    if(m_loop != NULL)
-        g_main_loop_unref(m_loop);
-    // TODO: What about the m_sink? TO BE VERIFIED...
 }
 
 void GstreamerIngestor::stop() {
@@ -144,7 +149,8 @@ void GstreamerIngestor::run() {
 #ifdef WITH_PROFILE
     auto start = std::chrono::system_clock::now();
 #endif
-
+    LOG_INFO_0("Initializing Gstreamer pipeline");
+    gstreamer_init();
     LOG_INFO_0("Gstreamer ingestor thread started");
     gst_element_set_state(m_gst_pipeline, GST_STATE_PLAYING);
     g_main_loop_run(m_loop);

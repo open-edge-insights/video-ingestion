@@ -42,6 +42,7 @@ services:
       # TPC: zmq_tcp, <publisher_host>:<publisher_port>
       PubTopics: "camera1_stream"
       camera1_stream_cfg: "zmq_ipc,${SOCKET_DIR}/"
+      Server: "zmq_tcp,127.0.0.1:66013"
     volumes:
       - "vol_eis_socket:${SOCKET_DIR}"
       - "/dev:/dev"
