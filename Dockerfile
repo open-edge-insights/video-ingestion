@@ -205,7 +205,6 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LD_RUN_PATH="/usr/lib" \
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
     TERM="xterm" \
-    GST_PLUGIN_PATH="/usr/local/lib/gstreamer-1.0" \
     GST_DEBUG="1" \
     LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libxcb-dri3.so" \
     MODELS_PATH=$MODELS_PATH:"${PY_WORK_DIR}/VideoIngestion/models/"
