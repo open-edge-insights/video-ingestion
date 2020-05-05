@@ -64,6 +64,23 @@
         }
       }
     },
+    "sw_trigger": {
+      "description": "Software Trigger feature",
+      "type": "object",
+      "required": [
+        "init_state"
+      ],
+      "properties": {
+        "init_state": {
+          "description": "Signifies the initial state of Video Ingestion service when the EIS pipeline is started",
+          "type": "string",
+          "enum": [
+              "running",
+              "stopped"
+            ]
+        }
+      }
+    },
     "max_jobs": {
       "description": "Number of queued UDF jobs",
       "type": "integer",
