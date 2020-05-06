@@ -43,9 +43,25 @@ using namespace eis::udf;
 Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
     m_th(NULL), m_initialized(false), m_stop(false),
     m_udf_input_queue(frame_queue),  m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
-        // Setting default poll interval
-        // This will be over written with the sub class poll interval
-        m_poll_interval = 0;
+
+        config_value_t* cvt_poll_interval = config->get_config_value(config->cfg, POLL_INTERVAL);
+        if(cvt_poll_interval != NULL) {
+            if(cvt_poll_interval->type != CVT_FLOATING && cvt_poll_interval->type != CVT_INTEGER) {
+                const char* err = "Poll interval must be a number";
+                LOG_ERROR("%s for \'%s\'", err, PIPELINE);
+                config_value_destroy(cvt_poll_interval);
+                throw(err);
+            } else {
+                if(cvt_poll_interval->type == CVT_FLOATING) {
+                    m_poll_interval = cvt_poll_interval->body.floating;
+                } else if(cvt_poll_interval->type == CVT_INTEGER) {
+                    m_poll_interval = (double)cvt_poll_interval->body.integer;
+                }
+            }
+            config_value_destroy(cvt_poll_interval);
+        }
+        LOG_INFO("Poll interval: %lf", m_poll_interval);
+
         m_running.store(false);
         this->m_profile = new Profiling();
 }

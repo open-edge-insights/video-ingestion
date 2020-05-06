@@ -71,18 +71,6 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
     LOG_INFO("Pipeline: %s", m_pipeline.c_str());
     config_value_destroy(cvt_pipeline);
 
-    config_value_t* cvt_poll_interval = config->get_config_value(
-            config->cfg, POLL_INTERVAL);
-    if(cvt_poll_interval != NULL) {
-        if(cvt_poll_interval->type != CVT_FLOATING) {
-            LOG_INFO_0("Poll interval must be a number");
-            config_value_destroy(cvt_poll_interval);
-        }
-        m_poll_interval = cvt_poll_interval->body.floating;
-        config_value_destroy(cvt_poll_interval);
-    }
-    LOG_INFO("Poll interval: %lf", m_poll_interval);
-
     m_frame_count = 0;
 
     int argc = 1;
