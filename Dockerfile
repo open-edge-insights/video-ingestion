@@ -89,9 +89,6 @@ RUN apt-get install -y \
     libgtk-3-dev \
     python-yaml
 
-# Build the gstreamer core
-ARG GST_VER=1.16.0
-ARG GST_REPO=https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-${GST_VER}.tar.xz
 
 RUN apt-get install -y libglib2.0-dev \
     gobject-introspection \
@@ -100,28 +97,11 @@ RUN apt-get install -y libglib2.0-dev \
     libpangocairo-1.0-0 \
     autopoint
 
-RUN wget -O - ${GST_REPO} | tar xJ && \
-    cd gstreamer-${GST_VER} && \
-    ./autogen.sh \
-    --prefix=/usr \
-    --libdir=/usr/lib/x86_64-linux-gnu \
-    --libexecdir=/usr/lib/x86_64-linux-gnu \
-    --enable-shared \
-    --enable-introspection \
-    --disable-examples  \
-    --disable-gtk-doc && \
-    make -j$(nproc --ignore=2) && \
-    make install DESTDIR=/home/build && \
-    make install;
-
 RUN apt-get install -y libxrandr-dev \
     libegl1-mesa-dev \
     bison \
     flex \
     libudev-dev
-
-# Build the gstreamer plugin base
-ARG GST_PLUGIN_BASE_REPO=https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-${GST_VER}.tar.xz
 
 RUN apt-get install -y libxv-dev \
     libvisual-0.4-dev \
@@ -132,61 +112,14 @@ RUN apt-get install -y libxv-dev \
     libgl1-mesa-dev \
     libpango1.0-dev
 
-RUN wget -O - ${GST_PLUGIN_BASE_REPO} | tar xJ && \
-    cd gst-plugins-base-${GST_VER} && \
-    ./autogen.sh \
-    --prefix=/usr \
-    --libdir=/usr/lib/x86_64-linux-gnu \
-    --libexecdir=/usr/lib/x86_64-linux-gnu \
-    --enable-introspection \
-    --enable-shared \
-    --disable-examples  \
-    --disable-gtk-doc && \
-    make -j$(nproc --ignore=2) && \
-    make install DESTDIR=/home/build && \
-    make install
-
-# Build the gstreamer plugin bad set
-ARG GST_PLUGIN_BAD_REPO=https://gstreamer.freedesktop.org/src/gst-plugins-bad/gst-plugins-bad-${GST_VER}.tar.xz
-
 RUN apt-get install -y libssl-dev
 
-RUN wget -O - ${GST_PLUGIN_BAD_REPO} | tar xJ && \
-    cd gst-plugins-bad-${GST_VER} && \
-    ./autogen.sh \
-    --prefix=/usr \
-    --libdir=/usr/lib/x86_64-linux-gnu \
-    --libexecdir=/usr/lib/x86_64-linux-gnu \
-    --enable-shared \
-    --disable-examples  \
-    --disable-gtk-doc && \
-    cd gst-libs/gst/codecparsers/ && make && make install DESTDIR=/home/build && make install && cd ../../../ \
-    cd gst/videoparsers && make && make install DESTDIR=/home/build && make install
-
-# Adding Gstreamer Plugin Installation Dependencies
 RUN apt-get -y install automake
 COPY basler-source-plugin ./basler-source-plugin
-COPY install_gstreamerplugins.sh .
-RUN chmod 777 install_gstreamerplugins.sh .
-RUN ./install_gstreamerplugins.sh ${EIS_UID} /EIS
+COPY install_basler_gstreamer_plugin.sh .
+RUN chmod +x install_basler_gstreamer_plugin.sh && \
+    ./install_basler_gstreamer_plugin.sh
 
-# Build gstreamer plugin vaapi
-ARG GST_PLUGIN_VAAPI_REPO=https://gstreamer.freedesktop.org/src/gstreamer-vaapi/gstreamer-vaapi-${GST_VER}.tar.xz
-
-RUN wget -O - ${GST_PLUGIN_VAAPI_REPO} | tar xJ && \
-    cd gstreamer-vaapi-${GST_VER} && \
-     ./autogen.sh \
-        --prefix=/usr \
-        --libdir=/usr/local/lib/gstreamer-1.0 \
-        --libexecdir=/usr/local/lib/gstreamer-1.0 \
-        --libdir=/usr/lib/x86_64-linux-gnu \
-        --libexecdir=/usr/lib/x86_64-linux-gnu \
-        --enable-shared \
-        --disable-examples \
-        --disable-gtk-doc  && \
-     make -j$(nproc --ignore=2) && \
-     make install DESTDIR=/home/build && \
-     make install
 
 RUN apt-get install -y \
     libavcodec-dev \
