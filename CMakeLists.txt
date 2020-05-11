@@ -61,6 +61,7 @@ find_package(EISMessageBus REQUIRED)
 find_package(UDFLoader REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(IntelSafeString REQUIRED)
+find_package(WJE REQUIRED)
 
 pkg_check_modules(GST REQUIRED
     gstreamer-1.0>=1.14
