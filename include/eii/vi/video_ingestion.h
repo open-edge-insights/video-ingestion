@@ -32,6 +32,7 @@
 #include <condition_variable>
 #include <eis/udf/frame.h>
 #include <string.h>
+#include <map>
 #include <eis/utils/config.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>
@@ -48,10 +49,16 @@ using namespace eis::udf;
 namespace eis {
     namespace vi {
         enum AckToClient {
-            REQ_HONORED,
-            REQ_NOT_HONORED,
-            REQ_ALREADY_RUNNING,
-            REQ_ALREADY_STOPPED
+            REQ_HONORED=0,
+            REQ_NOT_HONORED=1,
+            REQ_ALREADY_RUNNING=2,
+            REQ_ALREADY_STOPPED=3
+        };
+
+        enum CommandsList {
+            START_INGESTION,
+            STOP_INGESTION
+            // MORE COMMANDS TO BE ADDED BASED ON THE NEED
         };
 
         /**
@@ -98,42 +105,72 @@ namespace eis {
                 bool m_init_state_start;
 
                 // variable to store the current Ingestion_state i.e. if Ingestion is going on or stopped
-                bool m_ingestion_running;
+                std::atomic<bool> m_ingestion_running;
 
-                //  Thread to monitor the start/stop ingestion requests
-                // which run the "control_ingestion()" function
+                //  Thread to monitor the command requests
+                // which run the "command_handler()" function
                 std::thread *m_th_ingest_control;
 
-                // control_ingestion thread method responsible for controlling the ingestion
-                // based on the requests (Start/stop ingestion from clients)
-                void control_ingestion();
+                // command_handler thread method responsible for controlling the commands
+                // based on the requests from clients
+                void command_handler();
 
                 // Msgbus server related member variables
                 void* m_msgbus_ctx_server;
                 recv_ctx_t* m_service_ctx;
                 msg_envelope_t* m_msg;
-                //config_t* m_service_config;
 
                 // exit condition for sw trigger
                 std::atomic<bool> m_exit_sw_trigger_monitor;
 
-                // Receive sw trigger from Client to either Start/stop ingestion
-                std::string receive_sw_trigger();
+                // Map of Fuction pointers for the function specific to the Commanads with its key value
+                std::map<int, msg_envelope_elem_body_t *(VideoIngestion::*)(msg_envelope_elem_body_t *)> cmd_handler_map;
 
-                // Process SW trigger - ret value bool-
-                // true - STOP MONITORING not called.
-                // false - STOP MONITORING called.
-                AckToClient process_sw_trigger(std::string tr_msg);
+                /**
+		* Receive command payload from the client
+                * @param arg_payload -- Argument Payload object received (in the main payload) from client
+                * return value - return values payload JSON buffer to be returned back to the client
+                */
+                msg_envelope_elem_body_t* receive_command_payload(msg_envelope_t* msg);
 
-                // Acknowledge  back to client that SW trigger request has been honored/Not honored
-                bool ack_sw_trigger(AckToClient ack);
+                /**
+		* Process the start ingestion software trigger and control the ingestor
+                * @param arg_payload -- Argument Payload object received (in the main payload) from client
+                * return value - return values payload JSON buffer to be returned back to the client
+                */
+                msg_envelope_elem_body_t* process_start_ingestion(msg_envelope_elem_body_t *arg_payload);
+
+                /**
+		* Process the stop ingestion software trigger and control the ingestor
+                * @param arg_payload -- Main Payload object received from client
+                * return value - return values payload JSON buffer to be returned back to the client
+                */
+                msg_envelope_elem_body_t* process_stop_ingestion(msg_envelope_elem_body_t *arg_payload);
+
+                /**
+                * Process the sw trigger command sent from the client
+                * @param arg_payload -- Main Payload object received from client
+                * return value - return values payload JSON buffer to be returned back to the client
+                */
+		msg_envelope_elem_body_t* process_command(msg_envelope_elem_body_t *payload);
+
+                // Acknowledge about the response of teh command back to client
+                void ack_to_command(msg_envelope_elem_body_t *response_payload);
 
                 /**
                 * Initialize the msgbus server for sw trigger feature
-                @param env_config         - env config client
-                @param 
+                * @param env_config         - env config client
+                * @param h_config_mgr         - config manager object reference
                 */
-                void service_init(const env_config_t* env_config, const config_mgr_t* g_config_mgr);
+                void service_init(const env_config_t* env_config, const config_mgr_t* config_mgr);
+
+                /**
+                * Form the JSON reply buffer to be sent back to the client
+                * @param msg_envelope_elem_body_t : Object of the values to be returned back to client
+                * @param status_code : (integer) 0 - for success, non-zero for failure
+                * @param err_string   : (string) - error message
+                */
+                msg_envelope_elem_body_t* form_reply_payload(int status_code, std::string err, msg_envelope_elem_body_t* return_values);
 
             public:
 
@@ -148,7 +185,7 @@ namespace eis {
                 * @param env_config - Environmental configuration
                 * @param vi_config  - VideoIngestion/config
                 */
-                VideoIngestion(std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* g_config_mgr);
+                VideoIngestion(std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr);
 
                 // Destructor
                 ~VideoIngestion();

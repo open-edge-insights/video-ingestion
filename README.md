@@ -491,6 +491,36 @@ GStreamer framework.
 
   2) The software trigger functionality of VI is demonstrated using an sample baremetal utility called "SW_Trigger_utility", which is shipped with the VideoIngestion code in tools repo, the details of the usage of this utility is mentioned in the READMe.md of tools/sw_trigger_utility.
 
+  ##### Generic Server in VideoIngestion
+
+  * VI generic server responds back to the client with the return values specific to the command. There is a total flexibility in sending the number & type of arguments back to client which is totally dependent on the command.
+
+
+  * Example JSON format for incoming payload from client to server to initialize software trigger:
+  ```javascript
+  {
+    "init_state" : "running"
+  }
+  ```
+
+  Note: When the `init_state` value is `running` then ingestor is started without any sw trigger from the client. In order to control the ingestor using the sw trigger utility change the value to `stopped`. To refer the available option to generate the sw trigger refer [../../IEdgeInsights/tools/sw_trigger_utility/README.md](../../IEdgeInsights/tools/sw_trigger_utility/README.md)
+
+  * The supported commands in the VI Gerenic Server are:
+
+    1. START_INGESTION: to start the ingestor
+
+       Payload format:
+       {
+         "command" : "START_INGESTION"
+       }
+
+    2. STOP_INGESTION: to stop the ingestor
+
+       Payload format:
+       {
+        "command" : "STOP_INGESTION"
+       }
+
    ----
 
 * `RTSP Camera`
