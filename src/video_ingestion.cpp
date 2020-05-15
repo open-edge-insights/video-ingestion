@@ -34,6 +34,18 @@
 #define DEFAULT_QUEUE_SIZE 10
 #define PUB "pub"
 #define SW_TRIGGER "sw_trigger"
+#define COMMAND "command"
+#define ARGUMENTS "arguments"
+#define REPLY_PAYLOAD "reply_payload"
+#define STATUS_CODE "status_code"
+#define ERR "err"
+
+#define FREE_MSG_ENVELOPE(msg_env) { \
+    if(msg_env != NULL) { \
+        msgbus_msg_envelope_destroy(msg_env); \
+        msg_env = NULL; \
+    } \
+}
 
 using namespace eis::vi;
 using namespace eis::utils;
@@ -41,14 +53,14 @@ using namespace eis::msgbus;
 using namespace eis::udf;
 
 VideoIngestion::VideoIngestion(
-        std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* g_config_mgr) :
+        std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr) :
     m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0)
 {
     m_app_name = app_name;
 
     // Parse the configuration
     config_t* config = json_config_new_from_buffer(vi_config);
-    if(config == NULL) {
+    if (config == NULL) {
         const char* err = "Failed to initialize configuration object";
         LOG_ERROR("%s", err);
         throw(err);
@@ -61,13 +73,13 @@ VideoIngestion::VideoIngestion(
     } else {
         config_value_t* encoding_type_cvt = config_value_object_get(encoding_value,
                                                                     "type");
-        if( encoding_type_cvt == NULL ) {
+        if ( encoding_type_cvt == NULL ) {
             const char* err = "encoding \"type\" key missing";
             LOG_ERROR("%s", err);
             config_destroy(config);
             throw(err);
         }
-        if(encoding_type_cvt->type != CVT_STRING) {
+        if (encoding_type_cvt->type != CVT_STRING) {
             const char* err = "encoding \"type\" value has to be of string type";
             LOG_ERROR("%s", err);
             config_destroy(config);
@@ -75,23 +87,23 @@ VideoIngestion::VideoIngestion(
             throw(err);
         }
         char* enc_type = encoding_type_cvt->body.string;
-        if(strcmp(enc_type, "jpeg") == 0) {
+        if (strcmp(enc_type, "jpeg") == 0) {
             m_enc_type = EncodeType::JPEG;
             LOG_DEBUG_0("Encoding type is jpeg");
-        } else if(strcmp(enc_type, "png") == 0) {
+        } else if (strcmp(enc_type, "png") == 0) {
             m_enc_type = EncodeType::PNG;
             LOG_DEBUG_0("Encoding type is png");
         }
 
         config_value_t* encoding_level_cvt = config_value_object_get(encoding_value,
                                                                     "level");
-        if(encoding_level_cvt == NULL) {
+        if (encoding_level_cvt == NULL) {
             const char* err = "encoding \"level\" key missing";
             LOG_ERROR("%s", err);
             config_destroy(config);
             throw(err);
         }
-        if(encoding_level_cvt->type != CVT_INTEGER) {
+        if (encoding_level_cvt->type != CVT_INTEGER) {
             const char* err = "encoding \"level\" value has to be of string type";
             LOG_ERROR("%s", err);
             config_destroy(config);
@@ -104,20 +116,20 @@ VideoIngestion::VideoIngestion(
 
     config_value_t* ingestor_value = config->get_config_value(config->cfg,
                                                               "ingestor");
-    if(ingestor_value == NULL) {
+    if (ingestor_value == NULL) {
         const char* err = "\"ingestor\" key is missing";
         LOG_ERROR("%s", err);
         throw(err);
     }
     config_value_t* ingestor_type_cvt = config_value_object_get(ingestor_value,
                                                                 "type");
-    if(ingestor_type_cvt == NULL) {
+    if (ingestor_type_cvt == NULL) {
         const char* err = "\"type\" key missing";
         LOG_ERROR("%s", err);
         config_destroy(config);
         throw(err);
     }
-    if(ingestor_type_cvt->type != CVT_STRING) {
+    if (ingestor_type_cvt->type != CVT_STRING) {
         const char* err = "\"type\" value has to be of string type";
         LOG_ERROR("%s", err);
         config_destroy(config);
@@ -130,11 +142,11 @@ VideoIngestion::VideoIngestion(
     config_value_t* ingestor_queue_cvt = config_value_object_get(ingestor_value,
                                                                     "queue_size");
     size_t queue_size = DEFAULT_QUEUE_SIZE;
-    if(ingestor_queue_cvt == NULL) {
+    if (ingestor_queue_cvt == NULL) {
         LOG_INFO("\"queue_size\" key missing, so using default queue size: \
                     %ld", queue_size);
     } else {
-        if(ingestor_queue_cvt->type != CVT_INTEGER) {
+        if (ingestor_queue_cvt->type != CVT_INTEGER) {
             const char* err = "\"queue_size\" value has to be of integer type";
             LOG_ERROR("%s", err);
             config_destroy(config);
@@ -183,10 +195,10 @@ VideoIngestion::VideoIngestion(
 
         // Ingestion is not going ON by default when VideoIngestion constructor is called. Even if init_state=start, the ingestion
         // will start when start() is called
-        m_ingestion_running = false;
+        m_ingestion_running.store(false);
 
         // Initialize the msgbus server for sw trigger feature
-        service_init(env_config, g_config_mgr);
+        service_init(env_config, config_mgr);
 
         // initialize the exit conditiopn for ingestion monitor to false
         m_exit_sw_trigger_monitor.store(false);
@@ -197,7 +209,7 @@ VideoIngestion::VideoIngestion(
 
     config_value_t* udf_value = config->get_config_value(config->cfg,
                                                             "udfs");
-    if(udf_value == NULL) {
+    if (udf_value == NULL) {
         LOG_INFO("\"udfs\" key doesn't exist, so udf output queue is same as \
                 udf input queue!!")
         m_udf_output_queue = m_udf_input_queue;
@@ -213,7 +225,7 @@ VideoIngestion::VideoIngestion(
     char** pub_topics = env_config->get_topics_from_env(PUB);
     size_t num_of_pub_topics = env_config->get_topics_count(pub_topics);
 
-    if(num_of_pub_topics != 1){
+    if (num_of_pub_topics != 1){
         const char* err = "Only one topic is supported. Neither more, nor less";
         LOG_ERROR("%s", err);
         config_destroy(config);
@@ -222,8 +234,8 @@ VideoIngestion::VideoIngestion(
 
     LOG_DEBUG_0("Successfully read PubTopics env value...");
 
-    config_t* pub_config = env_config->get_messagebus_config(g_config_mgr, pub_topics, num_of_pub_topics, PUB);
-    if(pub_config == NULL) {
+    config_t* pub_config = env_config->get_messagebus_config(config_mgr, pub_topics, num_of_pub_topics, PUB);
+    if (pub_config == NULL) {
         const char* err = "Failed to get publisher message bus config";
         LOG_ERROR("%s", err);
         config_destroy(config);
@@ -243,11 +255,11 @@ VideoIngestion::VideoIngestion(
     config_value_destroy(udf_value);
 }
 
-void VideoIngestion::service_init(const env_config_t* env_config, const config_mgr_t* g_config_mgr) {
+void VideoIngestion::service_init(const env_config_t* env_config, const config_mgr_t* config_mgr) {
     // Server related env_config msgbus initializations
     char* c_app_name = const_cast<char*>(m_app_name.c_str());
     char* app_name_arr[] = {c_app_name};
-    config_t* service_config = env_config->get_messagebus_config(g_config_mgr, app_name_arr, 1, "server");
+    config_t* service_config = env_config->get_messagebus_config(config_mgr, app_name_arr, 1, "server");
     if (service_config == NULL) {
         const char* err = "Failed to get server message bus config";
         LOG_ERROR("%s", err);
@@ -277,143 +289,217 @@ void VideoIngestion::service_init(const env_config_t* env_config, const config_m
     config_destroy(service_config);
 }
 
-std::string VideoIngestion::receive_sw_trigger() {
+msg_envelope_elem_body_t* VideoIngestion::receive_command_payload(msg_envelope_t* msg) {
     msgbus_ret_t ret;
-    msg_envelope_t* msg = NULL;
     ret = msgbus_recv_wait(m_msgbus_ctx_server, m_service_ctx, &msg);
     if (ret != MSG_SUCCESS) {
         const char* err = "";
         // Interrupt is an acceptable error
         if (ret == MSG_ERR_EINTR) {
-            err = "MSG_ERR_EINTR received, hence failed to receive software trigger ";
+            err = "MSG_ERR_EINTR received, hence failed to receive command payload";
         }
-        err = "failed to receive software trigger ";
+        err = "Failed to receive command payload";
         throw err;
     }
 
-    msg_envelope_elem_body_t* sw_trig_env;
-    ret = msgbus_msg_envelope_get(msg, SW_TRIGGER, &sw_trig_env);
+    msg_envelope_elem_body_t* payload_body;
+    ret = msgbus_msg_envelope_get(msg, COMMAND, &payload_body);
     if (ret != MSG_SUCCESS) {
-        const char* err = "Failed to receive sw_trigger";
+        const char* err = "Failed to receive payload";
         LOG_ERROR("%s", err);
         throw(err);
     }
-    if (MSG_ENV_DT_STRING != sw_trig_env->type) {
-        const char* err = "sw_trigger received has a wrong data type";
-        LOG_ERROR("%s", err);
-        throw(err);
-    }
-    std::string received_msg = std::string(sw_trig_env->body.string);
 
-    LOG_INFO("Received software trigger message on server side is %s", received_msg.c_str());
-    // clean up:
-    if(msg != NULL) {
-        msgbus_msg_envelope_destroy(msg);
-        msg = NULL;
-    }
-    return received_msg;
+    return payload_body;
 }
 
-
-AckToClient VideoIngestion::process_sw_trigger(std::string tr_msg) {
+msg_envelope_elem_body_t* VideoIngestion::process_start_ingestion(msg_envelope_elem_body_t *arg_payload) {
     try {
-        // Map the received msg into the right enum
-        if (!tr_msg.compare("START_INGESTION")) {
             LOG_INFO_0("START INGESTION request received from client");
 
-            // If Ingestion thread is already running (i.e. if ingestion is going on) then don't propogate
-            // another duplicate sw_trigger to do START_INGESTION if the client app by mistake sends another software trigger
-            if (m_ingestion_running) {
-                // Request is not honored because, ingestion is running currently & still a duplicate sw trigger for START_INGESTION is sent by client again
-                return REQ_ALREADY_RUNNING;
+            if (m_ingestion_running.load()) {
+                std::string err = "Ingestion already running";
+                return form_reply_payload((int)REQ_ALREADY_STOPPED, err, NULL);
             }
 
             IngestRetCode ret = m_ingestor->start();
             if (ret != IngestRetCode::SUCCESS) {
                 LOG_ERROR("Failed to start ingestor thread: %d",ret);
-                return REQ_NOT_HONORED;
+                std::string err = "Failed to start ingestor thread";
+                return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
             } else {
                 LOG_INFO("Ingestor thread started...");
-                m_ingestion_running = true;
+                m_ingestion_running.store(true);
                 // acknowledging back to client that ingestion has actually started
-                return REQ_HONORED;
+                return form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
             }
+    } catch(std::exception& ex) {
+        std::string err = "exception occurred request not honored";
+        LOG_ERROR("%s %s", ex.what(), err);
+        return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
+    }
+}
 
-        } else if (!tr_msg.compare("STOP_INGESTION")) {
+msg_envelope_elem_body_t* VideoIngestion::form_reply_payload(int status_code, std::string err, msg_envelope_elem_body_t *return_values) {
+    msg_envelope_elem_body_t* reply_payload_obj = msgbus_msg_envelope_new_object();
+    if (reply_payload_obj == NULL) {
+        const char* er = "Error creating the message envelope object";
+        LOG_ERROR("%s", er);
+        throw(er);
+    }
+    // wrap status code in envelope format
+    msg_envelope_elem_body_t* env_status_code = msgbus_msg_envelope_new_integer(status_code);
+    if (env_status_code == NULL) {
+        const char* er = "Error creating message envelope integer";
+        LOG_ERROR("%s", er);
+        throw(er);
+    }
+
+    msgbus_ret_t ret = msgbus_msg_envelope_elem_object_put(reply_payload_obj, STATUS_CODE, env_status_code);
+    if (ret != MSG_SUCCESS) {
+        const char* er = "Error in puting status code into json buffer";
+        LOG_ERROR("%s", er);
+        throw(er);
+    }
+
+    // wrap error value in envelope format
+    if (err.empty()) {
+        msg_envelope_elem_body_t* env_err = msgbus_msg_envelope_new_string(err.c_str());
+        ret = msgbus_msg_envelope_elem_object_put(reply_payload_obj, ERR, env_err);
+        if (ret != MSG_SUCCESS) {
+            const char* er = "Error in puting reply_payload_object into json buffer";
+            LOG_ERROR("%s", er);
+            throw(er);
+        }
+    }
+
+    // wrap the bool in envelope format - if any more return values need to be sent bck to client specific to the command
+    if (return_values != NULL) {
+        if (ret != MSG_SUCCESS) {
+            const char* er = "Error in puting reply_payload_object into json buffer";
+            LOG_ERROR("%s", er);
+            throw(er);
+        }
+
+        // NOTE: The set of return values will be specific to the command & will be sent by the command specific handler
+        ret = msgbus_msg_envelope_elem_object_put(reply_payload_obj, "return_values", return_values);
+        if (ret != MSG_SUCCESS) {
+            const char* er = "Error in puting return_values into json buffer";
+            LOG_ERROR("%s", er);
+            throw(er);
+        }
+    }
+
+    return reply_payload_obj;
+}
+
+msg_envelope_elem_body_t* VideoIngestion::process_stop_ingestion(msg_envelope_elem_body_t *arg_payload) {
+    try {
             LOG_INFO_0("STOP INGESTION request received from client");
 
-            // If Ingestion thread is already stopped (i.e. if ingestion is NOT going on) then don't propogate
-            // another duplicate sw_trigger to do STOP_INGESTION if the client app by mistake sends another software trigger
-            if (!m_ingestion_running) {
-            // Request is not honored because, ingestion not running currently & still a duplicate sw trigger for STOP_INGESTION is sent by client again
-                return REQ_ALREADY_STOPPED;
+            if (!m_ingestion_running.load()) {
+                // form a JSON reply buffer
+                std::string err = "Ingestion already stopped";
+                return form_reply_payload((int)REQ_ALREADY_STOPPED, err, NULL);
             }
             // stop the ingestor
             if (m_ingestor) {
                 m_ingestor->stop();
             }
 
-            m_ingestion_running = false;
-            return REQ_HONORED;
-        } else {
-            LOG_ERROR("INVALID MESSAGE RECEIVED: %s",tr_msg);
-            return REQ_NOT_HONORED;
-        }
+            m_ingestion_running.store(false);
+
+            // form a JSON reply buffer
+            return form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
     } catch(std::exception& ex) {
-        LOG_INFO("exception %s occurred during processIng SW trigger, so requested won't be honored", ex.what());
-        return REQ_NOT_HONORED;
+        std::string err = "exception occurred request not honored";
+        LOG_ERROR("%s %s", ex.what(),err);
+        return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
     }
 }
 
-bool VideoIngestion::ack_sw_trigger(AckToClient ack) {
-    std::string rep_msg = "";
-    if (ack == REQ_HONORED) {
-        rep_msg = "REQUEST_HONORED";
-    } else if (ack == REQ_ALREADY_RUNNING) {
-        rep_msg = "REQUEST_ALREADY_RUNNING";
-    } else if (ack == REQ_ALREADY_STOPPED) {
-        rep_msg = "REQUEST_ALREADY_STOPPED";
-    } else {
-        rep_msg = "REQUEST_NOT_HONORED";
+msg_envelope_elem_body_t* VideoIngestion::process_command(msg_envelope_elem_body_t *payload_body) {
+    try {
+            // store the command name in a string
+            std::string command_name_str = std::string(payload_body->body.string);
+            LOG_INFO("Received command request on the VI server side is %s", command_name_str.c_str());
+
+            msg_envelope_elem_body_t* args_obj = NULL;
+            args_obj = msgbus_msg_envelope_elem_object_get(payload_body, "arguments");
+            if(args_obj == NULL) {
+                const char* err = "JSON payload doesn't contain arguments";
+                LOG_INFO("%s", err);
+            }
+
+            CommandsList cmnd;
+            if (!command_name_str.compare("START_INGESTION")) {
+                cmnd = START_INGESTION;
+            } else if (!command_name_str.compare("STOP_INGESTION")) {
+                cmnd = STOP_INGESTION;
+            }
+
+            msg_envelope_elem_body_t *final_reply_payload;
+
+            final_reply_payload = (this->*cmd_handler_map.find((int)cmnd)->second)(args_obj);
+
+            return final_reply_payload;
+    } catch(std::exception& ex) {
+        std::string err = "exception occurred request not honored";
+        LOG_ERROR("%s %s", ex.what(), err);
+        return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
     }
-    int ret = 0;
-    msg_envelope_elem_body_t* reply = msgbus_msg_envelope_new_string(rep_msg.c_str());
+}
+
+void VideoIngestion::ack_to_command(msg_envelope_elem_body_t *response_payload) {
     msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
-    ret = msgbus_msg_envelope_put(msg, "ack_for_sw_trigger", reply);
+    msgbus_ret_t ret = msgbus_msg_envelope_put(msg, REPLY_PAYLOAD, response_payload);
     if (ret != MSG_SUCCESS) {
         const char* err = "Failed to put the message into message envelope";
-        LOG_ERROR("%s", err)
+        LOG_ERROR("%s", err);
+        FREE_MSG_ENVELOPE(msg);
         throw err;
     }
+
     ret = msgbus_response(m_msgbus_ctx_server, m_service_ctx, msg);
     if (ret != MSG_SUCCESS) {
-        const char* err = "Failed to send ACK for Software trigger  from server back to client";
-        LOG_ERROR("%s", err)
+        const char* err = "Failed to send ACK from server back to client";
+        LOG_ERROR("%s", err);
+        FREE_MSG_ENVELOPE(msg);
         throw err;
     }
     // clean up:
-    if (msg != NULL) {
-        msgbus_msg_envelope_destroy(msg);
-        msg = NULL;
-    }
-    return true;
+    FREE_MSG_ENVELOPE(msg);
 }
 
-void VideoIngestion::control_ingestion() {
+
+
+void VideoIngestion::command_handler() {
     try {
+        // Add the Command_handler functions to the map with the key value
+        cmd_handler_map.insert({START_INGESTION, &VideoIngestion::process_start_ingestion});
+        cmd_handler_map.insert({STOP_INGESTION, &VideoIngestion::process_stop_ingestion});
+
+        // SUPPORT_MORE_COMMANDS: for new commands a new command handler function needs to be defined & its address assigned as below example
+        // cmd_handler_map.insert({key, function pointer});
         do {
-            // STep1: Receive the software trigger from client
-            std::string recv_msg = receive_sw_trigger();  // specific to msgbus api calls
+            msg_envelope_t* outer_msg_env = NULL;
 
-            // Step2: Process the SW trigger i.e start/stop ingestion & store result if client ask was honored or not
-            AckToClient trg_result = process_sw_trigger(recv_msg);
+            // Step1: Receive the Command payload from client
+            msg_envelope_elem_body_t *arg_payload = receive_command_payload(outer_msg_env);  // specific to msgbus api calls
 
-            // Step3: Send the ACK back to client telling req-honored or not
-            ack_sw_trigger(trg_result);
+            // Step2: Process the command  & do command specific action
+            msg_envelope_elem_body_t *reply_payload = process_command(arg_payload);
+
+            // Step3: Send the ACK back to client twith return status & values
+            ack_to_command(reply_payload);
+
+            // Free the msgEnvelope
+            FREE_MSG_ENVELOPE(outer_msg_env);
         } while (!(m_exit_sw_trigger_monitor.load()));
     } catch (std::exception &ex) {
-        LOG_INFO("Exception :: %s in the control_ingestion thread.", ex.what());
-        ack_sw_trigger(REQ_NOT_HONORED);
+        LOG_ERROR("Exception :: %s in the command_handler thread.", ex.what());
+        msg_envelope_elem_body_t *rep = form_reply_payload(REQ_NOT_HONORED, NULL, NULL);
+        ack_to_command(rep);
     }
 }
 
@@ -428,8 +514,8 @@ void VideoIngestion::start() {
     }
 
     if (m_sw_trgr_en) {
-        // if SW trigger is enabled then start this "control_ingestion thread which will keep monitoring for client sw trigger requests"
-        m_th_ingest_control = new std::thread(&VideoIngestion::control_ingestion, this);
+        // if SW trigger is enabled then start this "command_handler thread which will keep monitoring for client sw trigger requests"
+        m_th_ingest_control = new std::thread(&VideoIngestion::command_handler, this);
     }
 
     // if SW trigger is disabled OR (if sw trigger is enabled && init_state = start) then start ingestion
@@ -439,7 +525,7 @@ void VideoIngestion::start() {
             LOG_ERROR_0("Failed to start ingestor thread");
         } else {
             LOG_INFO("Ingestor thread started...");
-            m_ingestion_running = (m_sw_trgr_en) ? true : false;
+            m_ingestion_running.store((m_sw_trgr_en) ? true : false);
         }
     }
     m_th_ingest_control->join();
