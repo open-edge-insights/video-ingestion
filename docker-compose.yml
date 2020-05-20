@@ -30,7 +30,7 @@ services:
 
       # MessageBus Endpoint Configuration
       # Setting Visualizer as a subscriber here for FpsCalculator
-      Clients: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLS_RemoteAgent"
+      Clients: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLSRemoteAgent"
       CertType: "zmq"
       ZMQ_RECV_HWM: "1000"
 
