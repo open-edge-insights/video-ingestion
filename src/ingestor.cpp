@@ -30,6 +30,7 @@
 #include <string.h>
 #include <algorithm>
 #include <eis/utils/logger.h>
+#include <eis/utils/thread_safe_queue.h>
 #include "eis/vi/ingestor.h"
 #include "eis/vi/opencv_ingestor.h"
 #include "eis/vi/gstreamer_ingestor.h"
@@ -137,7 +138,15 @@ void Ingestor::run() {
         // Set encding type and level
         frame->set_encoding(m_enc_type, m_enc_lvl);
 
-        m_udf_input_queue->push_wait(frame);
+        QueueRetCode ret_queue = m_udf_input_queue->push(frame);
+        if(ret_queue == QueueRetCode::QUEUE_FULL) {
+            if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
+                LOG_ERROR_0("Failed to enqueue message, "
+                            "message dropped");
+            }
+            // Add timestamp which acts as a marker if queue if blocked
+            DO_PROFILING(this->m_profile, meta_data, "frame_blocked_ingestor_ts");
+        }
 
         // Profiling start
         DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_exit")
