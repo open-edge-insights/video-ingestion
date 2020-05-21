@@ -33,6 +33,7 @@
 #include "eis/vi/gstreamer_ingestor.h"
 #include "eis/vi/gva_roi_meta.h"
 #include <eis/udf/frame.h>
+#include <eis/utils/thread_safe_queue.h>
 #include <sstream>
 #include <fstream>
 #include <random>
@@ -504,8 +505,18 @@ GstreamerIngestor* ctx) {
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_entry");
                 // Profiling end
+                
                 frame->set_encoding(g_enc_type, g_enc_lvl);
-                ctx->m_udf_input_queue->push_wait(frame);
+
+                QueueRetCode ret_queue = ctx->m_udf_input_queue->push(frame);
+                if(ret_queue == QueueRetCode::QUEUE_FULL) {
+                    if(ctx->m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
+                        LOG_ERROR_0("Failed to enqueue message, "
+                                    "message dropped");
+                    }
+                    // Add timestamp which acts as a marker if queue if blocked
+                    DO_PROFILING(ctx->m_profile, meta_data, "frame_blocked_ingestor_ts");
+                }
 
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_exit");

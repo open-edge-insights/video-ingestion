@@ -215,7 +215,7 @@ VideoIngestion::VideoIngestion(
         m_udf_output_queue = m_udf_input_queue;
     } else {
         m_udf_output_queue = new FrameQueue(queue_size);
-        m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue,
+        m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue, m_app_name,
                                         m_enc_type, m_enc_lvl);
     }
 
@@ -245,7 +245,7 @@ VideoIngestion::VideoIngestion(
 
 
     m_publisher = new Publisher(
-            pub_config, m_err_cv, pub_topics[0], (MessageQueue*) m_udf_output_queue);
+            pub_config, m_err_cv, pub_topics[0], (MessageQueue*) m_udf_output_queue, m_app_name);
     free(pub_topics);
 
     config_destroy(config);
