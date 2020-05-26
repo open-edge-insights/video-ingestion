@@ -319,7 +319,7 @@ msg_envelope_elem_body_t* VideoIngestion::process_start_ingestion(msg_envelope_e
 
             if (m_ingestion_running.load()) {
                 std::string err = "Ingestion already running";
-                return form_reply_payload((int)REQ_ALREADY_STOPPED, err, NULL);
+                return form_reply_payload((int)REQ_ALREADY_RUNNING, err, NULL);
             }
 
             IngestRetCode ret = m_ingestor->start();
