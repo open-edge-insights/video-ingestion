@@ -33,7 +33,7 @@ services:
       # Setting Visualizer as a subscriber here for FpsCalculator
       Clients: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLSRemoteAgent"
       CertType: "zmq"
-      ZMQ_RECV_HWM: "1000"
+      ZMQ_RECV_HWM: "50"
 
       # Use IPC mode (zmq_ipc) when VideoIngestion and VideoAnalytics based
       # containers are running on the same host. If they are running on diff
