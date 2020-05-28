@@ -181,6 +181,8 @@ Below is the JSON schema for app's config:
 }
 ```
 
+**Note**: `poll_interval` key is not applicable for `gstreamer` ingestor. Refer the usage of `videorate` element in the below section to control the framerate in case of `gstreamer` ingestor.
+
 One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for
 validating the app configuration against the above schema.
 
@@ -237,7 +239,7 @@ GStreamer framework.
     ```
 
     For more information reagarding the queue element refer the below link:
-      https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-plugins/html/gstreamer-plugins-queue.html
+    https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-plugins/html/gstreamer-plugins-queue.html
 
   * The gvaclassify element is typically inserted into pipeline after gvadetect and
     executes inference on all objects detected by gvadetect with input on crop area
@@ -266,7 +268,23 @@ GStreamer framework.
     ```
 
     **Note**:  The usage of `max-buffers` and `drop` properties are helpful when the camera should not be disconnected in case of slow downstream processing of buffers.
-  ---
+
+  * In case one wants to reduce the ingestion rate with `gstreamer` ingestor the `videorate` element can be used to control the framerate in the gstreamer pipeline.
+
+  ** Example pipeline to use the `videorate` element **:
+  ```javascript
+   {
+      "type": "gstreamer",
+      "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! videorate ! video/x-raw,framerate=5/1 ! appsink"
+   }
+  ```
+
+  **Note**: In the above example after the stream is decoded and the color space conversion is done the framerate is adjusted to 5 FPS (The incoming stream framerate is 20 which is adjusted to 5 FPS). The correction in framerate is performed by dropping the frames in case the framerate is adjusted to a lower ethan the input stream. In case the framerate is adjusted to a higher FPS compared to the input stream then frames will be duplicated.
+
+   For more information on `videorate` element refer the below link:
+   https://gstreamer.freedesktop.org/documentation/videorate/index.html?gi-language=c
+
+----
 
 #### `Camera Configuration`
 
@@ -321,23 +339,6 @@ GStreamer framework.
 
 * `Basler Camera`
 
-  * `OpenCV Ingestor`
-
-      ```javascript
-      {
-        "type": "opencv",
-        "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 ! videoconvert ! appsink"
-      }
-      ```
-    * Hardware trigger based ingestion with opencv ingestor :
-
-     ```javascript
-     {
-      "type": "opencv",
-      "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=6000 continuous=false triggersource=Line1 hwtriggertimeout=50000 ! videoconvert ! appsink"
-     }
-     ```
-
   * `Gstreamer Ingestor`
 
       ```javascript
@@ -383,63 +384,7 @@ GStreamer framework.
       }
      ```
 
-    * In case multiple Basler cameras are connected use serial parameter to
-      specify the camera to be used in the gstreamer pipeline in the video
-      config file for camera mode. If multiple cameras are connected and the
-      serial parameter is not specified then the source plugin by default
-      connects to camera with device_index=0.
-
-      Eg: pipeline value to connect to basler camera with
-      serial number 22573664:
-
-      ```javascript
-      {
-       "type": "gstreamer",
-       "pipeline": "pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
-      }
-      ```
-
-    * In case you want to enable resizing with basler camera use the
-      vaapipostproc element and specify the height and width parameter in the
-      gstreamer pipeline.
-
-      Eg: Example pipeline to enable resizing with basler camera
-
-      ```javascript
-      {
-       "type": "gstreamer",
-       "pipeline": "pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"
-      }
-      ```
-
-    * In case frame read is failing when multiple basler cameras are used, use
-      the interpacketdelay property to increase the delay between the
-      transmission of each packet for the selected stream channel.
-      Depending on the number of cameras, use an appropriate delay can be set.
-
-      Eg: pipeline value to increase the interpacket delay to 3000(default
-      value for interpacket delay is 1500):
-
-      ```javascript
-      {
-       "type": "gstreamer",
-       "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
-      }
-      ```
-
-    * To work with monochrome Basler camera (or to use `mono8` imageformat), please use `opencv` Ingestor and change the
-      image format to mono8 in the pipeline.
-
-      Eg:pipeline value to connect to monochrome basler camera with serial number 22773747 :
-
-      ```javascript
-      {
-       "type": "opencv",
-       "pipeline": "pylonsrc serial=22773747 imageformat=mono8 exposureGigE=3250 interpacketdelay=1500 ! videoconvert ! appsink"
-      }
-      ```
-
-    * In case one wants to use `gstreamer` ingestor with `mono8` pixel format or monochrome camera then change the image format to mono8 in the pipeline. Since `gstreamer` ingestor expects a `BGR` image format, a single channel GRAY8 format would be converted to 3 channel BGR format.
+    * In case one wants to use `mono8` image format or wants to work with monochrome camera then change the image format to mono8 in the pipeline. Since `gstreamer` ingestor expects a `BGR` image format, a single channel GRAY8 format would be converted to 3 channel BGR format.
 
      Example pipeline to use `mono8` imageformat or work with monochrome basler camera
 
@@ -450,16 +395,61 @@ GStreamer framework.
      }
      ```
 
-    * To work with USB Basler camera, please change the
-      exposure parameter to exposureUsb in the Pipeline.
+    * In case one wants to enable resizing with basler camera `vaapipostproc` element can be used to specify the height and width parameter in the gstreamer pipeline.
+
+      **Example pipeline to enable resizing  the frame to `600x600` with basler camera:**
 
       ```javascript
       {
        "type": "gstreamer",
-       "pipeline":"pylonsrc serial=22573650 imageformat=yuv422 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+       "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+     * In case one wants to divert the colour space conversion to `GPU` for basler camera `vaapipostproc` can be used. This can be useful when the CPU% is maxing out due to the input ingestion stream.
+
+      **Example pipeline to perform color space conversion from `YUY2 to BGRx` in GPU with `vaapipostproc` with basler camera:**
+
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
 
-    ##### `Basler camera hardware triggering`
+
+    * In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file for camera mode. If multiple cameras are connected and the serial parameter is not specified then the source plugin by default
+connects to camera with device_index=0.
+
+      **Example pipeline to connect to basler camera with serial number 22573664:**
+
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline": "pylonsrc serial=22573664 imageformat=yuv422 exposureGigE=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+    * In case frame read is failing when multiple basler cameras are used, use the interpacketdelay property to increase the delay between the
+transmission of each packet for the selected stream channel. Depending on the number of cameras, use an appropriate delay can be set.
+
+      **Example pipeline value to increase the interpacket delay to 3000(default value for interpacket delay is 1500 which can be overridden by setting the required delay in the gstreamer pipeline):**
+
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline": "pylonsrc imageformat=yuv422 exposureGigE=3250 interpacketdelay=3000 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+    * To work with USB Basler camera, please change the exposure parameter to exposureUsb in the Pipeline.
+
+      ```javascript
+      {
+       "type": "gstreamer",
+       "pipeline":"pylonsrc imageformat=yuv422 exposureUsb=3250 interpacketdelay=1500 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+
+    ##### Basler camera hardware triggering
 
     * If the camera is configured for triggered image acquisition, one can trigger image captures at particular points in time.
 
@@ -469,13 +459,14 @@ GStreamer framework.
 
     * Trigger mode is enabled by setting the `continuous` property to `false` and based on the h/w setup, the right trigger source needs to be set for `triggersource` property
 
-    ##### `Validated test setup for basler camera hardware triggering`
+    ##### Validated test setup for basler camera hardware triggering
 
     * In case of trigger mode the maximum time to wait for the hardware trigger to get generated can be set (in milliseconds) using the ` hwtriggertimeout` property.
 
     * In our test setup a python script was used to control a ModBus I/O module to generate a digital output to Opto-insulated input line(Line1) of the basler camera.
 
-    * Please note that in order to test the hardware trigger functionality Basler `acA1920-40gc` camera model had been used.
+    * For testing the hardware trigger functionality Basler `acA1920-40gc` camera model had been used.
+
     **Note**: Other triggering capabilities with different camera models are not tested.
 
   ##### Camera independent Software Trigger way of video ingestion
@@ -489,7 +480,7 @@ GStreamer framework.
 
   1) It can accept software trigger to "START_INGESTION"/ "STOP_INGESTION" from any client utility which uses the EIS messagebus over server-client model on a common agreed port number.
 
-  2) The software trigger functionality of VI is demonstrated using an sample baremetal utility called "SW_Trigger_utility", which is shipped with the VideoIngestion code in tools repo, the details of the usage of this utility is mentioned in the READMe.md of tools/sw_trigger_utility.
+  2) The software trigger functionality of VI is demonstrated using an sample baremetal utility called "SW_Trigger_utility", which is shipped with the VideoIngestion code in tools repo, the details of the usage of this utility is mentioned in [../tools/SWTriggerUtility/README.md](../tools/SWTriggerUtility/README.md).
 
   ##### Generic Server in VideoIngestion
 
@@ -503,7 +494,7 @@ GStreamer framework.
   }
   ```
 
-  Note: When the `init_state` value is `running` then ingestor is started without any sw trigger from the client. In order to control the ingestor using the sw trigger utility change the value to `stopped`. To refer the available option to generate the sw trigger refer [../../IEdgeInsights/tools/sw_trigger_utility/README.md](../../IEdgeInsights/tools/sw_trigger_utility/README.md)
+  Note: When the `init_state` value is `running` then ingestor is started without any sw trigger from the client. In order to control the ingestor using the sw trigger utility change the value to `stopped`. To refer the available option to generate the sw trigger refer [../tools/SWTriggerUtility/README.md](../tools/SWTriggerUtility/README.md)
 
   * The supported commands in the VI Gerenic Server are:
 
