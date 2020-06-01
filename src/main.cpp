@@ -113,6 +113,10 @@ void vi_initialize(char* vi_config, std::string app_name){
     }
     if(!g_config_mgr){
         get_config_mgr(app_name);
+        if(!g_config_mgr) {
+            const char* err = "config-mgr object creation failed.";
+            throw(err);
+        }
     }
     g_env_config_client = env_config_new();
     g_vi = new VideoIngestion(app_name, g_err_cv, g_env_config_client, vi_config, g_config_mgr);
@@ -267,6 +271,9 @@ int main(int argc, char** argv) {
         clean_up();
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
+        clean_up();
+    } catch(const char *err) {
+        LOG_ERROR("Exception occurred: %s", err);
         clean_up();
     }
     return -1;
