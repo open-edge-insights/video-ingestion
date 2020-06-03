@@ -1,0 +1,44 @@
+{
+    "Module" : {
+        "Name": "VideoIngestion",
+        "Description": "Video Ingestion module manifest",
+        "SchemaVersion": "0.2",
+        "ManifestFile": "${idx:videoingestion:$EIS_VERSION}",
+        "Resources": {
+            "CPU": 4000,
+            "MemoryMB": 2000
+        },
+        "Networks": [
+            "cslhostnetworkinterface"
+        ],
+        "ExecutionEnv": {
+            "AppName": "VideoIngestion",
+            "ETCD_ENDPOINT": "${datastore.endpoint}",
+            "CONFIGMGR_CACERT": "${databucket.cacert}",
+            "CONFIGMGR_CERT": "${databucket.cert}",
+            "CONFIGMGR_KEY": "${databucket.key}",
+            "ETCD_PREFIX": "$ETCD_PREFIX",
+            "DEV_MODE": "$DEV_MODE",
+            "Clients": "VideoAnalytics,WebVisualizer",
+            "PROFILING_MODE": "false",
+            "ZMQ_RECV_HWM": "50",
+            "PubTopics": "camera1_stream",
+            "camera1_stream_cfg": "zmq_tcp,0.0.0.0:${ep.output-vi.localport}",
+            "Server": "zmq_tcp,0.0.0.0:${ep.output-vi-sw-tr.localport}"
+        },
+        "Endpoints": [
+            {
+                "Name": "output-vi-sw-tr",
+                "Endtype": "server",
+                "DataType": "messages",
+                "Link": "vi-sw-tr"
+            },
+            {
+                "Name": "output-vi",
+                "Endtype": "server",
+                "DataType": "messages",
+                "Link": "vi-va-link"
+            }
+        ]
+    }
+}
