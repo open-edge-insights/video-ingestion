@@ -252,7 +252,7 @@ GStreamer framework.
     ```javascript
     {
     "type": "gstreamer",
-            "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvametaconvert converter=add-fullframe-roi ! gvaclassify model=models/age-gender-recognition-retail-0013/FP32/age-gender-recognition-retail-0013.xml model-proc=models/model_proc/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
+            "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/Safety_Full_Hat_and_Vest.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvametaconvert converter=add-fullframe-roi ! gvaclassify model=models/age-gender-recognition-retail-0013/FP32/age-gender-recognition-retail-0013.xml model-proc=models/model_proc/age-gender-recognition-retail-0013.json ! gvawatermark ! appsink"
     }
     ```
     Please note that the above pipeline is an example for the usage of `gvametaconvert` only and the models used are not provided as part of the repo.
@@ -309,31 +309,27 @@ GStreamer framework.
           "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+    ---
 
       **NOTE**:
       * In case one does not want to loop the video with multifilesrc element then set the `loop` property to `FALSE`
       * In case one wants to play the video for specific number of iterations set the `loop` property to `FALSE` and `stop-index` property to the number of iteration starting with 0 which would play it once. Setting the `loop` property to `TRUE` will override the `stop-index` property.
-      * If `./test_videos/Safety_Full_Hat_and_Vest.mp4` video file is used in
-        above configuration, then use the pipeline value in the above config as
-        below (basically, we don't need `h264parse` with this video file):
-        `"pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+      * The `loop` property of `multifilesrc` plugin does not support video files of MP4 format. Hence MP4 video files will not loop and the recommendation is to transcode the video file to AVI format.
 
+    ---
 
   * `GVA - Gstreamer ingestor with GVA elements`
 
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/Safety_Full_Hat_and_Vest.mp4 ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
+        "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/Safety_Full_Hat_and_Vest.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
       }
 
     ---
 
     **NOTE**:
-    * Use video `./test_videos/Safety_Full_Hat_and_Vest.mp4` in the pipeline
-      for safety gear demo
-    * Looping of videos is not happening when `./test_videos/Safety_Full_Hat_and_Vest.mp4`
-      video is used in the gstreamer pipeline with multifilesrc plugin.
+    * Use `./test_videos/Safety_Full_Hat_and_Vest.avi` video file for safety gear demo use case.
 
     ---
 
