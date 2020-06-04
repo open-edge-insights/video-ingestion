@@ -18,7 +18,7 @@ The high level logical flow of VideoIngestion pipeline is as below:
    ingested frames). With chaining of UDFs supported, one can also have
    classifier UDFs and any post-processing UDFs like resize etc., configured in
    `udfs` key to get the classified results. One can refer
-   [UDFs README](../common/udfs/README.md) for more details.
+   [../common/video/udfs/README.md](../common/video/udfs/README.md) for more details.
 4. App gets the msgbus endpoint configuration from system environment and
    based on the configuration, app publishes the data on the mentioned topic
    on EIS MessageBus.
@@ -47,7 +47,7 @@ overhead of VA(VideoAnalytics) service.
 
 * The `max_jobs`, `max_workers` and `udfs` are configuration keys related to udfs.
   For more details on udf configuration, please visit
-  [../common/udfs/README.md](../common/udfs/README.md)
+  [../common/video/udfs/README.md](../common/video/udfs/README.md)
 * For details on Etcd and MessageBus endpoint configuration, visit
   [Etcd_Secrets_and_MsgBus_Endpoint_Configuration](../Etcd_Secrets_and_MsgBus_Endpoint_Configuration.md).
 
