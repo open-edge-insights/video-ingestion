@@ -108,6 +108,7 @@ COPY --from=common ${GO_WORK_DIR}/common/util ${GO_WORK_DIR}/common/util
 COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python3.6/dist-packages
 
 ARG CMAKE_BUILD_TYPE
+ARG RUN_TESTS
 
 COPY --from=video_common ${GO_WORK_DIR}/common/UDFLoader ./common/libs/UDFLoader
 COPY --from=video_common ${GO_WORK_DIR}/common/udfs ./common/udfs
@@ -118,7 +119,13 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
     rm -rf build && \
     mkdir build && \
     cd build && \
-    cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
+    cmake -DWITH_TESTS=${RUN_TESTS} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
+    make && \
+    if [ "${RUN_TESTS}" = "ON" ] ; then cd ./tests && \
+    source ./source.sh && \
+    ./frame-tests && \
+    ./udfloader-tests && \
+    cd .. ; fi && \
     make install"
 
 COPY --from=video_common ${GO_WORK_DIR}/common/udfs/native ./common/udfs/native
