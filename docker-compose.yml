@@ -36,6 +36,7 @@ services:
         CMAKE_BUILD_TYPE: "Release"
         WITH_PROFILE: "OFF"
         DOCKER_REGISTRY: ${DOCKER_REGISTRY}
+        RUN_TESTS: "OFF"
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EIS_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
