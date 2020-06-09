@@ -112,6 +112,9 @@ namespace eis {
                 // Flag indicating the ingestor thread (running run()) has started & is running;
                 std::atomic<bool> m_running;
 
+                // Caller's AppName
+                std::string m_service_name;
+
             protected:
                 // Flag for if the ingestor has been initialized
                 std::atomic<bool> m_initialized;
@@ -121,6 +124,9 @@ namespace eis {
 
                 // UDF input queue
                 FrameQueue* m_udf_input_queue;
+
+                // Queue blocked variable
+                std::string m_ingestor_block_key;
 
                 // Encoding details
                 EncodeType m_enc_type;
@@ -157,7 +163,7 @@ namespace eis {
                 /**
                  * Constructor
                  */
-                Ingestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type, int enc_lvl);
+                Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl);
 
                 /**
                  * Destructor
@@ -175,7 +181,7 @@ namespace eis {
                 virtual void stop();
         };
 
-        Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type, EncodeType enc_type, int enc_lvl);
+        Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type, std::string service_name, EncodeType enc_type, int enc_lvl);
 
     } // vi
 } // eis

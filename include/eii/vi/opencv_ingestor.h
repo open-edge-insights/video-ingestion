@@ -68,7 +68,7 @@ namespace eis {
             /**
              * Constructor
              */
-            OpenCvIngestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type, int enc_lvl);
+            OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl);
 
             /**
              * Destructor

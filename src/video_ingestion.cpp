@@ -220,7 +220,7 @@ VideoIngestion::VideoIngestion(
     }
 
     // Get ingestor
-    m_ingestor = get_ingestor(m_ingestor_cfg, m_udf_input_queue, m_ingestor_type.c_str(), m_enc_type, m_enc_lvl);
+    m_ingestor = get_ingestor(m_ingestor_cfg, m_udf_input_queue, m_ingestor_type.c_str(), m_app_name, m_enc_type, m_enc_lvl);
 
     char** pub_topics = env_config->get_topics_from_env(PUB);
     size_t num_of_pub_topics = env_config->get_topics_count(pub_topics);

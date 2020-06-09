@@ -41,10 +41,11 @@ using namespace eis::vi;
 using namespace eis::utils;
 using namespace eis::udf;
 
-Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
+Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
     m_th(NULL), m_initialized(false), m_stop(false),
-    m_udf_input_queue(frame_queue),  m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
+    m_udf_input_queue(frame_queue), m_service_name(service_name),  m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
 
+        m_ingestor_block_key = m_service_name + "_ingestor_blocked_ts";
         config_value_t* cvt_poll_interval = config->get_config_value(config->cfg, POLL_INTERVAL);
         if(cvt_poll_interval != NULL) {
             if(cvt_poll_interval->type != CVT_FLOATING && cvt_poll_interval->type != CVT_INTEGER) {
@@ -145,7 +146,7 @@ void Ingestor::run() {
                             "message dropped");
             }
             // Add timestamp which acts as a marker if queue if blocked
-            DO_PROFILING(this->m_profile, meta_data, "frame_blocked_ingestor_ts");
+            DO_PROFILING(this->m_profile, meta_data, m_ingestor_block_key.c_str());
         }
 
         // Profiling start
@@ -189,13 +190,13 @@ IngestRetCode Ingestor::start() {
     return IngestRetCode::SUCCESS;
 }
 
-Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, EncodeType enc_type, int enc_lvl) {
+Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, std::string service_name, EncodeType enc_type, int enc_lvl) {
     Ingestor* ingestor = NULL;
     // Create the ingestor object based on the type specified in the config
     if(!strcmp(type, "opencv")) {
-        ingestor = new OpenCvIngestor(config, frame_queue, enc_type, enc_lvl);
+        ingestor = new OpenCvIngestor(config, frame_queue, service_name, enc_type, enc_lvl);
     } else if(!strcmp(type, "gstreamer")) {
-        ingestor = new GstreamerIngestor(config, frame_queue, enc_type, enc_lvl);
+        ingestor = new GstreamerIngestor(config, frame_queue, service_name, enc_type, enc_lvl);
     } else {
         throw("Unknown ingestor");
     }
