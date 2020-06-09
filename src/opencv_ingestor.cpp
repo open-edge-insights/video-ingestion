@@ -41,8 +41,8 @@ using namespace eis::udf;
 #define RESIZE   "resize"
 #define LOOP_VIDEO "loop_video"
 
-OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type, int enc_lvl):
-    Ingestor(config, frame_queue, enc_type, enc_lvl) {
+OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl):
+    Ingestor(config, frame_queue, service_name, enc_type, enc_lvl) {
     m_resize = false;
     m_width = 0;
     m_height = 0;

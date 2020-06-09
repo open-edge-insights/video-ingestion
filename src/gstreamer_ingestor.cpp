@@ -51,8 +51,8 @@ static int g_enc_lvl;
 // Prototypes
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data);
 
-GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, EncodeType enc_type, int enc_lvl):
-    Ingestor(config, frame_queue, enc_type, enc_lvl) {
+GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl):
+    Ingestor(config, frame_queue, service_name, enc_type, enc_lvl) {
     g_enc_type = enc_type;
     g_enc_lvl = enc_lvl;
 
@@ -515,7 +515,7 @@ GstreamerIngestor* ctx) {
                                     "message dropped");
                     }
                     // Add timestamp which acts as a marker if queue if blocked
-                    DO_PROFILING(ctx->m_profile, meta_data, "frame_blocked_ingestor_ts");
+                    DO_PROFILING(ctx->m_profile, meta_data, ctx->m_ingestor_block_key.c_str());
                 }
 
                 // Profiling start
