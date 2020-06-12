@@ -1,5 +1,5 @@
 {
-    "Module" : {
+    "Module": {
         "Name": "VideoIngestion",
         "Description": "Video Ingestion module manifest",
         "SchemaVersion": "0.2",
@@ -8,9 +8,6 @@
             "CPU": 4000,
             "MemoryMB": 2000
         },
-        "Networks": [
-            "cslhostnetworkinterface"
-        ],
         "ExecutionEnv": {
             "AppName": "VideoIngestion",
             "ETCD_ENDPOINT": "${datastore.endpoint}",
