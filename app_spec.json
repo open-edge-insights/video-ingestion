@@ -16,7 +16,7 @@
             "CONFIGMGR_KEY": "${databucket.key}",
             "ETCD_PREFIX": "$ETCD_PREFIX",
             "DEV_MODE": "$DEV_MODE",
-            "Clients": "VideoAnalytics,WebVisualizer",
+            "Clients": "VideoAnalytics",
             "PROFILING_MODE": "false",
             "ZMQ_RECV_HWM": "50",
             "PubTopics": "camera1_stream",
