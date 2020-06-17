@@ -74,11 +74,13 @@ services:
       - "/opt/intel/intelFPGA:/opt/intel/intelFPGA"
     privileged: true
     devices:
-      - "/dev/dri"
-      # We are volume mounting the entire /dev filesystem here for the usecase
-      # of reading from multiple USB cameras
+      # Following devices under /dev filesystem will be needed based on usecase
+      # dri - GPU
+      # ion - VPU
+      # acla10_1150_sg20 - FPGA
+      # USB camera devices
+      # Selective mount can be done for deployment       
       - "/dev/:/dev/"
-      - "/dev/acla10_1150_sg10:/dev/acla10_1150_sg10"
     secrets:
       - ca_etcd
       - etcd_VideoIngestion_cert

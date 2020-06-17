@@ -102,16 +102,30 @@
         ],
         "properties": {
           "name": {
+	    "description": "Unique UDF name",
             "type": "string",
             "pattern": "^(.*)$"
           },
           "type": {
+	    "description": "UDF type",
             "type": "string",
             "enum": [
               "native",
               "python"
             ]
-          }
+          },
+	  "device": {
+             "description": "Device on which inference occurs",
+             "type": "string",
+             "enum": [
+               "CPU",
+               "GPU",
+               "HDDL",
+               "MYRIAD",
+               "HETERO:FPGA,CPU",
+               "HETERO:FPGA,GPU"
+            ]
+          } 
         }
       }
     }
