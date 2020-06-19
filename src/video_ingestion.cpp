@@ -528,7 +528,9 @@ void VideoIngestion::start() {
             m_ingestion_running.store((m_sw_trgr_en) ? true : false);
         }
     }
-    m_th_ingest_control->join();
+    if (m_sw_trgr_en) {
+        m_th_ingest_control->join();
+    }
 }
 
 void VideoIngestion::stop() {
