@@ -20,7 +20,7 @@
             "PROFILING_MODE": "false",
             "ZMQ_RECV_HWM": "50",
             "PubTopics": "camera1_stream",
-            "camera1_stream_cfg": "zmq_ipc,${ep.outputsocket-vi.mountpath}",
+            "camera1_stream_cfg": "zmq_tcp,0.0.0.0:${ep.output-vi.localport}",
             "Server": "zmq_tcp,0.0.0.0:${ep.output-vi-sw-tr.localport}"
         },
         "Endpoints": [
@@ -31,10 +31,9 @@
                 "Link": "vi-sw-tr"
             },
             {
-                "Name": "outputsocket-vi",
-                "Endtype": "socket",
-                "DataType": "ZeroMQ/UNIX",
-                "MountPath": "/eissockets",
+                "Name": "output-vi",
+                "Endtype": "server",
+                "DataType": "messages",
                 "Link": "vi-va-link"
             }
         ]
