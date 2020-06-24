@@ -38,20 +38,25 @@
 #define MAX_CONFIG_KEY_LENGTH 40
 
 using namespace eis::vi;
+using namespace eis::ch;
 using namespace eis::utils;
 
+static CommandHandler* g_ch = NULL;
 static VideoIngestion* g_vi = NULL;
 static char* g_vi_config = NULL;
 static std::condition_variable g_err_cv;
 static config_mgr_t* g_config_mgr = NULL;
 static env_config_t* g_env_config_client = NULL;
 static std::atomic<bool> g_cfg_change;
+static char* server_config = NULL;
 
 void get_config_mgr(std::string app_name){
     std::string pub_cert_file = "";
     std::string pri_key_file = "";
     std::string trust_file = "";
     std::string dev_mode_str = "";
+
+    server_config = getenv("Server");
 
     char* str_dev_mode = NULL;
     str_dev_mode = getenv("DEV_MODE");
@@ -107,10 +112,16 @@ void signal_callback_handler(int signum){
 }
 
 void vi_initialize(char* vi_config, std::string app_name){
+    if (g_ch) {
+        delete g_ch;
+        g_ch = NULL;
+    }
+
     if(g_vi){
         delete g_vi;
         g_vi = NULL;
     }
+
     if(!g_config_mgr){
         get_config_mgr(app_name);
         if(!g_config_mgr) {
@@ -119,7 +130,22 @@ void vi_initialize(char* vi_config, std::string app_name){
         }
     }
     g_env_config_client = env_config_new();
-    g_vi = new VideoIngestion(app_name, g_err_cv, g_env_config_client, vi_config, g_config_mgr);
+    
+    if (server_config != NULL) {
+        try {
+            g_ch = new CommandHandler(app_name, g_env_config_client, g_config_mgr);
+        } catch(const char *err) {
+            LOG_ERROR("Exception occurred : %s", err);
+            if (g_ch) {
+                delete g_ch;
+                g_ch = NULL;
+            }
+        }
+    } else {
+        LOG_WARN_0("Server Config not present and hence Command Handler is not instantiated");
+    }
+
+    g_vi = new VideoIngestion(app_name, g_err_cv, g_env_config_client, vi_config, g_config_mgr, g_ch);
     g_vi->start();
 }
 
@@ -145,6 +171,10 @@ void on_change_config_callback(char* key, char* vi_config){
 }
 
 void clean_up(){
+    if(g_ch) {
+        delete g_ch;
+    }
+
     if(g_vi) {
         delete g_vi;
     }

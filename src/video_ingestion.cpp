@@ -34,18 +34,7 @@
 #define DEFAULT_QUEUE_SIZE 10
 #define PUB "pub"
 #define SW_TRIGGER "sw_trigger"
-#define COMMAND "command"
 #define ARGUMENTS "arguments"
-#define REPLY_PAYLOAD "reply_payload"
-#define STATUS_CODE "status_code"
-#define ERR "err"
-
-#define FREE_MSG_ENVELOPE(msg_env) { \
-    if(msg_env != NULL) { \
-        msgbus_msg_envelope_destroy(msg_env); \
-        msg_env = NULL; \
-    } \
-}
 
 using namespace eis::vi;
 using namespace eis::utils;
@@ -53,11 +42,9 @@ using namespace eis::msgbus;
 using namespace eis::udf;
 
 VideoIngestion::VideoIngestion(
-        std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr) :
-    m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0)
+        std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr, CommandHandler* commandhandler) :
+    m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0), m_app_name(app_name), m_commandhandler(commandhandler)
 {
-    m_app_name = app_name;
-
     // Parse the configuration
     config_t* config = json_config_new_from_buffer(vi_config);
     if (config == NULL) {
@@ -177,6 +164,11 @@ VideoIngestion::VideoIngestion(
         LOG_INFO("Software Trigger feature is enabled");
         m_sw_trgr_en = true;
 
+        if (m_commandhandler != NULL) {
+            m_commandhandler->register_callback((int)START_INGESTION, std::bind(&VideoIngestion::process_start_ingestion, this, std::placeholders::_1));
+            m_commandhandler->register_callback((int)STOP_INGESTION, std::bind(&VideoIngestion::process_stop_ingestion, this, std::placeholders::_1));
+        }  
+
         // Read config from config_mgr
         config_value_t* sw_trigger_init_state_cvt = config_value_object_get(sw_trigger,
                                                                 "init_state");
@@ -196,16 +188,7 @@ VideoIngestion::VideoIngestion(
         // Ingestion is not going ON by default when VideoIngestion constructor is called. Even if init_state=start, the ingestion
         // will start when start() is called
         m_ingestion_running.store(false);
-
-        // Initialize the msgbus server for sw trigger feature
-        service_init(env_config, config_mgr);
-
-        // initialize the exit conditiopn for ingestion monitor to false
-        m_exit_sw_trigger_monitor.store(false);
     }
-
-
-    // sw-trigger get config end
 
     config_value_t* udf_value = config->get_config_value(config->cfg,
                                                             "udfs");
@@ -255,142 +238,31 @@ VideoIngestion::VideoIngestion(
     config_value_destroy(udf_value);
 }
 
-void VideoIngestion::service_init(const env_config_t* env_config, const config_mgr_t* config_mgr) {
-    // Server related env_config msgbus initializations
-    char* c_app_name = const_cast<char*>(m_app_name.c_str());
-    char* app_name_arr[] = {c_app_name};
-    config_t* service_config = env_config->get_messagebus_config(config_mgr, app_name_arr, 1, "server");
-    if (service_config == NULL) {
-        const char* err = "Failed to get server message bus config";
-        LOG_ERROR("%s", err);
-        throw(err);
-    }
-
-    m_msgbus_ctx_server = msgbus_initialize(service_config);
-    if (m_msgbus_ctx_server == NULL) {
-        const char* err = "Failed to initialize message bus for server configuration";
-        LOG_ERROR("%s", err);
-        config_destroy(service_config);
-        throw(err);
-    }
-
-    msgbus_ret_t ret;
-    ret = msgbus_service_new(m_msgbus_ctx_server, m_app_name.c_str(), NULL, &m_service_ctx);
-    if (ret != MSG_SUCCESS) {
-        const char* err = "Failed to initialize service for server config";
-        LOG_ERROR("%s", err);
-        if (m_service_ctx != NULL) {
-            msgbus_recv_ctx_destroy(m_msgbus_ctx_server, m_service_ctx);
-        }
-        config_destroy(service_config);
-        throw(err);
-    }
-    // clean up service config
-    config_destroy(service_config);
-}
-
-msg_envelope_elem_body_t* VideoIngestion::receive_command_payload(msg_envelope_t* msg) {
-    msgbus_ret_t ret;
-    ret = msgbus_recv_wait(m_msgbus_ctx_server, m_service_ctx, &msg);
-    if (ret != MSG_SUCCESS) {
-        const char* err = "";
-        // Interrupt is an acceptable error
-        if (ret == MSG_ERR_EINTR) {
-            err = "MSG_ERR_EINTR received, hence failed to receive command payload";
-        }
-        err = "Failed to receive command payload";
-        throw err;
-    }
-
-    msg_envelope_elem_body_t* payload_body;
-    ret = msgbus_msg_envelope_get(msg, COMMAND, &payload_body);
-    if (ret != MSG_SUCCESS) {
-        const char* err = "Failed to receive payload";
-        LOG_ERROR("%s", err);
-        throw(err);
-    }
-
-    return payload_body;
-}
-
 msg_envelope_elem_body_t* VideoIngestion::process_start_ingestion(msg_envelope_elem_body_t *arg_payload) {
     try {
             LOG_INFO_0("START INGESTION request received from client");
 
             if (m_ingestion_running.load()) {
                 std::string err = "Ingestion already running";
-                return form_reply_payload((int)REQ_ALREADY_RUNNING, err, NULL);
+                return m_commandhandler->form_reply_payload((int)REQ_ALREADY_RUNNING, err, NULL);
             }
 
             IngestRetCode ret = m_ingestor->start();
             if (ret != IngestRetCode::SUCCESS) {
                 LOG_ERROR("Failed to start ingestor thread: %d",ret);
                 std::string err = "Failed to start ingestor thread";
-                return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
+                return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
             } else {
                 LOG_INFO("Ingestor thread started...");
                 m_ingestion_running.store(true);
                 // acknowledging back to client that ingestion has actually started
-                return form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
+                return m_commandhandler->form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
             }
     } catch(std::exception& ex) {
         std::string err = "exception occurred request not honored";
         LOG_ERROR("%s %s", ex.what(), err);
-        return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
+        return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
     }
-}
-
-msg_envelope_elem_body_t* VideoIngestion::form_reply_payload(int status_code, std::string err, msg_envelope_elem_body_t *return_values) {
-    msg_envelope_elem_body_t* reply_payload_obj = msgbus_msg_envelope_new_object();
-    if (reply_payload_obj == NULL) {
-        const char* er = "Error creating the message envelope object";
-        LOG_ERROR("%s", er);
-        throw(er);
-    }
-    // wrap status code in envelope format
-    msg_envelope_elem_body_t* env_status_code = msgbus_msg_envelope_new_integer(status_code);
-    if (env_status_code == NULL) {
-        const char* er = "Error creating message envelope integer";
-        LOG_ERROR("%s", er);
-        throw(er);
-    }
-
-    msgbus_ret_t ret = msgbus_msg_envelope_elem_object_put(reply_payload_obj, STATUS_CODE, env_status_code);
-    if (ret != MSG_SUCCESS) {
-        const char* er = "Error in puting status code into json buffer";
-        LOG_ERROR("%s", er);
-        throw(er);
-    }
-
-    // wrap error value in envelope format
-    if (err.empty()) {
-        msg_envelope_elem_body_t* env_err = msgbus_msg_envelope_new_string(err.c_str());
-        ret = msgbus_msg_envelope_elem_object_put(reply_payload_obj, ERR, env_err);
-        if (ret != MSG_SUCCESS) {
-            const char* er = "Error in puting reply_payload_object into json buffer";
-            LOG_ERROR("%s", er);
-            throw(er);
-        }
-    }
-
-    // wrap the bool in envelope format - if any more return values need to be sent bck to client specific to the command
-    if (return_values != NULL) {
-        if (ret != MSG_SUCCESS) {
-            const char* er = "Error in puting reply_payload_object into json buffer";
-            LOG_ERROR("%s", er);
-            throw(er);
-        }
-
-        // NOTE: The set of return values will be specific to the command & will be sent by the command specific handler
-        ret = msgbus_msg_envelope_elem_object_put(reply_payload_obj, "return_values", return_values);
-        if (ret != MSG_SUCCESS) {
-            const char* er = "Error in puting return_values into json buffer";
-            LOG_ERROR("%s", er);
-            throw(er);
-        }
-    }
-
-    return reply_payload_obj;
 }
 
 msg_envelope_elem_body_t* VideoIngestion::process_stop_ingestion(msg_envelope_elem_body_t *arg_payload) {
@@ -400,7 +272,7 @@ msg_envelope_elem_body_t* VideoIngestion::process_stop_ingestion(msg_envelope_el
             if (!m_ingestion_running.load()) {
                 // form a JSON reply buffer
                 std::string err = "Ingestion already stopped";
-                return form_reply_payload((int)REQ_ALREADY_STOPPED, err, NULL);
+                return m_commandhandler->form_reply_payload((int)REQ_ALREADY_STOPPED, err, NULL);
             }
             // stop the ingestor
             if (m_ingestor) {
@@ -410,98 +282,14 @@ msg_envelope_elem_body_t* VideoIngestion::process_stop_ingestion(msg_envelope_el
             m_ingestion_running.store(false);
 
             // form a JSON reply buffer
-            return form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
+            return m_commandhandler->form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
     } catch(std::exception& ex) {
         std::string err = "exception occurred request not honored";
         LOG_ERROR("%s %s", ex.what(),err);
-        return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
+        return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
     }
 }
 
-msg_envelope_elem_body_t* VideoIngestion::process_command(msg_envelope_elem_body_t *payload_body) {
-    try {
-            // store the command name in a string
-            std::string command_name_str = std::string(payload_body->body.string);
-            LOG_INFO("Received command request on the VI server side is %s", command_name_str.c_str());
-
-            msg_envelope_elem_body_t* args_obj = NULL;
-            args_obj = msgbus_msg_envelope_elem_object_get(payload_body, "arguments");
-            if(args_obj == NULL) {
-                const char* err = "JSON payload doesn't contain arguments";
-                LOG_INFO("%s", err);
-            }
-
-            CommandsList cmnd;
-            if (!command_name_str.compare("START_INGESTION")) {
-                cmnd = START_INGESTION;
-            } else if (!command_name_str.compare("STOP_INGESTION")) {
-                cmnd = STOP_INGESTION;
-            }
-
-            msg_envelope_elem_body_t *final_reply_payload;
-
-            final_reply_payload = (this->*cmd_handler_map.find((int)cmnd)->second)(args_obj);
-
-            return final_reply_payload;
-    } catch(std::exception& ex) {
-        std::string err = "exception occurred request not honored";
-        LOG_ERROR("%s %s", ex.what(), err);
-        return form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
-    }
-}
-
-void VideoIngestion::ack_to_command(msg_envelope_elem_body_t *response_payload) {
-    msg_envelope_t* msg = msgbus_msg_envelope_new(CT_JSON);
-    msgbus_ret_t ret = msgbus_msg_envelope_put(msg, REPLY_PAYLOAD, response_payload);
-    if (ret != MSG_SUCCESS) {
-        const char* err = "Failed to put the message into message envelope";
-        LOG_ERROR("%s", err);
-        FREE_MSG_ENVELOPE(msg);
-        throw err;
-    }
-
-    ret = msgbus_response(m_msgbus_ctx_server, m_service_ctx, msg);
-    if (ret != MSG_SUCCESS) {
-        const char* err = "Failed to send ACK from server back to client";
-        LOG_ERROR("%s", err);
-        FREE_MSG_ENVELOPE(msg);
-        throw err;
-    }
-    // clean up:
-    FREE_MSG_ENVELOPE(msg);
-}
-
-
-
-void VideoIngestion::command_handler() {
-    try {
-        // Add the Command_handler functions to the map with the key value
-        cmd_handler_map.insert({START_INGESTION, &VideoIngestion::process_start_ingestion});
-        cmd_handler_map.insert({STOP_INGESTION, &VideoIngestion::process_stop_ingestion});
-
-        // SUPPORT_MORE_COMMANDS: for new commands a new command handler function needs to be defined & its address assigned as below example
-        // cmd_handler_map.insert({key, function pointer});
-        do {
-            msg_envelope_t* outer_msg_env = NULL;
-
-            // Step1: Receive the Command payload from client
-            msg_envelope_elem_body_t *arg_payload = receive_command_payload(outer_msg_env);  // specific to msgbus api calls
-
-            // Step2: Process the command  & do command specific action
-            msg_envelope_elem_body_t *reply_payload = process_command(arg_payload);
-
-            // Step3: Send the ACK back to client twith return status & values
-            ack_to_command(reply_payload);
-
-            // Free the msgEnvelope
-            FREE_MSG_ENVELOPE(outer_msg_env);
-        } while (!(m_exit_sw_trigger_monitor.load()));
-    } catch (std::exception &ex) {
-        LOG_ERROR("Exception :: %s in the command_handler thread.", ex.what());
-        msg_envelope_elem_body_t *rep = form_reply_payload(REQ_NOT_HONORED, NULL, NULL);
-        ack_to_command(rep);
-    }
-}
 
 void VideoIngestion::start() {
     if (m_publisher) {
@@ -513,12 +301,7 @@ void VideoIngestion::start() {
         LOG_INFO("Started udf manager");
     }
 
-    if (m_sw_trgr_en) {
-        // if SW trigger is enabled then start this "command_handler thread which will keep monitoring for client sw trigger requests"
-        m_th_ingest_control = new std::thread(&VideoIngestion::command_handler, this);
-    }
-
-    // if SW trigger is disabled OR (if sw trigger is enabled && init_state = start) then start ingestion
+    // if SW trigger is disabled OR (if sw trigger is enabled && init_state = running) then start ingestion
     if (!m_sw_trgr_en || (m_sw_trgr_en && m_init_state_start)) {
         IngestRetCode ret = m_ingestor->start();
         if (ret != IngestRetCode::SUCCESS) {
@@ -527,9 +310,6 @@ void VideoIngestion::start() {
             LOG_INFO("Ingestor thread started...");
             m_ingestion_running.store((m_sw_trgr_en) ? true : false);
         }
-    }
-    if (m_sw_trgr_en) {
-        m_th_ingest_control->join();
     }
 }
 
@@ -546,9 +326,6 @@ void VideoIngestion::stop() {
 }
 
 VideoIngestion::~VideoIngestion() {
-    if (m_sw_trgr_en) {
-        m_exit_sw_trigger_monitor.store(true);
-    }
     // Stop the thread (if it is running)
     if (m_ingestor) {
         m_ingestor->stop();
@@ -562,9 +339,4 @@ VideoIngestion::~VideoIngestion() {
     if (m_publisher) {
         delete m_publisher;
     }
-    // server related clean for client server model
-    if (m_service_ctx != NULL)
-        msgbus_recv_ctx_destroy(m_msgbus_ctx_server, m_service_ctx);
-    if (m_msgbus_ctx_server != NULL)
-        msgbus_destroy(m_msgbus_ctx_server);
 }
