@@ -43,8 +43,8 @@ using namespace eis::udf;
 
 VideoIngestion::VideoIngestion(
         std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr, CommandHandler* commandhandler) :
-    m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0), m_app_name(app_name), m_commandhandler(commandhandler)
-{
+    m_app_name(app_name), m_commandhandler(commandhandler), m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0) {
+
     // Parse the configuration
     config_t* config = json_config_new_from_buffer(vi_config);
     if (config == NULL) {
@@ -167,7 +167,7 @@ VideoIngestion::VideoIngestion(
         if (m_commandhandler != NULL) {
             m_commandhandler->register_callback((int)START_INGESTION, std::bind(&VideoIngestion::process_start_ingestion, this, std::placeholders::_1));
             m_commandhandler->register_callback((int)STOP_INGESTION, std::bind(&VideoIngestion::process_stop_ingestion, this, std::placeholders::_1));
-        }  
+        }
 
         // Read config from config_mgr
         config_value_t* sw_trigger_init_state_cvt = config_value_object_get(sw_trigger,

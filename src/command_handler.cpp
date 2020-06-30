@@ -173,6 +173,7 @@ msg_envelope_elem_body_t* CommandHandler::process_command(msg_envelope_elem_body
         }
 
         CommandsList cmnd;
+        cmnd = COMMAND_INVALID;
         if (!command_name_str.compare("START_INGESTION")) {
             cmnd = START_INGESTION;
         } else if (!command_name_str.compare("STOP_INGESTION")) {
@@ -186,7 +187,7 @@ msg_envelope_elem_body_t* CommandHandler::process_command(msg_envelope_elem_body
         if (command_iterator == m_cmd_handler_map.end()) {
             const char*  err = "Command is not registered";
             LOG_ERROR("%s", err);
-            return form_reply_payload((int)REQ_COMMAND_NOT_REGISTERED, err, NULL);        
+            return form_reply_payload((int)REQ_COMMAND_NOT_REGISTERED, err, NULL);
         }
 
         final_reply_payload = command_iterator->second(args_obj);

@@ -194,7 +194,7 @@ Below is the JSON schema for app's config:
 **Note**: Heterogeneous Execution needs to be used with FPGA plugin. One must still point to the CPU plugin or the GPU plugin as fallback devices for heterogeneous plugin. HETERO does not support VPU. For more information refer the below link:
 https://docs.openvinotoolkit.org/latest/_docs_IE_DG_supported_plugins_FPGA.html
 
-*Note**: GVA elements have compatibility issue with FPGA plugin. One may notice issue when `HETERO:FPGA,CPU` or `HETERO:FPGA,GPU` is used with the `device` property of GVA elements.
+**Note**: GVA elements have compatibility issue with FPGA plugin. One may notice issue when `HETERO:FPGA,CPU` or `HETERO:FPGA,GPU` is used with the `device` property of GVA elements.
 
 One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for
 validating the app configuration against the above schema.
@@ -214,6 +214,36 @@ GStreamer framework.
 
  ---
   **Note**:
+
+  * The Gstreamer elements used are being leveraged from OpenVINO DL Streamer Framework.
+    For debugging purpose one can use the `gst-inspect-1.0` and `gst-launch-1.0` tool with
+    the gstreamer elements. In order to use the tool with the VideoIngestion container refer
+    the below steps.
+
+    ```sh
+
+    # 1. Use `docker exec` to run a command in a running container
+
+    docker exec -it ia_video_ingestion bash
+
+    # 2. Source the OpenVINO setupvars.sh script inside the VideoIngestion container
+
+    source /opt/intel/openvino/bin/setupvars.sh
+
+    # 3. Run the gstreamer command using the tool.
+
+    # For e.g inorder to print info about a gstreamer element like `gvadetect` use the gst-inspect.1.0 tool
+
+    gst-inspect-1.0 gvadetect
+
+    # To view information about the basler source plugin or exercise it then update the GST_PLUGIN_PATH to include below path
+
+    export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
+
+    ```
+
+    For more information on the gstreamer tool refer the below link:
+    https://gstreamer.freedesktop.org/documentation/tutorials/basic/gstreamer-tools.html?gi-language=c
 
   * If running on non-gfx systems or older systems which doesn't have hardware
     media decoders (like in Xeon m/c) it is recommended to use `opencv` ingestor

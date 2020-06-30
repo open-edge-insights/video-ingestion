@@ -38,7 +38,8 @@ namespace eis {
 
     enum CommandsList {
         START_INGESTION,
-        STOP_INGESTION
+        STOP_INGESTION,
+        COMMAND_INVALID
         // MORE COMMANDS TO BE ADDED BASED ON THE NEED
     };
 
