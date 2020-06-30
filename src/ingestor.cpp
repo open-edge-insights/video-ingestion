@@ -42,8 +42,7 @@ using namespace eis::utils;
 using namespace eis::udf;
 
 Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
-    m_th(NULL), m_initialized(false), m_stop(false),
-    m_udf_input_queue(frame_queue), m_service_name(service_name),  m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
+      m_th(NULL), m_service_name(service_name), m_initialized(false), m_stop(false), m_udf_input_queue(frame_queue), m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
 
         m_ingestor_block_key = m_service_name + "_ingestor_blocked_ts";
         config_value_t* cvt_poll_interval = config->get_config_value(config->cfg, POLL_INTERVAL);
@@ -61,6 +60,8 @@ Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string servic
                 }
             }
             config_value_destroy(cvt_poll_interval);
+        } else {
+            m_poll_interval = 0.0 ;
         }
         LOG_INFO("Poll interval: %lf", m_poll_interval);
 
