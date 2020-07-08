@@ -224,21 +224,21 @@ GStreamer framework.
 
     # 1. Use `docker exec` to run a command in a running container
 
-    docker exec -it ia_video_ingestion bash
+    $ docker exec -it ia_video_ingestion bash
 
     # 2. Source the OpenVINO setupvars.sh script inside the VideoIngestion container
 
-    source /opt/intel/openvino/bin/setupvars.sh
+    $ source /opt/intel/openvino/bin/setupvars.sh
 
     # 3. Run the gstreamer command using the tool.
 
     # For e.g inorder to print info about a gstreamer element like `gvadetect` use the gst-inspect.1.0 tool
 
-    gst-inspect-1.0 gvadetect
+    $ gst-inspect-1.0 gvadetect
 
     # To view information about the basler source plugin or exercise it then update the GST_PLUGIN_PATH to include below path
 
-    export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
+    $ export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
 
     ```
 

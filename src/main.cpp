@@ -229,16 +229,30 @@ bool validate_config(char config_key[]) {
     WJElement schema;
 
     readjson = WJROpenFILEDocument(fopen("./VideoIngestion/config.json", "r"), NULL, 0);
-    json = WJEOpenDocument(readjson, NULL, NULL, NULL);
-    if(readjson == NULL || json == NULL) {
+    if(readjson == NULL) {
         LOG_ERROR_0("config json could not be read");
+        return false;
+    }
+    json = WJEOpenDocument(readjson, NULL, NULL, NULL);
+    if(json == NULL) {
+        LOG_ERROR_0("config json could not be read");
+        if(readjson != NULL) {
+            free(readjson);
+        }
         return false;
     }
 
     readschema = WJROpenFILEDocument(fopen("./VideoIngestion/schema.json", "r"), NULL, 0);
-    schema = WJEOpenDocument(readschema, NULL, NULL, NULL);
-    if(readschema == NULL || schema == NULL) {
+    if(readschema == NULL) {
         LOG_ERROR_0("schema json could not be read");
+        return false;
+    }
+    schema = WJEOpenDocument(readschema, NULL, NULL, NULL);
+    if(schema == NULL) {
+        LOG_ERROR_0("schema json could not be read");
+        if(readschema != NULL) {
+            free(readschema);
+        }
         return false;
     }
 
@@ -252,6 +266,18 @@ bool validate_config(char config_key[]) {
     if(!result) {
         // Clean up and return if failure
         clean_up();
+        if(readjson != NULL) {
+            free(readjson);
+        }
+        if(json != NULL) {
+            free(json);
+        }
+        if(readschema != NULL) {
+            free(readschema);
+        }
+        if(schema != NULL) {
+            free(schema);
+        }
         return false;
     }
 

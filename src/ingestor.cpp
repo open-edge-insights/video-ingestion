@@ -110,27 +110,33 @@ void Ingestor::run() {
 
         elem = msgbus_msg_envelope_new_integer(frame_count);
         if (elem == NULL) {
-            LOG_ERROR_0("Failed to create frame_number element");
             delete frame;
+            const char* err = "Failed to create frame_number element";
+            LOG_ERROR("%s", err);
+            throw err;
         }
         ret = msgbus_msg_envelope_put(meta_data, "frame_number", elem);
         if(ret != MSG_SUCCESS) {
-            LOG_ERROR_0("Failed to put frame_number meta-data");
             delete frame;
-            continue;
+            const char* err = "Failed to put frame_number in meta-data";
+            LOG_ERROR("%s", err);
+            throw err;
         }
-        LOG_DEBUG("Frame number: %d", frame_count);
+        LOG_DEBUG("Frame number: %ld", frame_count);
 
         elem = msgbus_msg_envelope_new_string(randuuid.c_str());
         if (elem == NULL) {
-            LOG_ERROR_0("Failed to create image handle element");
             delete frame;
+            const char* err = "Failed to create image handle element";
+            LOG_ERROR("%s", err);
+            throw err;
         }
         ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
         if(ret != MSG_SUCCESS) {
-            LOG_ERROR_0("Failed to put image handle meta-data");
             delete frame;
-            continue;
+            const char* err = "Failed to put image handle in meta-data";
+            LOG_ERROR("%s", err);
+            throw err;
         }
 
         // Profiling start
