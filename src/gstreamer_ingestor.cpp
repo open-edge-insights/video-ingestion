@@ -73,6 +73,7 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
     config_value_destroy(cvt_pipeline);
 
     m_frame_count = 0;
+    m_bus_watch_id = 0;
 
     int argc = 1;
     m_loop = NULL;
@@ -483,7 +484,7 @@ GstreamerIngestor* ctx) {
                     delete frame;
                     return GST_FLOW_ERROR;
                 }
-                LOG_DEBUG("Frame number: %d", ctx->m_frame_count);
+                LOG_DEBUG("Frame number: %ld", ctx->m_frame_count);
 
                 // Adding image handle to frame
                 std::string randuuid = ctx->generate_image_handle(UUID_LENGTH);

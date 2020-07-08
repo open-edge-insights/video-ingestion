@@ -159,6 +159,7 @@ VideoIngestion::VideoIngestion(
                                                             SW_TRIGGER);
     if (sw_trigger == NULL) {
         LOG_INFO("Software Trigger feature is disabled");
+        m_init_state_start = true;
         m_sw_trgr_en = false;
     } else {
         LOG_INFO("Software Trigger feature is enabled");
@@ -196,6 +197,7 @@ VideoIngestion::VideoIngestion(
         LOG_INFO("\"udfs\" key doesn't exist, so udf output queue is same as \
                 udf input queue!!")
         m_udf_output_queue = m_udf_input_queue;
+        m_udf_manager = NULL;
     } else {
         m_udf_output_queue = new FrameQueue(queue_size);
         m_udf_manager = new UdfManager(config, m_udf_input_queue, m_udf_output_queue, m_app_name,
@@ -260,7 +262,7 @@ msg_envelope_elem_body_t* VideoIngestion::process_start_ingestion(msg_envelope_e
             }
     } catch(std::exception& ex) {
         std::string err = "exception occurred request not honored";
-        LOG_ERROR("%s %s", ex.what(), err);
+        LOG_ERROR("%s %s", ex.what(), err.c_str());
         return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
     }
 }
@@ -285,7 +287,7 @@ msg_envelope_elem_body_t* VideoIngestion::process_stop_ingestion(msg_envelope_el
             return m_commandhandler->form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
     } catch(std::exception& ex) {
         std::string err = "exception occurred request not honored";
-        LOG_ERROR("%s %s", ex.what(),err);
+        LOG_ERROR("%s %s", ex.what(), err.c_str());
         return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
     }
 }
@@ -338,5 +340,11 @@ VideoIngestion::~VideoIngestion() {
     }
     if (m_publisher) {
         delete m_publisher;
+    }
+    if (m_udf_input_queue) {
+        delete m_udf_input_queue;
+    }
+    if (m_udf_output_queue) {
+        delete m_udf_output_queue;
     }
 }

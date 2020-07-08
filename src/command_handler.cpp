@@ -273,6 +273,8 @@ CommandHandler::~CommandHandler() {
         msgbus_recv_ctx_destroy(m_ch_ctx_server, m_ch_service_ctx);
     if (m_ch_ctx_server != NULL)
         msgbus_destroy(m_ch_ctx_server);
+    if (m_ch_thread != NULL)
+        delete m_ch_thread;
 
     m_exit_command_handler_monitor.store(true);
 }
