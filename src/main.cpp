@@ -51,10 +51,10 @@ static std::atomic<bool> g_cfg_change;
 static char* server_config = NULL;
 
 void get_config_mgr(char* str_app_name) {
-    char pub_cert_file [MAX_CONFIG_KEY_LENGTH];
-    char pri_key_file [MAX_CONFIG_KEY_LENGTH];
-    char trust_file [MAX_CONFIG_KEY_LENGTH];
-    char storage_type [MAX_CONFIG_KEY_LENGTH];
+    char pub_cert_file[MAX_CONFIG_KEY_LENGTH];
+    char pri_key_file[MAX_CONFIG_KEY_LENGTH];
+    char trust_file[MAX_CONFIG_KEY_LENGTH];
+    char storage_type[MAX_CONFIG_KEY_LENGTH];
     std::string dev_mode_str = "";
     int ret = 0;
     server_config = getenv("Server");
@@ -94,17 +94,17 @@ void get_config_mgr(char* str_app_name) {
         char* confimgr_cacert = getenv("CONFIGMGR_CACERT");
         if(confimgr_cert && confimgr_key && confimgr_cacert) {
             ret = strncpy_s(pub_cert_file, MAX_CONFIG_KEY_LENGTH + 1,
-                      confimgr_cert, MAX_CONFIG_KEY_LENGTH);
+                            confimgr_cert, MAX_CONFIG_KEY_LENGTH);
             if (ret != 0) {
                 throw "failed to add cert to trust file";
             }
             ret = strncpy_s(pri_key_file, MAX_CONFIG_KEY_LENGTH + 1,
-                      confimgr_key, MAX_CONFIG_KEY_LENGTH);
+                            confimgr_key, MAX_CONFIG_KEY_LENGTH);
             if (ret !=0) {
                 throw "failed to add key to trust file";
             }
             ret = strncpy_s(trust_file, MAX_CONFIG_KEY_LENGTH + 1,
-                      confimgr_cacert, MAX_CONFIG_KEY_LENGTH);
+                            confimgr_cacert, MAX_CONFIG_KEY_LENGTH);
             if (ret != 0 ){
                  throw "failed to add cacert to trust file";
             }
@@ -112,7 +112,7 @@ void get_config_mgr(char* str_app_name) {
     }
 
     ret = strncpy_s(storage_type, (MAX_CONFIG_KEY_LENGTH + 1),
-                  "etcd", MAX_CONFIG_KEY_LENGTH);
+                    "etcd", MAX_CONFIG_KEY_LENGTH);
     if (ret != 0){
         throw "failed to add storage type";
     }
