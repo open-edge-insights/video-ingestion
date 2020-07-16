@@ -57,6 +57,8 @@ All the app module configuration are added into distributed key-value store
 under `AppName` env, as mentioned in the environment section of this app's service
 definition in docker-compose.
 
+Developer mode related overrides go into docker-compose-dev.override.yml
+
 If `AppName` is `VideoIngestion`, then the app's config would be fetched from
 `/VideoIngestion/config` key via EIS Configuration Manager.
 Below is the JSON schema for app's config:
@@ -752,4 +754,3 @@ transmission of each packet for the selected stream channel. Depending on the nu
 
           `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
-    ---

@@ -1,0 +1,5 @@
+version: '3.6'
+services:
+  ia_video_ingestion:
+    volumes:
+    - "../common/video/udfs/python:/EIS/go/src/IEdgeInsights/common/udfs/python"    
