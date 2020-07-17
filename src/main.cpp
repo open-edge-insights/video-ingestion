@@ -51,9 +51,9 @@ static std::atomic<bool> g_cfg_change;
 static char* server_config = NULL;
 
 void get_config_mgr(char* str_app_name) {
-    char pub_cert_file[MAX_CONFIG_KEY_LENGTH];
-    char pri_key_file[MAX_CONFIG_KEY_LENGTH];
-    char trust_file[MAX_CONFIG_KEY_LENGTH];
+    char pub_cert_file[MAX_CONFIG_KEY_LENGTH] = "";
+    char pri_key_file[MAX_CONFIG_KEY_LENGTH] = "";
+    char trust_file[MAX_CONFIG_KEY_LENGTH] = "";
     char storage_type[MAX_CONFIG_KEY_LENGTH];
     std::string dev_mode_str = "";
     int ret = 0;
