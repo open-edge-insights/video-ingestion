@@ -80,6 +80,8 @@ VideoIngestion::VideoIngestion(
         } else if (strcmp(enc_type, "png") == 0) {
             m_enc_type = EncodeType::PNG;
             LOG_DEBUG_0("Encoding type is png");
+        } else {
+            throw "Encoding type is not supported";
         }
 
         config_value_t* encoding_level_cvt = config_value_object_get(encoding_value,
