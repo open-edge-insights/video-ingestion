@@ -42,6 +42,7 @@ services:
     hostname: ia_video_ingestion
     network_mode: host
     restart: unless-stopped
+    ipc: "none"
     environment:
       AppName: "VideoIngestion"
       DEV_MODE: ${DEV_MODE}
