@@ -2041,7 +2041,7 @@ gst_pylonsrc_start (GstBaseSrc * src)
   res = PylonDeviceFeatureFromString(pylonsrc->deviceHandle, "AcquisitionMode", "Continuous" );
   PYLONC_CHECK_ERROR(pylonsrc, res);
 
-  GST_MESSAGE_OBJECT(pylonsrc, "Using \"%s\" trigger selector. Software trigger mode is %s. Trigger source is %s", triggerSelectorValue, triggerMode, pylonsrc->triggersource);
+  GST_MESSAGE_OBJECT(pylonsrc, "Using \"%s\" trigger selector. Trigger mode is %s. Trigger source is %s", triggerSelectorValue, triggerMode, pylonsrc->triggersource);
 
 
   // Create a stream grabber
@@ -2184,9 +2184,10 @@ while(grabResult.Status != Grabbed){
     // Wait for the buffer to be filled after receiving h/w trigger
     res = PylonWaitObjectWait(pylonsrc->waitObject, pylonsrc->hwtriggertimeout, &bufferReady);
     PYLONC_CHECK_ERROR(pylonsrc, res);
+    GST_MESSAGE_OBJECT(pylonsrc, "Hardware trigger timeout occured");
   }
   if(!bufferReady) {
-    GST_MESSAGE_OBJECT(pylonsrc, "Camera couldn't prepare the buffer in time. Increase Inter Packet Delay.");
+    GST_MESSAGE_OBJECT(pylonsrc, "Camera couldn't prepare the buffer in time. Check Hardware trigger timeout if applicable else increase Inter Packet Delay.");
     goto error;
   }
 
