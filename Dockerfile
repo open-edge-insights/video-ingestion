@@ -111,7 +111,6 @@ ARG CMAKE_BUILD_TYPE
 ARG RUN_TESTS
 
 COPY --from=video_common ${GO_WORK_DIR}/common/UDFLoader ./common/libs/UDFLoader
-COPY --from=video_common ${GO_WORK_DIR}/common/udfs ./common/udfs
 
 # Build UDF loader lib
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
