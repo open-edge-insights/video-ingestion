@@ -49,9 +49,9 @@
           "type": "string"
         },
         "loop_video": {
-          "description": "whether to loop vidoe or not",
-          "type": "string",
-          "default": "false"
+          "description": "whether to loop video or not",
+          "type": "boolean",
+          "default": false
         },
         "queue_size": {
           "description": "ingestor queue size for frames",
