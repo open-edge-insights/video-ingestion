@@ -113,7 +113,7 @@ Below is the JSON schema for app's config:
           "type": "string"
         },
         "loop_video": {
-          "description": "whether to loop vidoe or not",
+          "description": "whether to loop video or not",
           "type": "boolean",
           "default": false
         },
@@ -340,7 +340,7 @@ GStreamer framework.
         "type": "opencv",
         "pipeline": "./test_videos/pcb_d2000.avi",
         "poll_interval": 0.2
-        "loop_video": "true"
+        "loop_video": true
       }
       ```
 

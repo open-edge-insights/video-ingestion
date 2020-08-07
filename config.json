@@ -6,7 +6,7 @@
     "ingestor": {
         "type": "opencv",
         "pipeline": "./test_videos/pcb_d2000.avi",
-        "loop_video": "true",
+        "loop_video": true,
         "queue_size": 10,
         "poll_interval": 0.2
     },

@@ -70,12 +70,11 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
     config_value_t* cvt_loop_video = config->get_config_value(
             config->cfg, LOOP_VIDEO);
     if(cvt_loop_video != NULL) {
-        if(cvt_loop_video->type != CVT_STRING) {
-            LOG_INFO_0("Loop video must be a string");
+        if(cvt_loop_video->type != CVT_BOOLEAN) {
+            LOG_ERROR_0("Loop video must be a boolean");
             config_value_destroy(cvt_loop_video);
         }
-        std::string str_loop_video = cvt_loop_video->body.string;
-        if(str_loop_video == "true") {
+        if(cvt_loop_video->body.boolean) {
             m_loop_video = true;
         }
         config_value_destroy(cvt_loop_video);
