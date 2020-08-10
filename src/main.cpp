@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
         clean_up();
     } catch(...) {
-        LOG_ERROR("Generic Exception Occured");
+        LOG_ERROR("Exception occurred in Video Ingestion");
         clean_up();
     }
     return -1;
