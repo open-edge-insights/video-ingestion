@@ -506,8 +506,14 @@ GstreamerIngestor* ctx) {
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_entry");
                 // Profiling end
-                
-                frame->set_encoding(g_enc_type, g_enc_lvl);
+
+                try {
+                    frame->set_encoding(g_enc_type, g_enc_lvl);
+                } catch(const char *err) {
+                    LOG_ERROR("Exception: %s", err);
+                } catch(...) {
+                    LOG_ERROR("Exception occurred in set_encoding()");
+                }
 
                 QueueRetCode ret_queue = ctx->m_udf_input_queue->push(frame);
                 if(ret_queue == QueueRetCode::QUEUE_FULL) {

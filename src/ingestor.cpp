@@ -144,7 +144,13 @@ void Ingestor::run() {
         // Profiling end
 
         // Set encding type and level
-        frame->set_encoding(m_enc_type, m_enc_lvl);
+        try {
+            frame->set_encoding(m_enc_type, m_enc_lvl);
+        } catch(const char *err) {
+            LOG_ERROR("Exception: %s", err);
+        } catch(...) {
+            LOG_ERROR("Exception occurred in set_encoding()");
+        }
 
         QueueRetCode ret_queue = m_udf_input_queue->push(frame);
         if(ret_queue == QueueRetCode::QUEUE_FULL) {
