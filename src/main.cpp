@@ -407,11 +407,14 @@ int main(int argc, char** argv) {
         }
 
         clean_up();
+    } catch(const char *err) {
+        LOG_ERROR("Exception occurred: %s", err);
+        clean_up();
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
         clean_up();
-    } catch(const char *err) {
-        LOG_ERROR("Exception occurred: %s", err);
+    } catch(...) {
+        LOG_ERROR("Generic Exception Occured");
         clean_up();
     }
     return -1;
