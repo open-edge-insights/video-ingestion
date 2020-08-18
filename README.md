@@ -753,21 +753,3 @@ transmission of each packet for the selected stream channel. Depending on the nu
           `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
     ---
-
-## `Installation`
-
-* Follow [provision/README.md](../README#provision-eis.md) for EIS provisioning
-  if not done already as part of EIS stack setup
-
-* Run VideoIngestion
-
-  Present working directory to try out below commands is: `[repo]/VideoIngestion`
-
-    1. Build and Run VideoIngestion as container
-        ```
-        $ cd [repo]/build
-        $ docker-compose up --build ia_video_ingestion
-        ```
-    2. Update EIS VideoIngestion config key in distributed key-value
-       store using UI's like `EtcdKeeper` or programmatically, the container
-       restarts to pick the new changes.
