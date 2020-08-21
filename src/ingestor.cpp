@@ -41,8 +41,8 @@ using namespace eis::vi;
 using namespace eis::utils;
 using namespace eis::udf;
 
-Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
-      m_th(NULL), m_service_name(service_name), m_initialized(false), m_stop(false), m_udf_input_queue(frame_queue), m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
+Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
+      m_service_name(service_name), m_th(NULL), m_initialized(false), m_stop(false), m_udf_input_queue(frame_queue), m_snapshot_cv(snapshot_cv), m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
 
         m_ingestor_block_key = m_service_name + "_ingestor_blocked_ts";
         config_value_t* cvt_poll_interval = config->get_config_value(config->cfg, POLL_INTERVAL);
@@ -79,7 +79,7 @@ Ingestor::~Ingestor() {
     }
 }
 
-void Ingestor::run() {
+void Ingestor::run(bool snapshot_mode) {
     // indicate that the run() function corresponding to the m_th thread has started
     m_running.store(true);
     LOG_INFO_0("Ingestor thread running publishing on stream");
@@ -167,6 +167,13 @@ void Ingestor::run() {
         // Profiling end
 
         frame = NULL;
+
+        if(snapshot_mode) {
+            m_stop.store(true);
+            m_running.store(false);
+            m_snapshot_cv.notify_all();
+        }
+
         if(m_poll_interval > 0) {
             usleep(m_poll_interval * 1000 * 1000);
         }
@@ -176,40 +183,31 @@ void Ingestor::run() {
     LOG_INFO_0("Ingestor thread stopped");
 }
 
-void Ingestor::stop() {
-    if(m_initialized.load()) {
-        if(!m_stop.load()) {
-            m_stop.store(true);
-            // wait for the ingestor thread function run() to finish its execution.
-            if(m_th != NULL) {
-                m_th->join();
-            }
-        }
-    }
-    // After its made sure that the Ingestor run() function has been stopped (as in m_th-> join() above), m_stop flag is reset
-    // so that the ingestor is ready for the next ingestion.
-    m_running.store(false);
-    m_stop.store(false);
-}
+// This method does not have any implementation as the
+// respective derived class handle stopping the ingestor
+void Ingestor::stop() {}
 
-IngestRetCode Ingestor::start() {
+IngestRetCode Ingestor::start(bool snapshot_mode) {
+    if (snapshot_mode) {
+        m_stop.store(false);
+    }
     if (m_stop.load())
         return IngestRetCode::STOPPED;
     else if (m_running.load())
         return IngestRetCode::ALREAD_RUNNING;
 
-    m_th = new std::thread(&Ingestor::run, this);
+    m_th = new std::thread(&Ingestor::run, this, snapshot_mode);
 
     return IngestRetCode::SUCCESS;
 }
 
-Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, std::string service_name, EncodeType enc_type, int enc_lvl) {
+Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl) {
     Ingestor* ingestor = NULL;
     // Create the ingestor object based on the type specified in the config
     if(!strcmp(type, "opencv")) {
-        ingestor = new OpenCvIngestor(config, frame_queue, service_name, enc_type, enc_lvl);
+        ingestor = new OpenCvIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
     } else if(!strcmp(type, "gstreamer")) {
-        ingestor = new GstreamerIngestor(config, frame_queue, service_name, enc_type, enc_lvl);
+        ingestor = new GstreamerIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
     } else {
         throw("Unknown ingestor");
     }

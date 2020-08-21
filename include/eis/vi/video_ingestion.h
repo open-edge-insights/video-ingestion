@@ -28,7 +28,7 @@
 #define _EIS_VI_VIDEOINGESTION_H
 
 #include <thread>
-#include <functional> 
+#include <functional>
 #include <atomic>
 #include <condition_variable>
 #include <eis/udf/frame.h>
@@ -100,36 +100,50 @@ namespace eis {
                 // variable to store the current Ingestion_state i.e. if Ingestion is going on or stopped
                 std::atomic<bool> m_ingestion_running;
 
+                // Snapshot condition variable
+                std::condition_variable m_snapshot_cv;
+
                 /**
-		* Process the start ingestion software trigger and control the ingestor
-                * @param arg_payload -- Argument Payload object received (in the main payload) from client
-                * return value - return values payload JSON buffer to be returned back to the client
-                */
+	         * Process the start ingestion software trigger and control the ingestor
+                 * @param arg_payload -- Argument Payload object received (in the main payload) from client
+                 * @return reply_payload - return values payload JSON buffer to be returned back to the client
+                 */
                 msg_envelope_elem_body_t* process_start_ingestion(msg_envelope_elem_body_t *arg_payload);
 
                 /**
-		* Process the stop ingestion software trigger and control the ingestor
-                * @param arg_payload -- Main Payload object received from client
-                * return value - return values payload JSON buffer to be returned back to the client
-                */
+		 * Process the stop ingestion software trigger and control the ingestor
+                 * @param arg_payload -- Main Payload object received from client
+                 * @return reply_payload - return values payload JSON buffer to be returned back to the client
+                 */
                 msg_envelope_elem_body_t* process_stop_ingestion(msg_envelope_elem_body_t *arg_payload);
+
+                /**
+                 * Process the start snapshot software trigger and control the ingestor
+                 * @param arg_payload -- Argument Payload object received (in the main payload) from client
+                 * @return reply_payload - return values payload JSON buffer to be returned back to the client
+                 */
+                msg_envelope_elem_body_t* process_snapshot(msg_envelope_elem_body_t *arg_payload);
 
             public:
 
                 /**
-                * Constructor
-                *
-                * \note The environmental configuration memory is not managed
-                *      by this object. It is managed by the caller.
-                *
-                * @param app_name   - App_name env variable for App_Name
-                * @param err_cv     - Error condition variable
-                * @param env_config - Environmental configuration
-                * @param vi_config  - VideoIngestion/config
-                */
+                 * Constructor
+                 *
+                 * \note The environmental configuration memory is not managed
+                 *      by this object. It is managed by the caller.
+                 *
+                 * @param app_name          - App_name env variable for App_Name
+                 * @param err_cv            - Error condition variable
+                 * @param env_config        - Environmental configuration
+                 * @param vi_config         - VideoIngestion/config
+                 * @param config_mgr        - Config Manager context
+                 * @param commandhandler    - Command Handler context
+                 */
                 VideoIngestion(std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr, CommandHandler* commandhandler);
 
-                // Destructor
+                /*
+                 * Destructor
+                 */
                 ~VideoIngestion();
 
                 /**
