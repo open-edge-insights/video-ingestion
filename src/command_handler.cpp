@@ -178,6 +178,8 @@ msg_envelope_elem_body_t* CommandHandler::process_command(msg_envelope_elem_body
             cmnd = START_INGESTION;
         } else if (!command_name_str.compare("STOP_INGESTION")) {
             cmnd = STOP_INGESTION;
+        } else if (!command_name_str.compare("SNAPSHOT")) {
+            cmnd = SNAPSHOT;
         }
 
         msg_envelope_elem_body_t *final_reply_payload;

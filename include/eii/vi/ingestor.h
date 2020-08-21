@@ -106,16 +106,16 @@ namespace eis {
          */
         class Ingestor {
             private:
-		        // Underlying ingestion thread
+                // Caller's AppName
+                std::string m_service_name;
+
+            protected:
+                // Underlying ingestion thread
                 std::thread* m_th;
 
                 // Flag indicating the ingestor thread (running run()) has started & is running;
                 std::atomic<bool> m_running;
 
-                // Caller's AppName
-                std::string m_service_name;
-
-            protected:
                 // Flag for if the ingestor has been initialized
                 std::atomic<bool> m_initialized;
 
@@ -128,9 +128,11 @@ namespace eis {
                 // Queue blocked variable
                 std::string m_ingestor_block_key;
 
+                // Snapshot condition variable
+                std::condition_variable& m_snapshot_cv;
+
                 // Encoding details
                 EncodeType m_enc_type;
-
                 int m_enc_lvl;
 
                 // pipeline
@@ -142,10 +144,13 @@ namespace eis {
                 // profiling
                 Profiling* m_profile = NULL;
 
+                // Flag for snapshot mode
+                bool m_snapshot;
+
                 /**
                  * Ingestion thread run method
                  */
-                virtual void run();
+                virtual void run(bool snapshot_mode=false);
 
                 /**
                  * Read method implemented by subclasses to retrieve the next frame from
@@ -162,8 +167,14 @@ namespace eis {
             public:
                 /**
                  * Constructor
+                 * @param config        - Ingestion config
+                 * @param frame_queue   - Frame Queue context
+                 * @param service_name  - Service Name env variable
+                 * @param snapshot_cv   - Snapshot contion variable
+                 * @param enc_type      - Frame encoding type(Optional)
+                 * @param enc_lvl       - Frame encoding level(Optional)
                  */
-                Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl);
+                Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl);
 
                 /**
                  * Destructor
@@ -173,15 +184,24 @@ namespace eis {
                 /**
                  * Start the ingestor.
                  */
-                virtual IngestRetCode start();
+                virtual IngestRetCode start(bool snapshot_mode=false);
 
                 /**
                  * Stop the ingestor.
                  */
-                virtual void stop();
+                virtual void stop() = 0;
         };
-
-        Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type, std::string service_name, EncodeType enc_type, int enc_lvl);
+        /**
+         * Method to get the ingestor object based on the ingestor type
+         * @param config            - Ingestion config
+         * @param udf_input_queue   - UDF input queue context
+         * @param type              - Ingestor type
+         * @param service_name      - Ingestor service name
+         * @param snapshot_cv       - Snapshot condition variable
+         * @param enc_type          - Frame encoding type(Optional)
+         * @param enc_lvl           - Frame encoding level(Optional)
+         */
+        Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl);
 
     } // vi
 } // eis

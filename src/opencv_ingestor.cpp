@@ -41,8 +41,8 @@ using namespace eis::udf;
 #define RESIZE   "resize"
 #define LOOP_VIDEO "loop_video"
 
-OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl):
-    Ingestor(config, frame_queue, service_name, enc_type, enc_lvl) {
+OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl):
+    Ingestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl) {
     m_resize = false;
     m_width = 0;
     m_height = 0;
@@ -134,4 +134,25 @@ void OpenCvIngestor::read(Frame*& frame) {
     frame = new Frame(
             (void*) cv_frame, cv_frame->cols, cv_frame->rows,
             cv_frame->channels(), cv_frame->data, free_cv_frame);
+}
+
+void OpenCvIngestor::stop() {
+    if(m_initialized.load()) {
+        if(!m_stop.load()) {
+            m_stop.store(true);
+            // wait for the ingestor thread function run() to finish its execution.
+            if(m_th != NULL) {
+                m_th->join();
+            }
+        }
+    // After its made sure that the Ingestor run() function has been stopped (as in m_th-> join() above), m_stop flag is reset
+    // so that the ingestor is ready for the next ingestion.
+    m_running.store(false);
+    m_stop.store(false);
+    LOG_INFO_0("Releasing video capture object");
+    if(m_cap != NULL) {
+        m_cap->release();
+        LOG_DEBUG_0("Capture object deleted");
+    }
+    }
 }

@@ -28,7 +28,6 @@
 #endif
 
 #include <cstring>
-
 #include "eis/utils/logger.h"
 #include "eis/vi/gstreamer_ingestor.h"
 #include "eis/vi/gva_roi_meta.h"
@@ -51,8 +50,8 @@ static int g_enc_lvl;
 // Prototypes
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data);
 
-GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl):
-    Ingestor(config, frame_queue, service_name, enc_type, enc_lvl) {
+GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl):
+    Ingestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl) {
     g_enc_type = enc_type;
     g_enc_lvl = enc_lvl;
 
@@ -79,6 +78,7 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
     m_loop = NULL;
     m_gst_pipeline = NULL;
     m_sink = NULL;
+    m_snapshot = false;
     char** argv = new char*[1];
     gst_init(&argc, &argv);
 }
@@ -93,16 +93,14 @@ GstreamerIngestor::~GstreamerIngestor() {
     // TODO: What about the m_sink? TO BE VERIFIED...
 }
 
-void GstreamerIngestor::gstreamer_init() {
+void GstreamerIngestor::gstreamer_init(bool snapshot_mode) {
+    m_snapshot = snapshot_mode;
     // Initialize Glib loop
     m_loop = g_main_loop_new(NULL, FALSE);
     // TODO: Verify correctly initialized
-
     // Load Gstreamer pipeline
     m_gst_pipeline = gst_parse_launch((char*)&m_pipeline[0], NULL);
-
     // TODO: Verify correctly loaded
-
     // Get and configure the sink element
     m_sink = gst_bin_get_by_name(GST_BIN(m_gst_pipeline), "sink");
     // TODO: Check that the sink was correctly found
@@ -126,21 +124,26 @@ void GstreamerIngestor::gstreamer_init() {
 }
 
 void GstreamerIngestor::stop() {
-    g_main_loop_quit(m_loop);
+    if (m_loop != NULL)
+        g_main_loop_quit(m_loop);
     // TODO: Should there be a wait here???
-    gst_element_set_state(m_gst_pipeline, GST_STATE_NULL);
+    if (m_gst_pipeline != NULL)
+        gst_element_set_state(m_gst_pipeline, GST_STATE_NULL);
 }
 
 // This method does nothing in this implementation since the frames are
 // retrieved via an async call from GStreamer
 void GstreamerIngestor::read(Frame*& frame) {}
 
-void GstreamerIngestor::run() {
+void GstreamerIngestor::run(bool snapshot_mode) {
 #ifdef WITH_PROFILE
     auto start = std::chrono::system_clock::now();
 #endif
+    if (snapshot_mode) {
+        m_frame_count = 0;
+    }
     LOG_INFO_0("Initializing Gstreamer pipeline");
-    gstreamer_init();
+    gstreamer_init(snapshot_mode);
     LOG_INFO_0("Gstreamer ingestor thread started");
     gst_element_set_state(m_gst_pipeline, GST_STATE_PLAYING);
     g_main_loop_run(m_loop);
@@ -201,7 +204,6 @@ public:
     GstSample* sample;
     GstBuffer* buf;
     GstMapInfo* info;
-
     GstreamerFrame(GstSample* sample, GstBuffer* buf, GstMapInfo* info) :
         sample(sample), buf(buf), info(info)
     {}
@@ -472,6 +474,15 @@ GstreamerIngestor* ctx) {
                     ctx->m_frame_count = 0;
                 }
                 ctx->m_frame_count++;
+
+                // Deleting subsequent frames in snapshot mode if GST_FLOW_EOS
+                // takes time/doesn't stop gstreamer loop with video source
+                if (ctx->m_snapshot) {
+                    if (ctx->m_frame_count > 1) {
+                      delete frame;
+                      return GST_FLOW_EOS;
+                     }
+                }
                 elem = msgbus_msg_envelope_new_integer(ctx->m_frame_count);
                 if (elem == NULL) {
                     LOG_ERROR_0("Failed to create frame_number element");
@@ -532,6 +543,12 @@ GstreamerIngestor* ctx) {
             }
         } else {
             LOG_ERROR_0("Failed to get GstBuffer");
+        }
+
+        if(ctx->m_snapshot) {
+            ctx->m_frame_count = 1;
+            ctx->m_snapshot_cv.notify_all();
+            return GST_FLOW_EOS;
         }
         return GST_FLOW_OK;
     }

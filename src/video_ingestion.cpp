@@ -28,6 +28,7 @@
 #include "eis/vi/video_ingestion.h"
 #include "eis/vi/ingestor.h"
 #include "eis/vi/gstreamer_ingestor.h"
+#include <mutex>
 
 #define INTEL_VENDOR "GenuineIntel"
 #define INTEL_VENDOR_LENGTH 12
@@ -170,6 +171,7 @@ VideoIngestion::VideoIngestion(
         if (m_commandhandler != NULL) {
             m_commandhandler->register_callback((int)START_INGESTION, std::bind(&VideoIngestion::process_start_ingestion, this, std::placeholders::_1));
             m_commandhandler->register_callback((int)STOP_INGESTION, std::bind(&VideoIngestion::process_stop_ingestion, this, std::placeholders::_1));
+            m_commandhandler->register_callback((int)SNAPSHOT, std::bind(&VideoIngestion::process_snapshot, this, std::placeholders::_1));
         }
 
         // Read config from config_mgr
@@ -207,7 +209,7 @@ VideoIngestion::VideoIngestion(
     }
 
     // Get ingestor
-    m_ingestor = get_ingestor(m_ingestor_cfg, m_udf_input_queue, m_ingestor_type.c_str(), m_app_name, m_enc_type, m_enc_lvl);
+    m_ingestor = get_ingestor( m_ingestor_cfg, m_udf_input_queue, m_ingestor_type.c_str(), m_app_name, m_snapshot_cv, m_enc_type, m_enc_lvl);
 
     char** pub_topics = env_config->get_topics_from_env(PUB);
     size_t num_of_pub_topics = env_config->get_topics_count(pub_topics);
@@ -245,12 +247,10 @@ VideoIngestion::VideoIngestion(
 msg_envelope_elem_body_t* VideoIngestion::process_start_ingestion(msg_envelope_elem_body_t *arg_payload) {
     try {
             LOG_INFO_0("START INGESTION request received from client");
-
             if (m_ingestion_running.load()) {
                 std::string err = "Ingestion already running";
                 return m_commandhandler->form_reply_payload((int)REQ_ALREADY_RUNNING, err, NULL);
             }
-
             IngestRetCode ret = m_ingestor->start();
             if (ret != IngestRetCode::SUCCESS) {
                 LOG_ERROR("Failed to start ingestor thread: %d",ret);
@@ -294,6 +294,38 @@ msg_envelope_elem_body_t* VideoIngestion::process_stop_ingestion(msg_envelope_el
     }
 }
 
+msg_envelope_elem_body_t* VideoIngestion::process_snapshot(msg_envelope_elem_body_t *arg_payload) {
+    try {
+            LOG_INFO_0("SNAPSHOT request received from client");
+
+            if (m_ingestion_running.load()) {
+                std::string err = "Ingestion already running";
+                return m_commandhandler->form_reply_payload((int)REQ_ALREADY_RUNNING, err, NULL);
+            }
+
+            IngestRetCode ret = m_ingestor->start(true);
+            if (ret != IngestRetCode::SUCCESS) {
+                LOG_ERROR("Failed to start ingestor thread: %d",ret);
+                std::string err = "Failed to start ingestor thread";
+                return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
+            }
+            LOG_DEBUG_0("Ingestor thread snapshot started");
+            std::mutex mtx;
+            std::unique_lock<std::mutex> lck(mtx);
+            m_snapshot_cv.wait(lck);
+            lck.unlock();
+            LOG_DEBUG_0("Stopping ingestor thread");
+            if (m_ingestor) {
+                m_ingestor->stop();
+            }
+            m_ingestion_running.store(false);
+            return m_commandhandler->form_reply_payload((int)REQ_HONORED, "SUCCESS", NULL);
+    } catch(std::exception& ex) {
+        std::string err = "exception occurred request not honored";
+        LOG_ERROR("%s %s", ex.what(), err.c_str());
+        return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
+    }
+}
 
 void VideoIngestion::start() {
     if (m_publisher) {

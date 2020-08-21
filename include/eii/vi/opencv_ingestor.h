@@ -67,13 +67,25 @@ namespace eis {
         public:
             /**
              * Constructor
+             * @param config        - Ingestion config
+             * @param frame_queue   - Frame Queue context
+             * @param service_name  - Service Name env variable
+             * @param snapshot_cv   - Snapshot condition variable
+             * @param enc_type      - Frame encoding type(Optional)
+             * @param enc_lvl       - Frame encoding level(Optional)
              */
-            OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, EncodeType enc_type, int enc_lvl);
+            OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl);
 
             /**
              * Destructor
              */
             ~OpenCvIngestor();
+
+           /**
+            * Overridden stop method.
+            */
+           void stop() override;
+
         };
 
     } // vi
