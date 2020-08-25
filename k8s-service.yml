@@ -1,0 +1,139 @@
+# Copyright (c) 2020 Intel Corporation.
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: videoingestion
+  namespace: kube-eis
+spec:
+  ports:
+  - port: 65012
+    name: tcp
+  selector:
+    app: video
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: video
+  name: ia-video-ingestion
+  namespace: kube-eis
+
+spec:
+  containers:
+  - name: ia-video-ingestion
+    image: ia_video_ingestion:${EIS_VERSION}
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: eis-dev
+      mountPath: /dev
+    - name: eis-socket
+      mountPath: /EIS/sockets
+    - name: tmp
+      mountPath: /var/tmp
+    - name: opencl
+      mountPath: /opt/Intel/OpenCL/Boards
+    - name: altera
+      mountPath: /opt/altera
+    - name: fpga
+      mountPath: /opt/intel/intelFPGA
+    - name: "ca-cert"
+      mountPath: /run/secrets/ca_etcd
+    - name: "video-ingest-cert"
+      mountPath: /run/secrets/etcd_VideoIngestion_cert
+    - name: "video-ingest-key"
+      mountPath: /run/secrets/etcd_VideoIngestion_key
+
+    env:
+    - name: AppName
+      value: "VideoIngestion"
+    - name: DEV_MODE
+      value: '${DEV_MODE}'
+    - name: PROFILING_MODE
+      value: '${PROFILING_MODE}'
+    - name: no_proxy
+      value: '${eis_no_proxy},${RTSP_CAMERA_IP}'
+    - name: ETCD_HOST
+      value: etcd
+    - name: ETCD_CLIENT_PORT
+      value: '${ETCD_CLIENT_PORT}'
+    - name: PROVISION_MODE
+      value: '${PROVISION_MODE}'
+    - name:  ETCD_PREFIX
+      value: '${ETCD_PREFIX}'
+    - name: CONFIGMGR_CACERT
+      value: "/run/secrets/ca_etcd/ca_certificate.pem"
+    - name: CONFIGMGR_CERT
+      value: "/run/secrets/etcd_VideoIngestion_cert/VideoIngestion_client_certificate.pem"
+    - name: CONFIGMGR_KEY
+      value: "/run/secrets/etcd_VideoIngestion_key/VideoIngestion_client_key.pem"
+      #MessageBus Endpoint Configuration
+      # Setting Visualizer as a subscriber here for FpsCalculator
+    - name: Clients
+      value: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLS_RemoteAgent"
+    - name: CertType
+      value: "zmq"
+    - name: ZMQ_RECV_HWM
+      value: "50"
+
+      # Use IPC mode (zmq_ipc) when VideoIngestion and VideoAnalytics based
+      # containers are running on the same host. If they are running on diff
+      # host, please use TCP mode for communication.
+      # Eg: Stream cfg for
+      # IPC: zmq_ipc, <absolut_socket_directory_path>
+      # TPC: zmq_tcp, <publisher_host>:<publisher_port>
+    - name: PubTopics
+      value: "camera1_stream"
+    - name: camera1_stream_cfg
+      value: "zmq_tcp,0.0.0.0:65012"
+    - name: Server
+      value: "zmq_tcp,0.0.0.0:66013"
+
+  volumes:
+  - name: eis-dev
+    hostPath:
+      path: /dev
+  - name: eis-socket
+    hostPath:
+      path: /opt/intel/eis/sockets
+  - name: tmp
+    hostPath:
+      path: /var/tmp
+  - name: opencl
+    hostPath:
+      path: /opt/Intel/OpenCL/Boards
+  - name: altera
+    hostPath:
+      path: /opt/altera
+  - name: fpga
+    hostPath:
+      path: /opt/intel/intelFPGA
+  - name: "ca-cert"
+    secret:
+      secretName: ca-etcd
+  - name: "video-ingest-cert"
+    secret:
+      secretName: videoingestion-cert
+  - name: "video-ingest-key"
+    secret:
+      secretName: videoingestion-key
