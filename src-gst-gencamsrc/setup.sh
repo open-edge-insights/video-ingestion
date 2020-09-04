@@ -9,7 +9,7 @@ find . -type f -not -name '*Runtime*Linux64*x64*3_1*.tgz' -delete
 echo "GenICam v3.1 runtime for Linux64/x64 is found"
 tar xzvf *
 echo "GenICam runtime for Linux64/x64 untarred"
-sudo cp bin/Linux64_x64/* /usr/lib/x86_64-linux-gnu/
+cp bin/Linux64_x64/* /usr/lib/x86_64-linux-gnu/
 echo "GenICam runtime copied to /usr/lib/x86_64-linux-gnu/"
 cd ..
 rm -rf downloads
@@ -18,9 +18,9 @@ echo "downloads directory cleaned up"
 echo "configure run"
 make
 echo "make successful"
-sudo make install
+make install
 echo "install successful"
-sudo ldconfig
+ldconfig
 export GST_PLUGIN_PATH=/usr/local/lib/gstreamer-1.0
 echo "GST_PLUGIN_PATH set to /usr/local/lib/gstreamer-1.0"
 echo "Please set GENICAM_GENTL64_PATH to GenTL producer directory"

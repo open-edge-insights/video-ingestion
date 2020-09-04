@@ -51,6 +51,9 @@ services:
       ETCD_HOST: ${ETCD_HOST}
       ETCD_PREFIX: ${ETCD_PREFIX}
 
+      # Setting GENICAM value to the respective camera which needs to be used
+      GENICAM: "Basler"
+
       # MessageBus Endpoint Configuration
       # Setting Visualizer as a subscriber here for FpsCalculator
       Clients: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLSRemoteAgent"
@@ -80,7 +83,7 @@ services:
       # ion - VPU
       # acla10_1150_sg20 - FPGA
       # USB camera devices
-      # Selective mount can be done for deployment       
+      # Selective mount can be done for deployment
       - "/dev/:/dev/"
     secrets:
       - ca_etcd

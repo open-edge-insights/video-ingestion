@@ -30,16 +30,11 @@ ARG EIS_UID
 ARG EIS_USER_NAME
 RUN useradd -r -u ${EIS_UID} -G video ${EIS_USER_NAME}
 
-# Adding basler camera's essentials by referring it's repo's README and Removing unwanted files
-RUN wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-5.1.0.12682-x86_64.tar.gz && \
-    tar xvf pylon-5.1.0.12682-x86_64.tar.gz && \
-    cd pylon-5.1.0.12682-x86_64 && \
-    tar -C /opt -zxf pylonSDK-5.1.0.12682-x86_64.tar.gz && \
-    rm -rf pylon-5.1.0.12682-x86_64.tar.gz && \
-    rm -rf pylon-5.1.0.12682-x86_64/pylonSDK-5.1.0.12682-x86_64.tar.gz
+# Installing genicam SDK
+COPY install_genicam_sdk.sh ./install_genicam_sdk.sh
+RUN ./install_genicam_sdk.sh
 
-# Installing python boost dependencies
-# Installing common build dependancies
+# Installing python boost and common build dependencies
 RUN apt-get update && \
     apt-get install -y libboost-python-dev unzip \
     build-essential \
@@ -67,10 +62,12 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/mediasdk/lib64
 
 ENV PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig
 
-COPY basler-source-plugin ./basler-source-plugin
-COPY install_basler_gstreamer_plugin.sh .
-RUN chmod +x install_basler_gstreamer_plugin.sh && \
-    ./install_basler_gstreamer_plugin.sh
+# Build Generic Plugin
+COPY src-gst-gencamsrc ./src-gst-gencamsrc
+COPY install_gencamsrc_gstreamer_plugin.sh .
+RUN ./install_gencamsrc_gstreamer_plugin.sh
+
+COPY gentl_producer_env.sh ./gentl_producer_env.sh
 
 ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
 
@@ -165,4 +162,4 @@ COPY --from=video_common ${GO_WORK_DIR}/common/udfs/python ./common/udfs/python
 
 ENV PYTHONPATH ${PYTHONPATH}:${GO_WORK_DIR}/common/udfs/python:${GO_WORK_DIR}/common/
 
-ENTRYPOINT ["VideoIngestion/vi_start.sh"]
+ENTRYPOINT ["./VideoIngestion/vi_start.sh"]

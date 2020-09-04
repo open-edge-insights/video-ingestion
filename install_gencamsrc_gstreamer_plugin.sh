@@ -22,13 +22,11 @@
 
 source /opt/intel/openvino/bin/setupvars.sh
 
-echo "Installing Basler Plugin"
-cd basler-source-plugin && \
+echo "Installing gencamsrc plugin"
+cd src-gst-gencamsrc && \
    autoreconf -i
 
-  ./autogen.sh && \
-   make && \
-   make install
+   ./setup.sh
 
-echo "Removing Basler Plugin Sources"
-rm -rf basler-source-plugin/
+echo "Removing gencamsrc plugin sources"
+rm -rf src-gst-gencamsrc
