@@ -1,17 +1,16 @@
-#!/bin/bash
-
+#!/bin/bash -e
 # Copyright (c) 2020 Intel Corporation.
-
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,20 +19,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-source /opt/intel/openvino/bin/setupvars.sh
+genicam=${GENICAM}
 
-udevadm control --reload-rules
-udevadm trigger
+if [ -z "$genicam" ]; then
+    echo "GENICAM env var is NULL. Please set accordingly"
+fi
 
-# FPGA environment
-source ~/fpga_env.sh
+case $genicam in
+    # Basler camera GenTL producer
+    "Basler")
+        export GENICAM_GENTL64_PATH=/opt/pylon5/lib64/gentlproducer/gtl/
+        ;;
 
-# Adding path of libcpu_extension.so to LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GO_WORK_DIR/common/udfs/native/build/ie_cpu_extension
-
-# Adding path of basler source plugin
-export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
-
-source ./VideoIngestion/gentl_producer_env.sh
-
-./VideoIngestion/build/video-ingestion
+    # Add case statement for the respecitive Genicam needed
+esac

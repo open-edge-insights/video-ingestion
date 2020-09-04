@@ -15,6 +15,7 @@
             "CONFIGMGR_CERT": "${databucket.cert}",
             "CONFIGMGR_KEY": "${databucket.key}",
             "ETCD_PREFIX": "$ETCD_PREFIX",
+            "GENICAM": "Basler",
             "DEV_MODE": "$DEV_MODE",
             "Clients": "VideoAnalytics",
             "PROFILING_MODE": "false",

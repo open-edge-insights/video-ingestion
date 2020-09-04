@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Copyright (c) 2020 Intel Corporation.
 
@@ -20,20 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-source /opt/intel/openvino/bin/setupvars.sh
 
-udevadm control --reload-rules
-udevadm trigger
+# Adding basler camera's SDK and removing unwanted files
 
-# FPGA environment
-source ~/fpga_env.sh
+PYLON_SDK_VER=5.1.0.12682
 
-# Adding path of libcpu_extension.so to LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GO_WORK_DIR/common/udfs/native/build/ie_cpu_extension
+wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-${PYLON_SDK_VER}-x86_64.tar.gz && \
+tar xvf pylon-${PYLON_SDK_VER}-x86_64.tar.gz && \
+cd pylon-${PYLON_SDK_VER}-x86_64 && \
+tar -C /opt -zxf pylonSDK-${PYLON_SDK_VER}-x86_64.tar.gz && \
+rm -rf pylon-${PYLON_SDK_VER}-x86_64.tar.gz && \
+rm -rf pylon-${PYLON_SDK_VER}-x86_64/pylonSDK-${PYLON_SDK_VER}-x86_64.tar.gz
 
-# Adding path of basler source plugin
-export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
-
-source ./VideoIngestion/gentl_producer_env.sh
-
-./VideoIngestion/build/video-ingestion
+# Add camera SDK installation or the respecitive Genicam needed
