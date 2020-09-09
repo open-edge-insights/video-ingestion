@@ -22,7 +22,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: videoingestion
-  namespace: kube-eis
+  namespace: eis
 spec:
   ports:
   - port: 65012
@@ -36,7 +36,7 @@ metadata:
   labels:
     app: video
   name: ia-video-ingestion
-  namespace: kube-eis
+  namespace: eis
 
 spec:
   containers:
