@@ -26,6 +26,7 @@
 #include <string>
 #include <vector>
 #include <cerrno>
+#include <unistd.h>
 
 #include <eis/msgbus/msgbus.h>
 #include <eis/utils/logger.h>
@@ -38,12 +39,11 @@ using namespace eis::utils;
 using namespace eis::udf;
 
 #define PIPELINE "pipeline"
-#define RESIZE   "resize"
 #define LOOP_VIDEO "loop_video"
+#define UUID_LENGTH 5
 
 OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl):
     Ingestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl) {
-    m_resize = false;
     m_width = 0;
     m_height = 0;
     m_cap = NULL;
@@ -100,9 +100,138 @@ void free_cv_frame(void* obj) {
     delete frame;
 }
 
+void OpenCvIngestor::run(bool snapshot_mode) {
+    // indicate that the run() function corresponding to the m_th thread has started
+    m_running.store(true);
+    LOG_INFO_0("Ingestor thread running publishing on stream");
+
+    Frame* frame = NULL;
+
+    int64_t frame_count = 0;
+
+    msg_envelope_elem_body_t* elem = NULL;
+
+    try {
+        while (!m_stop.load()) {
+            this->read(frame);
+
+            // Adding image handle to frame
+            std::string randuuid = generate_image_handle(UUID_LENGTH);
+            msg_envelope_t* meta_data = frame->get_meta_data();
+            // Profiling start
+            DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
+
+            // Profiling end
+
+            msgbus_ret_t ret;
+            if(frame_count == INT64_MAX) {
+                LOG_WARN_0("frame count has reached INT64_MAX, so resetting \
+                            it back to zero");
+                frame_count = 0;
+            }
+            frame_count++;
+
+            elem = msgbus_msg_envelope_new_integer(frame_count);
+            if (elem == NULL) {
+                delete frame;
+                const char* err = "Failed to create frame_number element";
+                LOG_ERROR("%s", err);
+                throw err;
+            }
+            ret = msgbus_msg_envelope_put(meta_data, "frame_number", elem);
+            if(ret != MSG_SUCCESS) {
+                delete frame;
+                const char* err = "Failed to put frame_number in meta-data";
+                LOG_ERROR("%s", err);
+                throw err;
+            }
+            elem = NULL;
+            LOG_DEBUG("Frame number: %ld", frame_count);
+
+            elem = msgbus_msg_envelope_new_string(randuuid.c_str());
+            if (elem == NULL) {
+                delete frame;
+                const char* err = "Failed to create image handle element";
+                LOG_ERROR("%s", err);
+                throw err;
+            }
+            ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
+            if(ret != MSG_SUCCESS) {
+                delete frame;
+                const char* err = "Failed to put image handle in meta-data";
+                LOG_ERROR("%s", err);
+                throw err;
+            }
+            elem = NULL;
+
+            // Profiling start
+            DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_entry")
+            // Profiling end
+
+            // Set encding type and level
+            try {
+                frame->set_encoding(m_enc_type, m_enc_lvl);
+            } catch(const char *err) {
+                LOG_ERROR("Exception: %s", err);
+            } catch(...) {
+                LOG_ERROR("Exception occurred in set_encoding()");
+            }
+
+            QueueRetCode ret_queue = m_udf_input_queue->push(frame);
+            if(ret_queue == QueueRetCode::QUEUE_FULL) {
+                if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
+                    LOG_ERROR_0("Failed to enqueue message, "
+                                "message dropped");
+                }
+                // Add timestamp which acts as a marker if queue if blocked
+                DO_PROFILING(this->m_profile, meta_data, m_ingestor_block_key.c_str());
+            }
+
+            // Profiling start
+            DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_exit")
+            // Profiling end
+
+            frame = NULL;
+
+            if(snapshot_mode) {
+                m_stop.store(true);
+                m_snapshot_cv.notify_all();
+            }
+        }
+    } catch(const char* err) {
+        LOG_ERROR("Exception: %s", err);
+        if (elem != NULL)
+            msgbus_msg_envelope_elem_destroy(elem);
+        if(frame != NULL)
+            delete frame;
+        throw err;
+    } catch(...) {
+        LOG_ERROR("Exception occured in opencv ingestor run()");
+        if (elem != NULL)
+            msgbus_msg_envelope_elem_destroy(elem);
+        if(frame != NULL)
+            delete frame;
+        throw;
+    }
+    if (elem != NULL)
+        msgbus_msg_envelope_elem_destroy(elem);
+    if(frame != NULL)
+        delete frame;
+    LOG_INFO_0("Ingestor thread stopped");
+    if(snapshot_mode)
+        m_running.store(false);
+}
+
 void OpenCvIngestor::read(Frame*& frame) {
 
     cv::Mat* cv_frame = new cv::Mat();
+
+    if (m_cap == NULL) {
+        m_cap = new cv::VideoCapture(m_pipeline);
+        if(!m_cap->isOpened()) {
+            LOG_ERROR("Failed to open gstreamer pipeline: %s", m_pipeline.c_str());
+        }
+    }
 
     if(!m_cap->read(*cv_frame)) {
         if(cv_frame->empty()) {
@@ -134,6 +263,10 @@ void OpenCvIngestor::read(Frame*& frame) {
     frame = new Frame(
             (void*) cv_frame, cv_frame->cols, cv_frame->rows,
             cv_frame->channels(), cv_frame->data, free_cv_frame);
+
+    if(m_poll_interval > 0) {
+        usleep(m_poll_interval * 1000 * 1000);
+    }
 }
 
 void OpenCvIngestor::stop() {
@@ -152,6 +285,8 @@ void OpenCvIngestor::stop() {
     LOG_INFO_0("Releasing video capture object");
     if(m_cap != NULL) {
         m_cap->release();
+        delete m_cap;
+        m_cap = NULL;
         LOG_DEBUG_0("Capture object deleted");
     }
     }

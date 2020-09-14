@@ -65,12 +65,12 @@ namespace eis {
                 /**
                  * Overridden run thread method.
                  */
-                void run(bool snapshot_mode=false);
+                void run(bool snapshot_mode=false) override;
 
                 /**
                  * Overridden frame method.
                  */
-                void read(udf::Frame*& frame);
+                void read(udf::Frame*& frame) override;
 
             public:
                 /**

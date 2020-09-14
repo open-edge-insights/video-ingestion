@@ -188,7 +188,15 @@ VideoIngestion::VideoIngestion(
         std::string initial_state = sw_trigger_init_state_cvt->body.string;
 
         // bool value of the init_state read from config
-        m_init_state_start = (!initial_state.compare("running")) ? true : false;
+        if (initial_state == "running") {
+            m_init_state_start = true;
+        } else if (initial_state == "stopped") {
+            m_init_state_start = false;
+        } else {
+            const char* err = "init_state value not supported";
+            LOG_ERROR("\"%s\" %s", initial_state.c_str(), err);
+            throw(err);
+        }
 
         // Ingestion is not going ON by default when VideoIngestion constructor is called. Even if init_state=start, the ingestion
         // will start when start() is called

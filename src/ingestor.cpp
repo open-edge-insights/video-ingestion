@@ -23,7 +23,6 @@
  * @brief Ingestor Base Implementation
  */
 
-#include <unistd.h>
 #include <sstream>
 #include <random>
 #include <string>
@@ -34,8 +33,6 @@
 #include "eis/vi/ingestor.h"
 #include "eis/vi/opencv_ingestor.h"
 #include "eis/vi/gstreamer_ingestor.h"
-
-#define UUID_LENGTH 5
 
 using namespace eis::vi;
 using namespace eis::utils;
@@ -78,114 +75,6 @@ Ingestor::~Ingestor() {
         delete m_profile;
     }
 }
-
-void Ingestor::run(bool snapshot_mode) {
-    // indicate that the run() function corresponding to the m_th thread has started
-    m_running.store(true);
-    LOG_INFO_0("Ingestor thread running publishing on stream");
-
-    Frame* frame = NULL;
-
-    int64_t frame_count = 0;
-    while (!m_stop.load()) {
-        this->read(frame);
-
-        // Adding image handle to frame
-        std::string randuuid = generate_image_handle(UUID_LENGTH);
-        msg_envelope_t* meta_data = frame->get_meta_data();
-        // Profiling start
-        DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
-
-        // Profiling end
-
-
-        msg_envelope_elem_body_t* elem = NULL;
-        msgbus_ret_t ret;
-        if(frame_count == INT64_MAX) {
-            LOG_WARN_0("frame count has reached INT64_MAX, so resetting \
-                        it back to zero");
-            frame_count = 0;
-        }
-        frame_count++;
-
-        elem = msgbus_msg_envelope_new_integer(frame_count);
-        if (elem == NULL) {
-            delete frame;
-            const char* err = "Failed to create frame_number element";
-            LOG_ERROR("%s", err);
-            throw err;
-        }
-        ret = msgbus_msg_envelope_put(meta_data, "frame_number", elem);
-        if(ret != MSG_SUCCESS) {
-            delete frame;
-            const char* err = "Failed to put frame_number in meta-data";
-            LOG_ERROR("%s", err);
-            throw err;
-        }
-        LOG_DEBUG("Frame number: %ld", frame_count);
-
-        elem = msgbus_msg_envelope_new_string(randuuid.c_str());
-        if (elem == NULL) {
-            delete frame;
-            const char* err = "Failed to create image handle element";
-            LOG_ERROR("%s", err);
-            throw err;
-        }
-        ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
-        if(ret != MSG_SUCCESS) {
-            delete frame;
-            const char* err = "Failed to put image handle in meta-data";
-            LOG_ERROR("%s", err);
-            throw err;
-        }
-
-        // Profiling start
-        DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_entry")
-        // Profiling end
-
-        // Set encding type and level
-        try {
-            frame->set_encoding(m_enc_type, m_enc_lvl);
-        } catch(const char *err) {
-            LOG_ERROR("Exception: %s", err);
-        } catch(...) {
-            LOG_ERROR("Exception occurred in set_encoding()");
-        }
-
-        QueueRetCode ret_queue = m_udf_input_queue->push(frame);
-        if(ret_queue == QueueRetCode::QUEUE_FULL) {
-            if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
-                LOG_ERROR_0("Failed to enqueue message, "
-                            "message dropped");
-            }
-            // Add timestamp which acts as a marker if queue if blocked
-            DO_PROFILING(this->m_profile, meta_data, m_ingestor_block_key.c_str());
-        }
-
-        // Profiling start
-        DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_exit")
-        // Profiling end
-
-        frame = NULL;
-
-        if(snapshot_mode) {
-            m_stop.store(true);
-            m_running.store(false);
-            m_snapshot_cv.notify_all();
-        }
-
-        if(m_poll_interval > 0) {
-            usleep(m_poll_interval * 1000 * 1000);
-        }
-    }
-    if(frame != NULL)
-        delete frame;
-    LOG_INFO_0("Ingestor thread stopped");
-}
-
-// This method does not have any implementation as the
-// respective derived class handle stopping the ingestor
-void Ingestor::stop() {}
 
 IngestRetCode Ingestor::start(bool snapshot_mode) {
     if (snapshot_mode) {
