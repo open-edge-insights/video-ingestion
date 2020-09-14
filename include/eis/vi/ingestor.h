@@ -150,7 +150,7 @@ namespace eis {
                 /**
                  * Ingestion thread run method
                  */
-                virtual void run(bool snapshot_mode=false);
+                virtual void run(bool snapshot_mode=false) = 0;
 
                 /**
                  * Read method implemented by subclasses to retrieve the next frame from

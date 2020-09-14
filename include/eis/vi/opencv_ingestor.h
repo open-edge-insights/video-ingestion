@@ -60,6 +60,11 @@ namespace eis {
 
         protected:
             /**
+             * Overridden run method.
+             */
+            void run(bool snapshot_mode=false) override;
+
+            /**
              * Overridden read method.
              */
             void read(udf::Frame*& frame) override;
