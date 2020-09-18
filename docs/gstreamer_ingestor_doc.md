@@ -83,3 +83,21 @@
   For more information reagarding the queue element refer the below link:
   https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-plugins/html/gstreamer-plugins-queue.html
 
+
+* In case the user wants to enable debug information for the gstreamer elements, it can be set using the `GST_DEBUG` env variable in [../docker-compose.yml](../docker-compose.yml).
+
+  **Example snippet to set the `GST_DEBUG` env variable in [../docker-compose.yml](../docker-compose.yml):**
+
+   ```yml
+   services:
+     ia_video_ingestion:
+     ----snip----
+       environment:
+           GST_DEBUG: "1,gencamsrc:4"
+     ----snip----
+    ```
+   `GST_DEBUG: "1,gencamsrc:4"` env variable  will set the GST log level of `gencamsrc` element to 4 and all other elements to 1.
+
+   For more information on gstreamer debug log levels refer the below link:
+   https://gstreamer.freedesktop.org/documentation/tutorials/basic/debugging-tools.html?gi-language=c
+

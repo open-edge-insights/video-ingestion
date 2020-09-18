@@ -21,15 +21,17 @@
 # SOFTWARE.
 
 
-# Adding basler camera's SDK and removing unwanted files
+# Adding dependency needed for Matrix Vision SDK
+apt-get install -y net-tools iproute2
 
-PYLON_SDK_VER=5.1.0.12682
+# Adding Matrix Vision SDK
+MATRIX_VISION_SDK_VER=2.38.0
+mkdir -p matrix_vision_downloads && \
+cd matrix_vision_downloads && \
+wget http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
+wget http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
+chmod +x install_mvGenTL_Acquire.sh && \
+./install_mvGenTL_Acquire.sh && \
+rm -rf matrix_vision_downloads
 
-wget https://www.baslerweb.com/media/downloads/software/pylon_software/pylon-${PYLON_SDK_VER}-x86_64.tar.gz && \
-tar xvf pylon-${PYLON_SDK_VER}-x86_64.tar.gz && \
-cd pylon-${PYLON_SDK_VER}-x86_64 && \
-tar -C /opt -zxf pylonSDK-${PYLON_SDK_VER}-x86_64.tar.gz && \
-rm -rf pylon-${PYLON_SDK_VER}-x86_64.tar.gz && \
-rm -rf pylon-${PYLON_SDK_VER}-x86_64/pylonSDK-${PYLON_SDK_VER}-x86_64.tar.gz
-
-# Add camera SDK installation or the respecitive Genicam needed
+# Add newer Genicam camera SDK installation steps

@@ -43,7 +43,7 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "exit", "0"]
-      interval: 5m 
+      interval: 5m
 
     ipc: "none"
     environment:
@@ -55,8 +55,12 @@ services:
       ETCD_CLIENT_PORT: ${ETCD_CLIENT_PORT}
       ETCD_PREFIX: ${ETCD_PREFIX}
 
-      # Setting GENICAM value to the respective camera which needs to be used
-      GENICAM: "Basler"
+      # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
+      GENICAM: "Matrix_Vision"
+
+      # Setting the GST log levels
+      # gencamsrc:4 log level needed for hw-trigger-timeout
+      GST_DEBUG: "1,gencamsrc:4"
 
       # Provisioning related variable
       CertType: "zmq"
@@ -65,7 +69,7 @@ services:
       - "/dev:/dev"
       - "/var/tmp:/var/tmp"
     privileged: true
-      
+
     devices:
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU

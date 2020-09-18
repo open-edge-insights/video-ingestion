@@ -26,10 +26,10 @@ if [ -z "$genicam" ]; then
 fi
 
 case $genicam in
-    # Basler camera GenTL producer
-    "Basler")
-        export GENICAM_GENTL64_PATH=/opt/pylon5/lib64/gentlproducer/gtl/
+    # Matrix Vision camera GenTL producer
+    "Matrix_Vision")
+        export GENICAM_GENTL64_PATH=/opt/mvIMPACT_Acquire/lib/x86_64/
         ;;
 
-    # Add case statement for the respecitive Genicam needed
+    # Add case statement for exporting newer GenTL producer
 esac
