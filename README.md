@@ -239,8 +239,11 @@ In case one needs to run GVA use-case in VI refer the below steps:
 Generic Plugin is a gstreamer generic source plugin that communicates and streams from a GenICam based camera which provides a GenTL producer. In order to use
 the generic plugin with VI one must install the respective GenICam camera SDK and make sure the compatible GenTL producer for the camera is installed.
 
+**Refer [src-gst-gencamsrc/README](src-gst-gencamsrc/README) for Element Properties of Generic Plugin**.
+
 **Refer [src-gst-gencamsrc/README.md](src-gst-gencamsrc/README.md) for more information on Generic Plugin**.
 
+**Note:** For working with Genicam USB3 Vision camera please install the respective camera SDK by referring the below section.
   ----
 
 #### `Adding new GigE camera support to VideoIngestion`
@@ -299,16 +302,6 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-
-  * `Basler USB3.0 Interface camera with Gstreamer Ingestor`
-
-     ```javascript
-     {
-       "type": "gstreamer",
-       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=rgb8 ! videoconvert !  video/x-raw,format=BGR ! appsink"
-     }
-     ```
-
    * `Hardware trigger based ingestion with gstreamer ingestor`
 
      ```javascript
