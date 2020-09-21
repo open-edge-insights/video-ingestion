@@ -1,27 +1,30 @@
 {
-    "encoding": {
-        "type": "jpeg",
-        "level": 95
+    "/VideoIngestion/config": {
+        "encoding": {
+            "type": "jpeg",
+            "level": 95
+        },
+        "ingestor": {
+            "type": "opencv",
+            "pipeline": "./test_videos/pcb_d2000.avi",
+            "loop_video": true,
+            "queue_size": 10,
+            "poll_interval": 0.2
+        },
+        "sw_trigger": {
+            "init_state": "running"
+        },
+        "max_jobs": 20,
+        "max_workers":4,
+        "udfs": [{
+            "name": "pcb.pcb_filter",
+            "type": "python",
+            "scale_ratio": 4,
+            "training_mode": "false",
+            "n_total_px": 300000,
+            "n_left_px": 1000,
+            "n_right_px": 1000
+        }]
     },
-    "ingestor": {
-        "type": "opencv",
-        "pipeline": "./test_videos/pcb_d2000.avi",
-        "loop_video": true,
-        "queue_size": 10,
-        "poll_interval": 0.2
-    },
-    "sw_trigger": {
-        "init_state": "running"
-    },
-    "max_jobs": 20,
-    "max_workers":4,
-    "udfs": [{
-        "name": "pcb.pcb_filter",
-        "type": "python",
-        "scale_ratio": 4,
-        "training_mode": "false",
-        "n_total_px": 300000,
-        "n_left_px": 1000,
-        "n_right_px": 1000
-    }]
+    "/VideoIngestion/interfaces": {}
 }
