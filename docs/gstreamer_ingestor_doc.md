@@ -2,6 +2,41 @@
 
 **NOTE**:
 
+* The Gstreamer elements used are being leveraged from OpenVINO DL Streamer Framework.
+  For debugging purpose one can use the `gst-inspect-1.0` and `gst-launch-1.0` tool with
+  the gstreamer elements. In order to use the tool with the VideoIngestion container refer
+  the below steps.
+
+  ```sh
+
+  # 1. Use `docker exec` to run a command in a running container
+
+  $ docker exec -it ia_video_ingestion bash
+
+  # 2. Source the OpenVINO setupvars.sh script inside the VideoIngestion container
+
+  $ source /opt/intel/openvino/bin/setupvars.sh
+
+  # 3. Run the gstreamer command using the tool.
+
+  # For e.g inorder to print info about a gstreamer element like `gvadetect` use the gst-inspect.1.0 tool
+
+  $ gst-inspect-1.0 gvadetect
+
+  # To view information about Generic Plugin or exercise it then update the GST_PLUGIN_PATH to include below path and then use the `gst-inspect-1.0` tool
+
+  $ export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
+
+  $ gst-inspect-1.0 gencamsrc
+
+  ```
+
+  For more information on the gstreamer tool refer the below link:
+  https://gstreamer.freedesktop.org/documentation/tutorials/basic/gstreamer-tools.html?gi-language=c
+
+* If running on non-gfx systems or older systems which doesn't have hardware
+  media decoders (like in Xeon m/c) it is recommended to use `opencv` ingestor
+
 * `gstreamer` ingestor expects the image format to be in `BGR` format so the output image format should be in `BGR`
 
 * `poll_interval` key is not applicable for `gstreamer` ingestor. Refer the usage of `videorate` element in the below section to control the framerate in case of `gstreamer` ingestor.
