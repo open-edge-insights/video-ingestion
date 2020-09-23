@@ -1,5 +1,5 @@
 {
-    "/VideoIngestion/config": {
+    "config": {
         "encoding": {
             "type": "jpeg",
             "level": 95
@@ -26,5 +26,5 @@
             "n_right_px": 1000
         }]
     },
-    "/VideoIngestion/interfaces": {}
+    "interfaces": {}
 }
