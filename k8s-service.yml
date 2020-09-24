@@ -97,25 +97,17 @@ spec:
           value: "/run/secrets/etcd_VideoIngestion_key/VideoIngestion_client_key.pem"
       #MessageBus Endpoint Configuration
       # Setting Visualizer as a subscriber here for FpsCalculator
-        - name: Clients
-          value: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLS_RemoteAgent"
         - name: CertType
           value: "zmq"
-        - name: ZMQ_RECV_HWM
-          value: "50"
-
-      # Use IPC mode (zmq_ipc) when VideoIngestion and VideoAnalytics based
-      # containers are running on the same host. If they are running on diff
-      # host, please use TCP mode for communication.
-      # Eg: Stream cfg for
-      # IPC: zmq_ipc, <absolut_socket_directory_path>
-      # TPC: zmq_tcp, <publisher_host>:<publisher_port>
-        - name: PubTopics
-          value: "camera1_stream"
-        - name: camera1_stream_cfg
-          value: "zmq_tcp,0.0.0.0:65012"
-        - name: Server
-          value: "zmq_tcp,0.0.0.0:66013"
+        # Override the endpoint provided in interfaces for PUBLISHER
+        - name: PUBLISHER_ENDPOINT
+          value: "0.0.0.0:65012"
+        # Override the endpoint provided in interfaces for PUBLISHER
+        - name: PUBLISHER_TYPE
+          value: "zmq_tcp"
+        # Override the endpoint provided in interfaces for SERVER
+        - name: SERVER_ENDPOINT
+          value: "0.0.0.0:66013"
 
       volumes:
       - name: eis-dev

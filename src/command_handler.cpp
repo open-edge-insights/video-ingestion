@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 using namespace eis::ch;
+using namespace eis::config_manager;
 
 #define COMMAND "command"
 #define REPLY_PAYLOAD "reply_payload"
@@ -40,14 +41,13 @@ using namespace eis::ch;
     } \
 }
 
-CommandHandler::CommandHandler(std::string app_name, const env_config_t* env_config, const config_mgr_t* config_mgr) {
+CommandHandler::CommandHandler(ConfigMgr* ctx) {
     // initialize the exit condition for command handler monitor to false
     m_exit_command_handler_monitor.store(false);
-    m_app_name = app_name;
     int server_ret;
 
     // server gets initialized
-    server_ret = service_init(env_config, config_mgr);
+    server_ret = service_init(ctx);
 
     // server_ret = 0 -> Server creation is success else failure
     if (server_ret != 0) {
@@ -61,16 +61,28 @@ CommandHandler::CommandHandler(std::string app_name, const env_config_t* env_con
     }
 }
 
-int CommandHandler::service_init(const env_config_t* env_config, const config_mgr_t* config_mgr) {
+int CommandHandler::service_init(ConfigMgr* ctx) {
     // Server related env_config msgbus initializations
-    char* c_app_name = const_cast<char*>(m_app_name.c_str());
-    char* app_name_arr[] = {c_app_name};
-    config_t* service_config = env_config->get_messagebus_config(config_mgr, app_name_arr, 1, "server");
-    if (service_config == NULL) {
-        const char* err = "Failed to get server message bus config";
+    ServerCfg* server_ctx = ctx->getServerByIndex(0);
+    if (server_ctx == NULL) {
+        const char* err = "Failed to initialize server_ctx";
         LOG_ERROR("%s", err);
         return -1;
     }
+    config_t* service_config = server_ctx->getMsgBusConfig();
+    if (service_config == NULL) {
+        const char* err = "Failed to fetch msgbus config for Server";
+        LOG_ERROR("%s", err);
+        return -1;
+    }
+
+    char* name = NULL;
+    config_value_t* interface_value = server_ctx->getInterfaceValue("Name");
+    if (interface_value == NULL || interface_value->type != CVT_STRING){
+        LOG_ERROR_0("Failed to get interface value");
+        return -1;
+    }
+    name = interface_value->body.string;
 
     m_ch_ctx_server = msgbus_initialize(service_config);
     if (m_ch_ctx_server == NULL) {
@@ -81,7 +93,7 @@ int CommandHandler::service_init(const env_config_t* env_config, const config_mg
     }
 
     msgbus_ret_t ret;
-    ret = msgbus_service_new(m_ch_ctx_server, m_app_name.c_str(), NULL, &m_ch_service_ctx);
+    ret = msgbus_service_new(m_ch_ctx_server, name, NULL, &m_ch_service_ctx);
     if (ret != MSG_SUCCESS) {
         const char* err = "Failed to initialize service for server config";
         LOG_ERROR("%s", err);

@@ -40,88 +40,15 @@
 using namespace eis::vi;
 using namespace eis::ch;
 using namespace eis::utils;
+using namespace eis::config_manager;
 
 static CommandHandler* g_ch = NULL;
 static VideoIngestion* g_vi = NULL;
 static char* g_vi_config = NULL;
 static std::condition_variable g_err_cv;
-static config_mgr_t* g_config_mgr = NULL;
-static env_config_t* g_env_config_client = NULL;
+static ConfigMgr* g_cfg_mgr = NULL;
 static std::atomic<bool> g_cfg_change;
 static char* server_config = NULL;
-
-void get_config_mgr(char* str_app_name) {
-    char pub_cert_file[MAX_CONFIG_KEY_LENGTH] = "";
-    char pri_key_file[MAX_CONFIG_KEY_LENGTH] = "";
-    char trust_file[MAX_CONFIG_KEY_LENGTH] = "";
-    char storage_type[MAX_CONFIG_KEY_LENGTH];
-    std::string dev_mode_str = "";
-    int ret = 0;
-    server_config = getenv("Server");
-
-    char* str_dev_mode = NULL;
-    str_dev_mode = getenv("DEV_MODE");
-    if(str_dev_mode == NULL) {
-        throw "\"DEV_MODE\" env not set";
-    } else {
-        dev_mode_str = str_dev_mode;
-    }
-
-    bool dev_mode = false;
-    if (dev_mode_str == "true") {
-        dev_mode = true;
-    }
-
-    if(!dev_mode) {
-        ret = snprintf(pub_cert_file, MAX_CONFIG_KEY_LENGTH,
-                 "/run/secrets/etcd_%s_cert", str_app_name);
-        if (ret < 0) {
-            throw "failed to create pub_cert_file";
-        }
-        ret = snprintf(pri_key_file, MAX_CONFIG_KEY_LENGTH,
-                 "/run/secrets/etcd_%s_key", str_app_name);
-        if (ret < 0) {
-            throw "failed to create pri_key_file";
-        }
-        ret = strncpy_s(trust_file, MAX_CONFIG_KEY_LENGTH + 1,
-                  "/run/secrets/ca_etcd", MAX_CONFIG_KEY_LENGTH);
-        if (ret != 0) {
-            throw "failed to create trust file";
-        }
-
-        char* confimgr_cert = getenv("CONFIGMGR_CERT");
-        char* confimgr_key = getenv("CONFIGMGR_KEY");
-        char* confimgr_cacert = getenv("CONFIGMGR_CACERT");
-        if(confimgr_cert && confimgr_key && confimgr_cacert) {
-            ret = strncpy_s(pub_cert_file, MAX_CONFIG_KEY_LENGTH + 1,
-                            confimgr_cert, MAX_CONFIG_KEY_LENGTH);
-            if (ret != 0) {
-                throw "failed to add cert to trust file";
-            }
-            ret = strncpy_s(pri_key_file, MAX_CONFIG_KEY_LENGTH + 1,
-                            confimgr_key, MAX_CONFIG_KEY_LENGTH);
-            if (ret !=0) {
-                throw "failed to add key to trust file";
-            }
-            ret = strncpy_s(trust_file, MAX_CONFIG_KEY_LENGTH + 1,
-                            confimgr_cacert, MAX_CONFIG_KEY_LENGTH);
-            if (ret != 0 ){
-                 throw "failed to add cacert to trust file";
-            }
-       }
-    }
-
-    ret = strncpy_s(storage_type, (MAX_CONFIG_KEY_LENGTH + 1),
-                    "etcd", MAX_CONFIG_KEY_LENGTH);
-    if (ret != 0){
-        throw "failed to add storage type";
-    }
-
-    g_config_mgr = config_mgr_new(storage_type,
-                                 pub_cert_file,
-                                 pri_key_file,
-                                 trust_file);
-}
 
 void usage(const char* name) {
     printf("Usage: %s \n", name);
@@ -142,32 +69,32 @@ void signal_callback_handler(int signum){
     exit(0);
 }
 
-void vi_initialize(char* vi_config, char* str_app_name){
+void clean_up() {
+    if (g_ch) {
+        delete g_ch;
+    }
+    if (g_vi) {
+        delete g_vi;
+    }
+    if (g_cfg_mgr) {
+        delete g_cfg_mgr;
+    }
+}
+
+void vi_initialize(char* vi_config, std::string app_name){
     if (g_ch) {
         delete g_ch;
         g_ch = NULL;
     }
 
-    if(g_vi){
+    if (g_vi) {
         delete g_vi;
         g_vi = NULL;
     }
 
-    if(!g_config_mgr){
-        get_config_mgr(str_app_name);
-        if(!g_config_mgr) {
-            const char* err = "config-mgr object creation failed.";
-            throw(err);
-        }
-    }
-    g_env_config_client = env_config_new();
-
-    std::string app_name = "";
-    app_name = str_app_name;
-
     if (server_config != NULL) {
         try {
-            g_ch = new CommandHandler(app_name, g_env_config_client, g_config_mgr);
+            g_ch = new CommandHandler(g_cfg_mgr);
         } catch(const char *err) {
             LOG_ERROR("Exception occurred : %s", err);
             if (g_ch) {
@@ -179,11 +106,20 @@ void vi_initialize(char* vi_config, char* str_app_name){
         LOG_WARN_0("Server Config not present and hence Command Handler is not instantiated");
     }
 
-    g_vi = new VideoIngestion(app_name, g_err_cv, g_env_config_client, vi_config, g_config_mgr, g_ch);
-    g_vi->start();
+    try {
+        g_vi = new VideoIngestion(app_name, g_err_cv, vi_config, g_cfg_mgr, g_ch);
+        g_vi->start();
+    } catch(const std::exception& ex) {
+        LOG_ERROR("Exception '%s' occurred", ex.what());
+        clean_up();
+    } catch(...) {
+        LOG_ERROR("Exception occurred in Video Ingestion");
+        clean_up();
+    }
 }
 
-void on_change_config_callback(char* key, char* vi_config){
+void on_change_config_callback(const char* key, config_t* value, void* user_data) {
+    char* vi_config = configt_to_char(value);
     if(strcmp(g_vi_config, vi_config)){
 	// Deleting of g_vi, g_vi_config was hanging with gstreamer ingestor.
 	// Making a forceful exit until this is fixed.
@@ -202,18 +138,6 @@ void on_change_config_callback(char* key, char* vi_config){
         //g_cfg_change.store(true);
         //g_err_cv.notify_one();
     }
-}
-
-void clean_up(){
-    if(g_ch) {
-        delete g_ch;
-    }
-
-    if(g_vi) {
-        delete g_vi;
-    }
-    config_mgr_config_destroy(g_config_mgr);
-    env_config_destroy(g_env_config_client);
 }
 
 bool validate_config(char config_key[]) {
@@ -346,14 +270,28 @@ int main(int argc, char** argv) {
             return -1;
         }
 
-        // read app_name env variable
-        char* str_app_name = NULL;
-        str_app_name = getenv("AppName");
-        if(str_app_name == NULL) {
-            throw "\"AppName\" env not set";
+        // Get the configuration from the configuration manager
+        g_cfg_mgr = new ConfigMgr();
+        AppCfg* cfg = g_cfg_mgr->getAppConfig();
+        if(cfg == NULL) {
+            throw "Failed to initilize AppCfg object";
         }
+        config_t* app_config = cfg->getConfig();
+        if (app_config == NULL) {
+            throw "Unable to fetch app config";
+        }
+        std::string app_name = g_cfg_mgr->getAppName();
 
-        get_config_mgr(str_app_name);
+        g_vi_config = configt_to_char(app_config);
+        if (g_vi_config == NULL) {
+            throw "Unable to fetch app config string";
+        }
+        LOG_DEBUG("App config: %s", g_vi_config);
+
+        // Validating config against schema
+        if (!validate_config(g_vi_config)) {
+            return -1;
+        }
 
         char* str_log_level = NULL;
         log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
@@ -376,22 +314,13 @@ int main(int argc, char** argv) {
 
         set_log_level(log_level);
 
-        // Get the configuration from the configuration manager
-        char config_key[MAX_CONFIG_KEY_LENGTH];
-        snprintf(config_key, MAX_CONFIG_KEY_LENGTH, "/%s/config", str_app_name);
-
-        g_vi_config = g_config_mgr->get_config(config_key);
-        LOG_DEBUG("App config: %s", g_vi_config);
-
-        // Validating config against schema
-        if(!validate_config(g_vi_config)) {
-            return -1;
+        LOG_DEBUG_0("Registering watch on app config");
+        bool ret = cfg->watchConfig(on_change_config_callback, NULL);
+        if (!ret) {
+            throw "Failed to register callback";
         }
 
-        LOG_DEBUG("Registering watch on config key: %s", config_key);
-        g_config_mgr->register_watch_key(config_key, on_change_config_callback);
-
-        vi_initialize(g_vi_config, str_app_name);
+        vi_initialize(g_vi_config, app_name);
 
         std::mutex mtx;
 
@@ -399,7 +328,7 @@ int main(int argc, char** argv) {
             std::unique_lock<std::mutex> lk(mtx);
             g_err_cv.wait(lk);
             if(g_cfg_change.load()) {
-                vi_initialize(g_vi_config, str_app_name);
+                vi_initialize(g_vi_config, app_name);
                 g_cfg_change.store(false);
             } else {
                 break;

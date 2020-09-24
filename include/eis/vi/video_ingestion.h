@@ -36,17 +36,17 @@
 #include <eis/utils/config.h>
 #include <eis/utils/thread_safe_queue.h>
 #include <eis/utils/json_config.h>
-#include <eis/config_manager/env_config.h>
-#include <eis/config_manager/config_manager.h>
 #include <eis/msgbus/msgbus.h>
 #include <eis/msgbus/msg_envelope.h>
 #include <eis/udf/udf_manager.h>
 #include "eis/vi/ingestor.h"
+#include "eis/config_manager/config_mgr.hpp"
 #include "eis/ch/command_handler.h"
 
 using namespace eis::utils;
 using namespace eis::udf;
 using namespace eis::ch;
+using namespace eis::config_manager;
 
 namespace eis {
     namespace vi {
@@ -134,12 +134,11 @@ namespace eis {
                  *
                  * @param app_name          - App_name env variable for App_Name
                  * @param err_cv            - Error condition variable
-                 * @param env_config        - Environmental configuration
                  * @param vi_config         - VideoIngestion/config
-                 * @param config_mgr        - Config Manager context
+                 * @param ctx               - ConfigManager object
                  * @param commandhandler    - Command Handler context
                  */
-                VideoIngestion(std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr, CommandHandler* commandhandler);
+                VideoIngestion(std::string app_name, std::condition_variable& err_cv, char* vi_config, ConfigMgr* ctx, CommandHandler* commandhandler);
 
                 /*
                  * Destructor

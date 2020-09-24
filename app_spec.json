@@ -5,8 +5,8 @@
         "SchemaVersion": "0.2",
         "ManifestFile": "${idx:videoingestion:$EIS_VERSION}",
         "Resources": {
-            "CPU": 4000,
-            "MemoryMB": 2000
+            "CPU": 100,
+            "MemoryMB": 100
         },
         "ExecutionEnv": {
             "AppName": "VideoIngestion",
@@ -17,12 +17,10 @@
             "ETCD_PREFIX": "$ETCD_PREFIX",
             "GENICAM": "Basler",
             "DEV_MODE": "$DEV_MODE",
-            "Clients": "VideoAnalytics",
             "PROFILING_MODE": "false",
-            "ZMQ_RECV_HWM": "50",
-            "PubTopics": "camera1_stream",
-            "camera1_stream_cfg": "zmq_tcp,0.0.0.0:${ep.output-vi.localport}",
-            "Server": "zmq_tcp,0.0.0.0:${ep.output-vi-sw-tr.localport}"
+            "PUBLISHER_TYPE": "zmq_tcp",
+            "PUBLISHER_ENDPOINT": "0.0.0.0:${ep.output-vi.localport}",
+            "SERVER_ENDPOINT": "${ep.output-vi-sw-tr.localport}"
         },
         "Endpoints": [
             {

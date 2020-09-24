@@ -34,18 +34,15 @@
 #include <atomic>
 #include <eis/msgbus/msg_envelope.h>
 #include <eis/msgbus/msgbus.h>
-#include <eis/config_manager/env_config.h>
-#include <eis/config_manager/config_manager.h>
+#include "eis/config_manager/config_mgr.hpp"
 #include "commands.h"
+
 
 namespace eis {
     namespace ch {
 
         class CommandHandler {
             private:
-            
-                // App name
-                std::string m_app_name;
 
                 // Map of Fuction pointers for the function specific to the Commanads with its key value
                 std::map<int, std::function<msg_envelope_elem_body_t* (msg_envelope_elem_body_t*)> > m_cmd_handler_map;
@@ -87,21 +84,18 @@ namespace eis {
 
                 /**
                  * Initialize the msgbus server for sw trigger feature
-                 * @param env_config         - env config client
-                 * @param h_config_mgr         - config manager object reference
+                 * @param ctx - ConfigManager object
                  * return value - returns the error codes.
                  */
-                int service_init(const env_config_t* env_config, const config_mgr_t* config_mgr);
+                int service_init(eis::config_manager::ConfigMgr* ctx);
 
             public:
             
                 /**
                  * Constructor
-                 * @param app_name  : Name of the micro-service which interacts with Command handler
-                 * @param env_config -  Env config context 
-                 * @param config_mgr  - Config manager ocntext
+                 * @param ctx - ConfigManager object
                  */
-                CommandHandler(std::string app_name, const env_config_t* env_config, const config_mgr_t* config_mgr);
+                CommandHandler(eis::config_manager::ConfigMgr* ctx);
                 
                 /**
                  * Add the callback functions to the map with the key value
