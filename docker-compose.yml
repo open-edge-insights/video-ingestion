@@ -54,21 +54,8 @@ services:
       # Setting GENICAM value to the respective camera which needs to be used
       GENICAM: "Basler"
 
-      # MessageBus Endpoint Configuration
-      # Setting Visualizer as a subscriber here for FpsCalculator
-      Clients: "VideoAnalytics,Visualizer,RestDataExport,WebVisualizer,TLSRemoteAgent"
+      # Provisioning related variable
       CertType: "zmq"
-      ZMQ_RECV_HWM: "50"
-
-      # Use IPC mode (zmq_ipc) when VideoIngestion and VideoAnalytics based
-      # containers are running on the same host. If they are running on diff
-      # host, please use TCP mode for communication.
-      # Eg: Stream cfg for
-      # IPC: zmq_ipc, <absolut_socket_directory_path>
-      # TPC: zmq_tcp, <publisher_host>:<publisher_port>
-      PubTopics: "camera1_stream"
-      camera1_stream_cfg: "zmq_ipc,${SOCKET_DIR}/"
-      Server: "zmq_tcp,127.0.0.1:66013"
     volumes:
       - "vol_eis_socket:${SOCKET_DIR}"
       - "/dev:/dev"

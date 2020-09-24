@@ -43,7 +43,7 @@ using namespace eis::msgbus;
 using namespace eis::udf;
 
 VideoIngestion::VideoIngestion(
-        std::string app_name, std::condition_variable& err_cv, const env_config_t* env_config, char* vi_config, const config_mgr_t* config_mgr, CommandHandler* commandhandler) :
+        std::string app_name, std::condition_variable& err_cv, char* vi_config, ConfigMgr* ctx, CommandHandler* commandhandler) :
     m_app_name(app_name), m_commandhandler(commandhandler), m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0) {
 
     // Parse the configuration
@@ -219,31 +219,24 @@ VideoIngestion::VideoIngestion(
     // Get ingestor
     m_ingestor = get_ingestor( m_ingestor_cfg, m_udf_input_queue, m_ingestor_type.c_str(), m_app_name, m_snapshot_cv, m_enc_type, m_enc_lvl);
 
-    char** pub_topics = env_config->get_topics_from_env(PUB);
-    size_t num_of_pub_topics = env_config->get_topics_count(pub_topics);
-
-    if (num_of_pub_topics != 1){
-        const char* err = "Only one topic is supported. Neither more, nor less";
-        LOG_ERROR("%s", err);
-        config_destroy(config);
-        throw(err);
+    PublisherCfg* pub_ctx = ctx->getPublisherByIndex(0);
+    if (pub_ctx == NULL) {
+        LOG_ERROR_0("pub_ctx initialization failed");
     }
-
-    LOG_DEBUG_0("Successfully read PubTopics env value...");
-
-    config_t* pub_config = env_config->get_messagebus_config(config_mgr, pub_topics, num_of_pub_topics, PUB);
+    config_t* pub_config = pub_ctx->getMsgBusConfig();
     if (pub_config == NULL) {
-        const char* err = "Failed to get publisher message bus config";
+        LOG_ERROR_0("Failed to fetch msgbus config for Publisher");
+    }
+    std::vector<std::string> topics = pub_ctx->getTopics();
+    if (topics.empty()) {
+        const char* err = "Topics list cannot be empty";
         LOG_ERROR("%s", err);
-        config_destroy(config);
         throw(err);
     }
     LOG_DEBUG_0("Publisher Config received...");
 
-
     m_publisher = new Publisher(
-            pub_config, m_err_cv, pub_topics[0], (MessageQueue*) m_udf_output_queue, m_app_name);
-    free(pub_topics);
+            pub_config, m_err_cv, topics[0], (MessageQueue*) m_udf_output_queue, m_app_name);
 
     config_destroy(config);
     config_value_destroy(ingestor_type_cvt);
