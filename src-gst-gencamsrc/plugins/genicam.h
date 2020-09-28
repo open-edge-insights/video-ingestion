@@ -38,10 +38,6 @@
 #ifndef _GEN_I_CAM_H_
 #define _GEN_I_CAM_H_
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <gst/gst.h>
 #include <gst/video/video-format.h>
 
@@ -84,7 +80,6 @@
 class Genicam
 {
 public:
-
   /*
    * Initializes the pointer data member to parameter structure
 
@@ -117,13 +112,17 @@ public:
    buffer and copy the frame data
    @param mapInfo      Pointer to the structure that contains buffer
    information
-   @return             True after stopping the streaming and closing the device
+   @return             True after receiving the buffer containing a frame.
+   False otherwise.
    */
-  void Create (GstBuffer ** buf, GstMapInfo * mapInfo);
+  bool Create (GstBuffer ** buf, GstMapInfo * mapInfo);
 
 private:
   /* Pointer to gencamParams structure */
     GencamParams * gencamParams;
+
+  /* Serial number of all connected cameras */
+    std::vector <std::string> serials;
 
   /* Shared pointer to device object */
     std::shared_ptr < rcg::Device > dev;
@@ -133,6 +132,77 @@ private:
 
   /* Shared pointer to nodemap */
     std::shared_ptr < GenApi::CNodeMapRef > nodemap;
+
+  /*Camera information*/
+  struct camInfo_t {
+      std::string vendorName; // Camera vendor name
+      std::string modelName;  // Camera model name
+  } camInfo;
+
+  /* For trigger mode */
+    std::string triggerMode;
+
+  /* For black level auto */
+    std::string blackLevelAuto;
+
+  /* For gain auto */
+    std::string gainAuto;
+
+  /* For width max */
+    int widthMax;
+
+  /* For height max */
+    int heightMax;
+
+  /* For offset redable */
+    bool offsetXYwritable;
+
+  /* For trigger source */
+    std::string triggerSource;
+
+  /* For acquisition mode */
+    std::string acquisitionMode;
+
+  /* For checking if Acquisition Status is a feature or not */
+  bool isAcquisitionStatusFeature;
+
+  /* Max Width and max Height */
+  // TODO move maxWidth and maxHeight from gencamParams to here
+
+  /* Device Link Throughput Limit Mode
+   * This is not exposed outside and set automatically depending
+   * on Device Link Throughput Limit value */
+    std::string deviceLinkThroughputLimitMode;
+
+  // Feature type list
+  enum featureType {
+    TYPE_NO = 0,
+    TYPE_ENUM,
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_BOOL,
+    TYPE_STRING,
+    TYPE_CMD,
+    MAX_TYPE
+  };
+
+  /* Check if the feature is present or not */
+  bool isFeature (const char *, featureType *);
+
+  /* Generic enum feature method */
+  bool setEnumFeature (const char *, const char *, const bool);
+
+  /* Generic int feature method */
+  bool setIntFeature (const char *, int *, const bool);
+
+  /* Generic float feature method */
+  bool setFloatFeature (const char *, float *, const bool);
+
+  /* Get Camera Information */
+  void getCameraInfo (void);
+
+  /* Get Serial Number of camera */
+  bool getCameraSerialNumber (void);
 
   /* Resets the device to factory power up state */
   bool resetDevice (void);
@@ -152,8 +222,17 @@ private:
   /* Sets binning vertical feature */
   bool setBinningVertical (void);
 
+  /* Sets decimation horizontal feature */
+  bool setDecimationHorizontal (void);
+
+  /* Sets decimation vertical feature */
+  bool setDecimationVertical (void);
+
   /* Sets width and height */
   bool setWidthHeight (void);
+
+  /* Sets pixel format */
+  bool setPixelFormat (void);
 
   /* Sets offset-x and offset-y features */
   bool setOffsetXY (void);
@@ -161,8 +240,8 @@ private:
   /* Sets acquisition frame rate */
   bool setAcquisitionFrameRate (void);
 
-  /* Sets pixel format */
-  bool setPixelFormat (void);
+  /* Sets device clock frequency */
+  bool setDeviceClockFrequency (void);
 
   /* Sets exposure mode */
   bool setExposureMode (void);
@@ -175,6 +254,75 @@ private:
 
   /* Sets exposure time selector */
   bool setExposureTimeSelector (void);
+
+  /* Sets Black Level Selector */
+  bool setBlackLevelSelector (void);
+
+  /* Sets Black Level Auto */
+  bool setBlackLevelAuto (void);
+
+  /* Sets Black Level */
+  bool setBlackLevel (void);
+
+  /* Sets Gamma */
+  bool setGamma (void);
+
+  /* Sets gain selector */
+  bool setGainSelector (void);
+
+  /* Sets gain */
+  bool setGain (void);
+
+  /* Sets gain auto */
+  bool setGainAuto (void);
+
+  /* Sets gain auto balance */
+  bool setGainAutoBalance (void);
+
+  /* Sets Balance White Auto */
+  bool setBalanceWhiteAuto (void);
+
+  /* Sets Balance Ratio */
+  bool setBalanceRatio (void);
+
+  /* Sets acquisition mode */
+  bool setAcquisitionMode (void);
+
+  /* Sets Trigger Multiplier */
+  bool setTriggerMultiplier (void);
+
+  /* Sets Trigger Divider */
+  bool setTriggerDivider (void);
+
+  /* Sets Trigger Delay */
+  bool setTriggerDelay (void);
+
+  /* Sets Trigger Mode */
+  bool setTriggerMode (const char *);
+
+  /* Sets Trigger Overlap */
+  bool setTriggerOverlap (void);
+
+  /* Sets Trigger Activation */
+  bool setTriggerActivation (void);
+
+  /* Sets Trigger Selector */
+  bool setTriggerSelector (void);
+
+  /* Sets Trigger Source */
+  bool setTriggerSource (void);
+
+  /* Sets Trigger Software */
+  bool setTriggerSoftware (void);
+
+  /* Sets the Stream Packet Size */
+  bool setChannelPacketSize (void);
+
+  /* Sets the Stream Packet Delay */
+  bool setChannelPacketDelay (void);
+
+  /* Sets Device Link Throughput Limit */
+  bool setDeviceLinkThroughputLimit (void);
 };
 
 #endif

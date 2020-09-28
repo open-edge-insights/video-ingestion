@@ -181,6 +181,27 @@ bool getBoolean(const std::shared_ptr<GenApi::CNodeMapRef> &nodemap, const char 
                    not required.
   @param vmax      Maximum value. A null poiter can be given if the value is
                    not required.
+  @param vinc      Incrementer value. A null poiter can be given if the value is
+                   not required.
+  @param exception True if an error should be signaled via exception.
+  @param igncache  True if value is always read from the device, even if cached.
+  @return          Value of feature or 0 if the feature does not exist, has a
+                   different datatype or is not readable. In this case vmin and
+                   vmax will also be set to 0.
+*/
+
+int64_t getInteger(const std::shared_ptr<GenApi::CNodeMapRef> &nodemap, const char *name,
+                   int64_t *vmin=0, int64_t *vmax=0, int64_t *vinc=0, bool exception=false, bool igncache=false);
+
+/**
+  Get the value of an integer feature of the given nodemap.
+
+  @param nodemap   Initialized nodemap.
+  @param name      Name of feature.
+  @param vmin      Minimum value. A null poiter can be given if the value is
+                   not required.
+  @param vmax      Maximum value. A null poiter can be given if the value is
+                   not required.
   @param exception True if an error should be signaled via exception.
   @param igncache  True if value is always read from the device, even if cached.
   @return          Value of feature or 0 if the feature does not exist, has a

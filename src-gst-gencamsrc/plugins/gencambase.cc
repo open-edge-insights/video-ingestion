@@ -34,10 +34,6 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <iostream>
 #include <gst/gst.h>
 #include <gst/video/video-format.h>
@@ -90,8 +86,8 @@ gencamsrc_stop (void)
 }
 
 
-EXTERNC void
+EXTERNC bool
 gencamsrc_create (GstBuffer ** buf, GstMapInfo * mapInfo)
 {
-  gGencamsrc.Create (buf, mapInfo);
+  return gGencamsrc.Create (buf, mapInfo);
 }

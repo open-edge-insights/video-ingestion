@@ -314,7 +314,7 @@ void storePointCloud(std::string name, double f, double t, double scale,
       if (valid >= 3 && vmax-vmin <= vstep)
       {
         int j=0;
-        uint32_t fc[4];
+        uint32_t fc[4] = {0};
 
         if (ips[i-1] != vinvalid)
         {

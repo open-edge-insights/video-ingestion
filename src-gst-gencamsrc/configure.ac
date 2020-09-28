@@ -2,14 +2,14 @@ dnl required version of autoconf
 AC_PREREQ([2.53])
 
 dnl TODO: fill in your package name and package version here
-AC_INIT([gst-gencamsrc],[1.0.3])
+AC_INIT([gst-gencamsrc],[1.1.12])
 
 dnl required versions of gstreamer and plugins-base
 GST_REQUIRED=1.0.0
 GSTPB_REQUIRED=1.0.0
 
 AC_CONFIG_SRCDIR([plugins/gstgencamsrc.c])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([config-auto.h])
 
 dnl required version of automake
 AM_INIT_AUTOMAKE([1.10 subdir-objects])

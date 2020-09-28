@@ -3,7 +3,9 @@
  * Copyright (c) 2020, Intel Corporation
  * All rights reserved.
  *
- * Author: Gowtham Hosamane <gowtham.hosamane@intel.com>
+ * Authors:
+ *   Gowtham Hosamane <gowtham.hosamane@intel.com>
+ *   Deval Vekaria <deval.vekaria@intel.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -51,18 +53,15 @@
  * </refsect2>
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <gst/gst.h>
 #include <gst/video/video-format.h>
 
 #include "gencambase.h"
 #include "gstgencamsrc.h"
 
-#define WIDTH (1280)
-#define HEIGHT (960)
+#define WIDTH (7680)
+#define HEIGHT (4320)
+#define TIMETICK_NS (1000000000UL)
 
 GST_DEBUG_CATEGORY_STATIC (gst_gencamsrc_debug_category);
 #define GST_CAT_DEFAULT gst_gencamsrc_debug_category
@@ -86,8 +85,6 @@ static gboolean gst_gencamsrc_stop (GstBaseSrc * src);
 static void
 gst_gencamsrc_get_times (GstBaseSrc * src, GstBuffer * buffer,
     GstClockTime * start, GstClockTime * end);
-// static gboolean gst_gencamsrc_unlock (GstBaseSrc * src);
-// static gboolean gst_gencamsrc_unlock_stop (GstBaseSrc * src);
 // static gboolean gst_gencamsrc_query (GstBaseSrc * src, GstQuery * query);
 // static gboolean gst_gencamsrc_event (GstBaseSrc * src, GstEvent * event);
 static GstFlowReturn gst_gencamsrc_create (GstPushSrc * src, GstBuffer ** buf);
@@ -101,15 +98,43 @@ enum
   PROP_HEIGHT,
   PROP_OFFSETX,
   PROP_OFFSETY,
+  PROP_DECIMATIONHORIZONTAL,
+  PROP_DECIMATIONVERTICAL,
   PROP_BINNINGSELECTOR,
   PROP_BINNINGHORIZONTALMODE,
   PROP_BINNINGVERTICALMODE,
   PROP_BINNINGHORIZONTAL,
   PROP_BINNINGVERTICAL,
+  PROP_ACQUISITIONMODE,
+  PROP_DEVICECLOCKSELECTOR,
+  PROP_DEVICECLOCKFREQUENCY,
+  PROP_TRIGGERDELAY,
+  PROP_TRIGGERDIVIDER,
+  PROP_TRIGGERMULTIPLIER,
+  PROP_TRIGGEROVERLAP,
+  PROP_TRIGGERACTIVATION,
+  PROP_TRIGGERSELECTOR,
+  PROP_TRIGGERSOURCE,
+  PROP_HWTRIGGERTIMEOUT,
   PROP_EXPOSUREMODE,
   PROP_EXPOSURETIME,
   PROP_EXPOSUREAUTO,
   PROP_EXPOSURETIMESELECTOR,
+  PROP_BLACKLEVELSELECTOR,
+  PROP_BLACKLEVELAUTO,
+  PROP_BLACKLEVEL,
+  PROP_GAMMA,
+  PROP_GAMMASELECTOR,
+  PROP_GAINSELECTOR,
+  PROP_GAIN,
+  PROP_GAINAUTO,
+  PROP_GAINAUTOBALANCE,
+  PROP_BALANCERATIOSELECTOR,
+  PROP_BALANCERATIO,
+  PROP_BALANCEWHITEAUTO,
+  PROP_DEVICELINKTHROUGHPUTLIMIT,
+  PROP_CHANNELPACKETSIZE,
+  PROP_CHANNELPACKETDELAY,
   PROP_FRAMERATE,
   PROP_RESET
 };
@@ -171,8 +196,6 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
   base_src_class->start = GST_DEBUG_FUNCPTR (gst_gencamsrc_start);
   base_src_class->stop = GST_DEBUG_FUNCPTR (gst_gencamsrc_stop);
   base_src_class->get_times = GST_DEBUG_FUNCPTR (gst_gencamsrc_get_times);
-  // base_src_class->unlock = GST_DEBUG_FUNCPTR (gst_gencamsrc_unlock);
-  // base_src_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_gencamsrc_unlock_stop);
   // base_src_class->query = GST_DEBUG_FUNCPTR (gst_gencamsrc_query);
   // base_src_class->event = GST_DEBUG_FUNCPTR (gst_gencamsrc_event);
 
@@ -193,25 +216,37 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
   g_object_class_install_property (gobject_class, PROP_WIDTH,
       g_param_spec_int ("width", "Width",
           "Width of the image provided by the device (in pixels).", 0 /*Min */ ,
-          1920 /*Max */ , 1280 /*Default */ ,
+          INT_MAX /*Max */ , WIDTH /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_HEIGHT,
       g_param_spec_int ("height", "Height",
           "Height of the image provided by the device (in pixels).",
-          0 /*Min */ , 1080 /*Max */ , 960 /*Default */ ,
+          0 /*Min */ , INT_MAX /*Max */ , HEIGHT /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_OFFSETX,
       g_param_spec_int ("offset-x", "OffsetX",
           "Horizontal offset from the origin to the region of interest (in pixels).",
-          0 /*Min */ , 1920 /*Max */ , 0 /*Default */ ,
+          0 /*Min */ , INT_MAX /*Max */ , 0 /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_OFFSETY,
       g_param_spec_int ("offset-y", "OffsetY",
           "Vertical offset from the origin to the region of interest (in pixels).",
-          0 /*Min */ , 1080 /*Max */ , 0 /*Default */ ,
+          0 /*Min */ , INT_MAX /*Max */ , 0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_DECIMATIONHORIZONTAL,
+      g_param_spec_int ("decimation-horizontal", "DecimationHorizontal",
+          "Horizontal sub-sampling of the image.",
+          0 /*Min */ , INT_MAX /*Max */ , 0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_DECIMATIONVERTICAL,
+      g_param_spec_int ("decimation-vertical", "DecimationVertical",
+          "Number of vertical photo-sensitive cells to combine together.",
+          0 /*Min */ , INT_MAX /*Max */ , 0 /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_BINNINGSELECTOR,
@@ -241,6 +276,68 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
           0 /*Min */ , 10 /*Max */ , 0 /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+  g_object_class_install_property (gobject_class, PROP_ACQUISITIONMODE,
+      g_param_spec_string ("acquisition-mode", "AcquisitionMode",
+          "Sets the acquisition mode of the device. It defines mainly the number of frames to capture during an acquisition and the way the acquisition stops. Possible values (continuous/multiframe/singleframe)",
+          "continuous",
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_DEVICECLOCKSELECTOR,
+      g_param_spec_string ("device-clock-selector", "DeviceClockSelector",
+          "Selects the clock frequency to access from the device. Possible values (Sensor/SensorDigitization/CameraLink/Device-specific)",
+          "", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_DEVICECLOCKFREQUENCY,
+      g_param_spec_float ("device-clock-frequency", "DeviceClockFrequency",
+          "Returns the frequency of the selected Clock.",
+          -1 /*Min */ , INT_MAX /*Max */ , -1 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_TRIGGERDELAY,
+      g_param_spec_float ("trigger-delay", "TriggerDelay",
+          "Specifies the delay in microseconds (us) to apply after the trigger reception before activating it.",
+          -1 /*Min */ , INT_MAX /*Max */ , -1 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_TRIGGERDIVIDER,
+      g_param_spec_int ("trigger-divider", "TriggerDivider",
+          "Specifies a division factor for the incoming trigger pulses",
+          0 /*Min */ , INT_MAX /*Max */ , 0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_TRIGGERMULTIPLIER,
+      g_param_spec_int ("trigger-multiplier", "TriggerMultiplier",
+          "Specifies a multiplication factor for the incoming trigger pulses.",
+          0 /*Min */ , INT_MAX /*Max */ , 0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_TRIGGEROVERLAP,
+      g_param_spec_string ("trigger-overlap", "TriggerOverlap",
+          "Specifies the type trigger overlap permitted with the previous frame or line. Possible values (Off/ReadOut/PreviousFrame/PreviousLine)",
+          "", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_TRIGGERACTIVATION,
+      g_param_spec_string ("trigger-activation", "TriggerActivation",
+          "Specifies the activation mode of the trigger. Possible values (RisingEdge/FallingEdge/AnyEdge/LevelHigh/LevelLow)",
+          "", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_TRIGGERSELECTOR,
+      g_param_spec_string ("trigger-selector", "TriggerSelector",
+          "Selects the type of trigger to configure. Possible values (AcquisitionStart/AcquisitionEnd/AcquisitionActive/FrameStart/FrameEnd/FrameActive/FrameBurstStart/FrameBurstEnd/FrameBurstActive/LineStart/ExposureStart/ExposureEnd/ExposureActive/MultiSlopeExposureLimit1)",
+          "", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_TRIGGERSOURCE,
+      g_param_spec_string ("trigger-source", "TriggerSource",
+          "Specifies the internal signal or physical input Line to use as the trigger source. Possible values (Software/SoftwareSignal<n>/Line<n>/UserOutput<n>/Counter<n>Start/Counter<n>End/Timer<n>Start/Timer<n>End/Encoder<n>/<LogicBlock<n>>/Action<n>/LinkTrigger<n>/CC<n>/...)",
+          "Software",
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_HWTRIGGERTIMEOUT,
+      g_param_spec_int ("hw-trigger-timeout", "HardwareTriggerTimeout",
+          "Wait timeout (in sec) to receive frames before terminating the application.",
+          0 /*Min */ , INT_MAX /*Max */ , 10 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
   g_object_class_install_property (gobject_class, PROP_EXPOSUREMODE,
       g_param_spec_string ("exposure-mode", "ExposureMode",
           "Sets the operation mode of the Exposure. Possible values (off/timed/trigger-width/trigger-controlled)",
@@ -249,7 +346,7 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
   g_object_class_install_property (gobject_class, PROP_EXPOSUREAUTO,
       g_param_spec_string ("exposure-auto", "ExposureAuto",
           "Sets the automatic exposure mode when ExposureMode is Timed. Possible values(off/once/continuous)",
-          "Off", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+          "Once", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_EXPOSURETIMESELECTOR,
       g_param_spec_string ("exposure-time-selector", "ExposureTimeMode",
@@ -259,13 +356,96 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
   g_object_class_install_property (gobject_class, PROP_EXPOSURETIME,
       g_param_spec_float ("exposure-time", "ExposureTime",
           "Sets the Exposure time (in us) when ExposureMode is Timed and ExposureAuto is Off. This controls the duration where the photosensitive cells are exposed to light.",
-          0 /*Min */ , 10000000 /*Max */ , 135896 /*uSec Default */ ,
+          -1 /*Min */ , 10000000 /*Max */ , -1 /*uSec Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_BLACKLEVELSELECTOR,
+      g_param_spec_string ("black-level-selector", "BlackLevelSelector",
+          "Selects which Black Level is controlled by the various Black Level features. Possible values(All,Red,Green,Blue,Y,U,V,Tap1,Tap2...)",
+          "All", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_BLACKLEVELAUTO,
+      g_param_spec_string ("black-level-auto", "BlackLevelAuto",
+          "Controls the mode for automatic black level adjustment. The exact algorithm used to implement this adjustment is device-specific. Possible values(Off/Once/Continuous)",
+          "Off", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_BLACKLEVEL,
+      g_param_spec_float ("black-level", "BlackLevel",
+          "Controls the analog black level as an absolute physical value.",
+          -9999.0 /*Min */ , 9999.0 /*Max */ , 9999.0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_GAMMA,
+      g_param_spec_float ("gamma", "Gamma",
+          "Controls the gamma correction of pixel intensity.",
+          0 /*Min */ , 5.0 /*Max */ , 1.0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_GAMMASELECTOR,
+      g_param_spec_string ("gamma-selector", "GammaSelector",
+          "Select the gamma correction mode. Possible values (sRGB/User)",
+          "", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_GAINSELECTOR,
+      g_param_spec_string ("gain-selector", "GainSelector",
+          "Selects which gain is controlled by the various Gain features. It's device specific. Possible values (All/Red/Green/Blue/Y/U/V...)",
+          "All", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_GAIN,
+      g_param_spec_float ("gain", "Gain",
+          "Controls the selected gain as an absolute value. This is an amplification factor applied to video signal. Values are device specific.",
+          -9999.0 /*Min */ , 9999.0 /*Max */ , 9999.0 /* Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_GAINAUTO,
+      g_param_spec_string ("gain-auto", "GainAuto",
+          "Sets the automatic gain control (AGC) mode. Possible values (off/once/continuous)",
+          "off", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_GAINAUTOBALANCE,
+      g_param_spec_string ("gain-auto-balance", "GainAutoBalance",
+          "Sets the mode for automatic gain balancing between the sensor color channels or taps. Possible values (off/once/continuous)",
+          "off", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_BALANCERATIOSELECTOR,
+      g_param_spec_string ("balance-ratio-selector", "BalanceRatioSelector",
+          "Selects which Balance ratio to control. Possible values(All,Red,Green,Blue,Y,U,V,Tap1,Tap2...)",
+          "", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_BALANCERATIO,
+      g_param_spec_float ("balance-ratio", "BalanceRatio",
+          "Controls ratio of the selected color component to a reference color component",
+          0 /*Min */ , 9999.0 /*Max */ , 9999.0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_BALANCEWHITEAUTO,
+      g_param_spec_string ("balance-white-auto", "BalanceWhiteAuto",
+          "Controls the mode for automatic white balancing between the color channels. The white balancing ratios are automatically adjusted. Possible values(Off,Once,Continuous)",
+          "Off", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class,
+      PROP_DEVICELINKTHROUGHPUTLIMIT, g_param_spec_int ("throughput-limit",
+          "DeviceLinkThroughputLimit",
+          "Limits the maximum bandwidth (in Bps) of the data that will be streamed out by the device on the selected Link. If necessary, delays will be uniformly inserted between transport layer packets in order to control the peak bandwidth.",
+          0 /*Min */ , INT_MAX /*Max */ , 10000000 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_CHANNELPACKETSIZE,
+      g_param_spec_int ("packet-size", "GevSCPSPacketSize",
+          "Specifies the stream packet size, in bytes, to send on the selected channel for a Transmitter or specifies the maximum packet size supported by a receiver.",
+          0 /*Min */ , INT_MAX /*Max */ , 0 /*Default */ ,
+          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_CHANNELPACKETDELAY,
+      g_param_spec_int ("packet-delay", "GevSCPD",
+          "Controls the delay (in GEV timestamp counter unit) to insert between each packet for this stream channel. This can be used as a crude flow-control mechanism if the application or the network infrastructure cannot keep up with the packets coming from the device.",
+          -1 /*Min */ , INT_MAX /*Max */ , -1 /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_FRAMERATE,
       g_param_spec_float ("frame-rate", "AcquisitionFrameRate",
           "Controls the acquisition rate (in Hertz) at which the frames are captured.",
-          0 /*Min */ , 120 /*Max */ , 10 /*Default */ ,
+          0 /*Min */ , 120 /*Max */ , 0 /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_RESET,
@@ -284,8 +464,6 @@ gst_gencamsrc_init (GstGencamsrc * gencamsrc)
   gst_base_src_set_format (GST_BASE_SRC (gencamsrc), GST_FORMAT_TIME);
   gst_base_src_set_live (GST_BASE_SRC (gencamsrc), TRUE);
 
-  gst_base_src_set_do_timestamp (GST_BASE_SRC (gencamsrc), TRUE);
-
   // Initialize data members
   gencamsrc->frameNumber = 0;
 
@@ -296,14 +474,44 @@ gst_gencamsrc_init (GstGencamsrc * gencamsrc)
   prop->height = HEIGHT;
   prop->offsetX = 0;
   prop->offsetY = 0;
-  prop->exposureMode = "Timed\0";
-  prop->exposureAuto = "Off\0";
-  prop->binningSelector = "";
-  prop->binningHorizontalMode = "";
+  prop->decimationHorizontal = 0;
+  prop->decimationVertical = 0;
+  prop->balanceRatio = 9999.0;
+  prop->balanceWhiteAuto = "Off\0";
+  prop->balanceRatioSelector = NULL;
+  prop->binningSelector = NULL;
+  prop->binningHorizontalMode = NULL;
   prop->binningHorizontal = 0;
-  prop->binningVerticalMode = "";
+  prop->binningVerticalMode = NULL;
   prop->binningVertical = 0;
-  prop->acquisitionFrameRate = 10;
+  prop->acquisitionMode = "continuous\0";
+  prop->exposureMode = "Timed\0";
+  prop->exposureAuto = "Once\0";
+  prop->exposureTimeSelector = NULL;
+  prop->exposureTime = -1;
+  prop->blackLevelSelector = "All\0";
+  prop->blackLevelAuto = "Off\0";
+  prop->blackLevel = 9999.0;
+  prop->gamma = 1.0;
+  prop->gammaSelector = NULL;
+  prop->gainSelector = "All\0";
+  prop->gain = 9999.0;
+  prop->gainAuto = "Off\0";
+  prop->gainAutoBalance = "Off\0";
+  prop->triggerDelay = -1;
+  prop->triggerSelector = NULL;
+  prop->triggerSource = "Software\0";
+  prop->triggerOverlap = NULL;
+  prop->triggerActivation = NULL;
+  prop->triggerMultiplier = 0;
+  prop->triggerDivider = 0;
+  prop->hwTriggerTimeout = 10;
+  prop->deviceLinkThroughputLimit = 10000000;
+  prop->channelPacketSize = 0;
+  prop->channelPacketDelay = -1;
+  prop->acquisitionFrameRate = 0;
+  prop->deviceClockSelector = NULL;
+  prop->deviceClockFrequency = -1;
   prop->deviceReset = false;
 
   // Initialize gencam base class and assign properties
@@ -341,6 +549,12 @@ gst_gencamsrc_set_property (GObject * object, guint property_id,
     case PROP_OFFSETY:
       prop->offsetY = g_value_get_int (value);
       break;
+    case PROP_DECIMATIONHORIZONTAL:
+      prop->decimationHorizontal = g_value_get_int (value);
+      break;
+    case PROP_DECIMATIONVERTICAL:
+      prop->decimationVertical = g_value_get_int (value);
+      break;
     case PROP_BINNINGSELECTOR:
       prop->binningSelector = g_value_dup_string (value + '\0');
       break;
@@ -356,17 +570,95 @@ gst_gencamsrc_set_property (GObject * object, guint property_id,
     case PROP_BINNINGVERTICAL:
       prop->binningVertical = g_value_get_int (value);
       break;
+    case PROP_ACQUISITIONMODE:
+      prop->acquisitionMode = g_value_dup_string (value + '\0');
+      break;
+    case PROP_DEVICECLOCKSELECTOR:
+      prop->deviceClockSelector = g_value_dup_string (value + '\0');
+      break;
+    case PROP_DEVICECLOCKFREQUENCY:
+      prop->deviceClockFrequency = g_value_get_float (value);
+      break;
+    case PROP_TRIGGERDELAY:
+      prop->triggerDelay = g_value_get_float (value);
+      break;
+    case PROP_TRIGGERDIVIDER:
+      prop->triggerDivider = g_value_get_int (value);
+      break;
+    case PROP_TRIGGERMULTIPLIER:
+      prop->triggerMultiplier = g_value_get_int (value);
+      break;
+    case PROP_TRIGGEROVERLAP:
+      prop->triggerOverlap = g_value_dup_string (value + '\0');
+      break;
+    case PROP_TRIGGERACTIVATION:
+      prop->triggerActivation = g_value_dup_string (value + '\0');
+      break;
+    case PROP_TRIGGERSELECTOR:
+      prop->triggerSelector = g_value_dup_string (value + '\0');
+      break;
+    case PROP_TRIGGERSOURCE:
+      prop->triggerSource = g_value_dup_string (value + '\0');
+      break;
+    case PROP_HWTRIGGERTIMEOUT:
+      prop->hwTriggerTimeout = g_value_get_int (value);
+      break;
     case PROP_EXPOSUREMODE:
       prop->exposureMode = g_value_dup_string (value + '\0');
       break;
     case PROP_EXPOSURETIME:
       prop->exposureTime = g_value_get_float (value);
       break;
+    case PROP_BLACKLEVELSELECTOR:
+      prop->blackLevelSelector = g_value_dup_string (value + '\0');
+      break;
+    case PROP_BALANCEWHITEAUTO:
+      prop->balanceWhiteAuto = g_value_dup_string (value + '\0');
+      break;
+    case PROP_BLACKLEVELAUTO:
+      prop->blackLevelAuto = g_value_dup_string (value + '\0');
+      break;
+    case PROP_BLACKLEVEL:
+      prop->blackLevel = g_value_get_float (value);
+      break;
+    case PROP_GAMMA:
+      prop->gamma = g_value_get_float (value);
+      break;
+    case PROP_GAMMASELECTOR:
+      prop->gammaSelector = g_value_dup_string (value + '\0');
+      break;
+    case PROP_BALANCERATIOSELECTOR:
+      prop->balanceRatioSelector = g_value_dup_string (value + '\0');
+      break;
+    case PROP_BALANCERATIO:
+      prop->balanceRatio = g_value_get_float (value);
+      break;
     case PROP_EXPOSUREAUTO:
       prop->exposureAuto = g_value_dup_string (value + '\0');
       break;
     case PROP_EXPOSURETIMESELECTOR:
       prop->exposureTimeSelector = g_value_dup_string (value + '\0');
+      break;
+    case PROP_GAINSELECTOR:
+      prop->gainSelector = g_value_dup_string (value + '\0');
+      break;
+    case PROP_GAIN:
+      prop->gain = g_value_get_float (value);
+      break;
+    case PROP_GAINAUTO:
+      prop->gainAuto = g_value_dup_string (value + '\0');
+      break;
+    case PROP_GAINAUTOBALANCE:
+      prop->gainAutoBalance = g_value_dup_string (value + '\0');
+      break;
+    case PROP_DEVICELINKTHROUGHPUTLIMIT:
+      prop->deviceLinkThroughputLimit = g_value_get_int (value);
+      break;
+    case PROP_CHANNELPACKETSIZE:
+      prop->channelPacketSize = g_value_get_int (value);
+      break;
+    case PROP_CHANNELPACKETDELAY:
+      prop->channelPacketDelay = g_value_get_int (value);
       break;
     case PROP_FRAMERATE:
       prop->acquisitionFrameRate = g_value_get_float (value);
@@ -408,6 +700,12 @@ gst_gencamsrc_get_property (GObject * object, guint property_id,
     case PROP_OFFSETY:
       g_value_set_int (value, prop->offsetY);
       break;
+    case PROP_DECIMATIONHORIZONTAL:
+      g_value_set_int (value, prop->decimationHorizontal);
+      break;
+    case PROP_DECIMATIONVERTICAL:
+      g_value_set_int (value, prop->decimationVertical);
+      break;
     case PROP_BINNINGSELECTOR:
       g_value_set_string (value, prop->binningSelector);
       break;
@@ -423,17 +721,95 @@ gst_gencamsrc_get_property (GObject * object, guint property_id,
     case PROP_BINNINGVERTICAL:
       g_value_set_int (value, prop->binningVertical);
       break;
+    case PROP_ACQUISITIONMODE:
+      g_value_set_string (value, prop->acquisitionMode);
+      break;
+    case PROP_DEVICECLOCKSELECTOR:
+      g_value_set_string (value, prop->deviceClockSelector);
+      break;
+    case PROP_DEVICECLOCKFREQUENCY:
+      g_value_set_float (value, prop->deviceClockFrequency);
+      break;
+    case PROP_TRIGGERDELAY:
+      g_value_set_float (value, prop->triggerDelay);
+      break;
+    case PROP_TRIGGERDIVIDER:
+      g_value_set_int (value, prop->triggerDivider);
+      break;
+    case PROP_TRIGGERMULTIPLIER:
+      g_value_set_int (value, prop->triggerMultiplier);
+      break;
+    case PROP_TRIGGEROVERLAP:
+      g_value_set_string (value, prop->triggerOverlap);
+      break;
+    case PROP_TRIGGERACTIVATION:
+      g_value_set_string (value, prop->triggerActivation);
+      break;
+    case PROP_TRIGGERSELECTOR:
+      g_value_set_string (value, prop->triggerSelector);
+      break;
+    case PROP_TRIGGERSOURCE:
+      g_value_set_string (value, prop->triggerSource);
+      break;
+    case PROP_HWTRIGGERTIMEOUT:
+      g_value_set_int (value, prop->hwTriggerTimeout);
+      break;
     case PROP_EXPOSUREMODE:
       g_value_set_string (value, prop->exposureMode);
       break;
     case PROP_EXPOSURETIME:
       g_value_set_float (value, prop->exposureTime);
       break;
+    case PROP_BLACKLEVELSELECTOR:
+      g_value_set_string (value, prop->blackLevelSelector);
+      break;
+    case PROP_BALANCEWHITEAUTO:
+      g_value_set_string (value, prop->balanceWhiteAuto);
+      break;
+    case PROP_BLACKLEVELAUTO:
+      g_value_set_string (value, prop->blackLevelAuto);
+      break;
+    case PROP_BLACKLEVEL:
+      g_value_set_float (value, prop->blackLevel);
+      break;
+    case PROP_GAMMA:
+      g_value_set_float (value, prop->gamma);
+      break;
+    case PROP_GAMMASELECTOR:
+      g_value_set_string (value, prop->gammaSelector);
+      break;
+    case PROP_BALANCERATIOSELECTOR:
+      g_value_set_string (value, prop->balanceRatioSelector);
+      break;
+    case PROP_BALANCERATIO:
+      g_value_set_float (value, prop->balanceRatio);
+      break;
     case PROP_EXPOSUREAUTO:
       g_value_set_string (value, prop->exposureAuto);
       break;
     case PROP_EXPOSURETIMESELECTOR:
       g_value_set_string (value, prop->exposureTimeSelector);
+      break;
+    case PROP_GAINSELECTOR:
+      g_value_set_string (value, prop->gainSelector);
+      break;
+    case PROP_GAIN:
+      g_value_set_float (value, prop->gain);
+      break;
+    case PROP_GAINAUTO:
+      g_value_set_string (value, prop->gainAuto);
+      break;
+    case PROP_GAINAUTOBALANCE:
+      g_value_set_string (value, prop->gainAutoBalance);
+      break;
+    case PROP_DEVICELINKTHROUGHPUTLIMIT:
+      g_value_set_int (value, prop->deviceLinkThroughputLimit);
+      break;
+    case PROP_CHANNELPACKETSIZE:
+      g_value_set_int (value, prop->channelPacketSize);
+      break;
+    case PROP_CHANNELPACKETDELAY:
+      g_value_set_int (value, prop->channelPacketDelay);
       break;
     case PROP_FRAMERATE:
       g_value_set_float (value, prop->acquisitionFrameRate);
@@ -454,8 +830,7 @@ gst_gencamsrc_dispose (GObject * object)
 
   GST_DEBUG_OBJECT (gencamsrc, "dispose");
 
-  /* clean up as possible.  may be called multiple times */
-
+  /* clean up as possible. May be called multiple times */
   G_OBJECT_CLASS (gst_gencamsrc_parent_class)->dispose (object);
 }
 
@@ -467,7 +842,6 @@ gst_gencamsrc_finalize (GObject * object)
   GST_DEBUG_OBJECT (gencamsrc, "finalize");
 
   /* clean up object here */
-
   G_OBJECT_CLASS (gst_gencamsrc_parent_class)->finalize (object);
 }
 
@@ -489,7 +863,6 @@ gst_gencamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
 
   char *type = "";
   char *format = "";
-
   if (strcmp (prop->pixelFormat, "mono8") == 0) {
     type = "video/x-raw\0";
     format = "GRAY8\0";
@@ -526,21 +899,21 @@ gst_gencamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
   }
 
   //If width or height not initliazed set it to WIDTH and HEIGHT respectively
-  if (prop->width <= 0)
+  if (prop->width == 0)
     prop->width = WIDTH;
-  if (prop->height <= 0)
+  if (prop->height == 0)
     prop->height = HEIGHT;
 
   GstCaps *caps = gst_caps_new_simple (type,
       "format", G_TYPE_STRING, format,
       "width", G_TYPE_INT, prop->width,
-      "height", G_TYPE_INT, prop->height,
-      "framerate", GST_TYPE_FRACTION, 120, 1,
-      NULL);
+      "height", G_TYPE_INT, prop->height, "framerate",
+      GST_TYPE_FRACTION, 120, 1, NULL);
 
   // TODO replace FIXME log with DEBUG log later
-  GST_FIXME_OBJECT (gencamsrc, "The caps sent: %s, %s, %d x %d, variable fps.",
-      type, format, prop->width, prop->height);
+  GST_FIXME_OBJECT (gencamsrc,
+      "The caps sent: %s, %s, %d x %d, variable fps.", type, format,
+      prop->width, prop->height);
 
   return caps;
 }
@@ -591,15 +964,17 @@ gst_gencamsrc_set_caps (GstBaseSrc * src, GstCaps * caps)
 
   GST_DEBUG_OBJECT (gencamsrc, "Setting caps to %" GST_PTR_FORMAT, caps);
 
-  if (!g_str_equal ("video/x-bayer", gst_structure_get_name (s)) &&
-      (!g_str_equal ("video/x-raw", gst_structure_get_name (s)) ||
-          (!g_str_equal ("I420", gst_structure_get_string (s, "format")) &&
-              !g_str_equal ("YUY2", gst_structure_get_string (s, "format")) &&
-              !g_str_equal ("RGB", gst_structure_get_string (s, "format")) &&
-              !g_str_equal ("BGR", gst_structure_get_string (s, "format")) &&
-              !g_str_equal ("GRAY8", gst_structure_get_string (s,
+  if (!g_str_equal ("video/x-bayer", gst_structure_get_name (s))
+      && (!g_str_equal ("video/x-raw", gst_structure_get_name (s))
+          || (!g_str_equal ("I420", gst_structure_get_string (s, "format"))
+              && !g_str_equal ("YUY2", gst_structure_get_string (s, "format"))
+              && !g_str_equal ("RGB", gst_structure_get_string (s, "format"))
+              && !g_str_equal ("BGR", gst_structure_get_string (s, "format"))
+              && !g_str_equal ("GRAY8", gst_structure_get_string (s,
                       "format"))))) {
+
     GST_ERROR_OBJECT (src, "unsupported caps %" GST_PTR_FORMAT, caps);
+
     return FALSE;
   }
 
@@ -639,40 +1014,16 @@ gst_gencamsrc_get_times (GstBaseSrc * src, GstBuffer * buffer,
 
   /* TODO use this if camera provides time stamp */
   {
-    // TODO following is experimental hard coded to 5 fps
     GstClockTime timestamp = GST_BUFFER_PTS (buffer);
     *start = timestamp;
-    *end =
-        timestamp +
-        (unsigned long) (1000000000UL /
+    *end = timestamp +
+        (unsigned long) (TIMETICK_NS /
         gencamsrc->properties.acquisitionFrameRate);
   }
 
-  GST_DEBUG_OBJECT (gencamsrc, "get_times");
+  GST_DEBUG_OBJECT (gencamsrc, "get_times %" GST_TIME_FORMAT,
+      GST_TIME_ARGS (GST_BUFFER_PTS (buffer)));
 }
-
-/* unlock any pending access to the resource. subclasses should unlock
- * any function ASAP. */
-/*static gboolean
-gst_gencamsrc_unlock (GstBaseSrc * src)
-{
-  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
-
-  GST_DEBUG_OBJECT (gencamsrc, "unlock");
-
-  return TRUE;
-}*/
-
-/* Clear any pending unlock request, as we succeeded in unlocking */
-/*static gboolean
-gst_gencamsrc_unlock_stop (GstBaseSrc * src)
-{
-  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
-
-  GST_DEBUG_OBJECT (gencamsrc, "unlock_stop");
-
-  return TRUE;
-}*/
 
 /* notify subclasses of a query */
 /*static gboolean
@@ -706,49 +1057,30 @@ gst_gencamsrc_create (GstPushSrc * src, GstBuffer ** buf)
 
   GST_DEBUG_OBJECT (gencamsrc, "create frames");
 
-  gencamsrc_create (buf, &mapInfo);
+  if (gencamsrc_create (buf, &mapInfo)) {
+    // Set DTS to none
+    // PTS is set inside the create function above
+    GST_BUFFER_DTS (*buf) = GST_CLOCK_TIME_NONE;
+    gst_object_sync_values (GST_OBJECT (src), GST_BUFFER_PTS (*buf));
+    gst_buffer_unmap (*buf, &mapInfo);
 
-  // TODO This should get modified after timestamp feature implementation
-  GST_BUFFER_PTS (*buf) =
-      ((guint64) gencamsrc->frameNumber) * (unsigned long) (1000000000UL /
-      gencamsrc->properties.acquisitionFrameRate);
-  GST_BUFFER_DTS (*buf) = GST_CLOCK_TIME_NONE;
-  gst_object_sync_values (GST_OBJECT (src), GST_BUFFER_PTS (*buf));
+    // Set frame offset
+    GST_BUFFER_OFFSET (*buf) = gencamsrc->frameNumber;
+    ++gencamsrc->frameNumber;
+    GST_BUFFER_OFFSET_END (*buf) = gencamsrc->frameNumber;
 
-  gst_buffer_unmap (*buf, &mapInfo);
-
-  ++gencamsrc->frameNumber;
-
-  // TODO change to GST_DEBUG_OBJECT
-  GST_FIXME_OBJECT (src, "Frame number: %u, Timestamp: %" GST_TIME_FORMAT,
-      gencamsrc->frameNumber, GST_TIME_ARGS (GST_BUFFER_PTS (*buf)));
+    // TODO change to GST_DEBUG_OBJECT
+    GST_FIXME_OBJECT (src,
+        "Frame number: %u, Timestamp: %" GST_TIME_FORMAT,
+        gencamsrc->frameNumber, GST_TIME_ARGS (GST_BUFFER_PTS (*buf)));
+  } else {
+    // TODO change to GST_DEBUG_OBJECT
+    GST_FIXME_OBJECT (src, "Frame number: %u", gencamsrc->frameNumber);
+    return GST_FLOW_ERROR;
+  }
 
   return GST_FLOW_OK;
 }
-
-/* ask the subclass to allocate an output buffer. The default implementation
- * will use the negotiated allocator. */
-/*static GstFlowReturn
-gst_gencamsrc_alloc (GstBaseSrc * src, guint64 offset, guint size,
-    GstBuffer ** buf)
-{
-  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
-
-  GST_DEBUG_OBJECT (gencamsrc, "alloc");
-
-  return GST_FLOW_OK;
-}*/
-
-/* ask the subclass to fill the buffer with data from offset and size */
-/*static GstFlowReturn
-gst_gencamsrc_fill (GstPushSrc * src, GstBuffer * buf)
-{
-  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
-
-  GST_DEBUG_OBJECT (gencamsrc, "fill");
-
-  return GST_FLOW_OK;
-}*/
 
 static gboolean
 plugin_init (GstPlugin * plugin)
@@ -759,7 +1091,7 @@ plugin_init (GstPlugin * plugin)
 }
 
 #ifndef VERSION
-#define VERSION "1.0.3"
+#define VERSION "1.1.12"
 #endif
 #ifndef PACKAGE
 #define PACKAGE "gst-gencamsrc"
