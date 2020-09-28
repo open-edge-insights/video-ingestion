@@ -59,30 +59,57 @@ extern "C"
   /* Parameters structure for configuration by the user */
   typedef struct _GencamParams
   {
-    char *deviceSerialNumber;   /* Identify the device to stream from */
+    const char *deviceSerialNumber; /* Identify the device to stream from */
     char *pixelFormat;          /* Format of the pixels from camera */
     char *binningSelector;      /* Binning engine controlled by
                                    binning horizontal and binning vertical */
-    char *binningHorizontalMode;        /* Mode to combine horizontal
-                                           photo-sensitive cells */
+    char *binningHorizontalMode; /* Mode to combine horizontal
+                                   photo-sensitive cells */
     char *binningVerticalMode;  /* Mode to combine vertical
                                    photo-sensitive cells */
-    char *exposureAuto;		/* Set exposure type */
+    char *exposureAuto;         /* Timed exposure type */
     char *exposureTimeSelector; /* Exposure related operations */
     char *exposureMode;         /* Operation mode of exposure */
+    char *triggerOverlap;       /* Overlap type with previous frame or line */
+    char *triggerActivation;    /* Capture TriggerActivation */
+    char *triggerSelector;      /* Capture Trigger Selector */
+    char *triggerSource;        /* Capture Trigger Source */
+    char *acquisitionMode;      /* Frame Acquition Mode  */
+    char *blackLevelSelector;   /* Configure which brightness of the picture to set */
+    char *blackLevelAuto;       /* Control the automatic black level adjustments */
+    char *gammaSelector;        /* Configure the gamma selector */
+    char *gainSelector;         /* All channels or particular channel in
+                                   analog/digital */
+    char *gainAuto;             /* Automatic gain control (AGC) mode */
+    char *gainAutoBalance;      /* Automatic gain balancing between channels */
+    char *balanceRatioSelector; /* Select the balance ratio control */
+    char *balanceWhiteAuto;     /* Automatically corrects color shifts in images */
+    char *deviceClockSelector;  /* Select clock frequency to access from device*/
     int binningHorizontal;      /* Number of horizontal photo-sensitive
                                    cells to combine */
     int binningVertical;        /* Number of vertical photo-sensitive
                                    cells to combine */
-    int width;
-    int height;
-    int widthMax;               // Not Configured TODO: Remove this
-    int heightMax;              // Not Configured TODO: Remove this
-    int offsetX;
-    int offsetY;
-    float exposureTime;
-    float acquisitionFrameRate; // Controls the acquisition rate
-    bool deviceReset;           // Resets the device to factory state
+    int decimationHorizontal;   /* Horizontal sub-sampling of the image */
+    int decimationVertical;     /* Vertical sub-sampling of the image */
+    int width;                  /* Width of the ROI in pixels */
+    int height;                 /* Height of the ROI in pixels */
+    int offsetX;                /* Offset of ROI left pixel */
+    int offsetY;                /* Offset of ROI top pixel */
+    int triggerDivider;         /* Division factor for trigger pulses */
+    int triggerMultiplier;      /* Multiplication factor for trigger pulses */
+    int hwTriggerTimeout;       /* Retry while waiting for the hw trigger */
+    int deviceLinkThroughputLimit; /* Max bandwidth streamed by the camera */
+    int channelPacketSize;      /* Specifies the packet size */
+    int channelPacketDelay;     /* controls delay between each packets  */
+    float triggerDelay;         /* Capture Trigger Delay */
+    float exposureTime;         /* Exposure Time in us */
+    float gain;                 /* Amplification applied to video signal */
+    float acquisitionFrameRate; /* Controls the acquisition rate */
+    float blackLevel;           /* configure overall brightness of the picture */
+    float gamma;                /* Controls the gamma correction of pixel intensity */
+    float balanceRatio;         /* Controls ratio of the selected color */
+    float deviceClockFrequency; /* Returns the frequency of the selected Clock */
+    bool deviceReset;           /* Resets the device to factory state */
   } GencamParams;
 
   /* Initialize generic camera base class */
@@ -95,7 +122,7 @@ extern "C"
   bool gencamsrc_stop (void);
 
   /* Receive the frame to create output buffer */
-  void gencamsrc_create (GstBuffer ** buf, GstMapInfo * mapInfo);
+  bool gencamsrc_create (GstBuffer ** buf, GstMapInfo * mapInfo);
 #ifdef __cplusplus
 }
 #endif

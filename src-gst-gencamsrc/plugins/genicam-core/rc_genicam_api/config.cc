@@ -540,6 +540,59 @@ bool getBoolean(const std::shared_ptr<GenApi::CNodeMapRef> &nodemap, const char 
 }
 
 int64_t getInteger(const std::shared_ptr<GenApi::CNodeMapRef> &nodemap, const char *name,
+                   int64_t *vmin, int64_t *vmax, int64_t *vinc, bool exception, bool igncache)
+{
+  int64_t ret=0;
+
+  if (vmin != 0) *vmin=0;
+  if (vmax != 0) *vmax=0;
+  if (vinc != 0) *vinc=0;
+
+  try
+  {
+    GenApi::INode *node=nodemap->_GetNode(name);
+
+    if (node != 0)
+    {
+      if (GenApi::IsReadable(node))
+      {
+        GenApi::IInteger *val=dynamic_cast<GenApi::IInteger *>(node);
+
+        if (val != 0)
+        {
+          ret=val->GetValue(false, igncache);
+
+          if (vmin != 0) *vmin=val->GetMin();
+          if (vmax != 0) *vmax=val->GetMax();
+          if (vinc != 0) *vinc=val->GetInc();
+        }
+        else if (exception)
+        {
+          throw std::invalid_argument(std::string("Feature not integer: ")+name);
+        }
+      }
+      else if (exception)
+      {
+        throw std::invalid_argument(std::string("Feature not readable: ")+name);
+      }
+    }
+    else if (exception)
+    {
+      throw std::invalid_argument(std::string("Feature not found: ")+name);
+    }
+  }
+  catch (const GENICAM_NAMESPACE::GenericException &ex)
+  {
+    if (exception)
+    {
+      throw std::invalid_argument(ex.what());
+    }
+  }
+
+  return ret;
+}
+
+int64_t getInteger(const std::shared_ptr<GenApi::CNodeMapRef> &nodemap, const char *name,
                    int64_t *vmin, int64_t *vmax, bool exception, bool igncache)
 {
   int64_t ret=0;
@@ -714,14 +767,23 @@ std::string getEnum(const std::shared_ptr<GenApi::CNodeMapRef> &nodemap, const c
 
         if (val != 0)
         {
-          ret=val->GetCurrentEntry()->GetSymbolic();
+          GenApi::StringList_t entries;
+          val->GetSymbolics(entries);
 
-          GenApi::StringList_t entry;
-          val->GetSymbolics(entry);
-
-          for (size_t i=0; i<entry.size(); i++)
+          for (size_t i=0; i<entries.size(); i++)
           {
-            list.push_back(std::string(entry[i]));
+            list.push_back(std::string(entries[i]));
+          }
+
+          GenApi::IEnumEntry *entry=val->GetCurrentEntry();
+
+          if (entry != 0)
+          {
+            ret=entry->GetSymbolic();
+          }
+          else if (exception)
+          {
+            throw std::invalid_argument(std::string("Current value is not defined: ")+name);
           }
         }
         else if (exception)

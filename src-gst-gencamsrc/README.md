@@ -2,6 +2,8 @@
 
 1. [Overview](#overview)
 
+2. [Versioning](#versioning)
+
 2. [Build](#build)
 
 3. [Clean](#clean)
@@ -11,9 +13,14 @@
 5. [Troubleshooting](#troubleshooting)
 
 ## Overview
-This is the Gstreamer source plugin for camera devices compliant to GenICam. The design is scalable to other machine vision standards.
+This is the Gstreamer source plugin for camera devices compliant to GenICam. The design is scalable to other machine vision standards. The plugin uses interface technology driver - Gig E Vision driver or USB 3 Vision driver - by the camera device vendor wrapped under GenICam standard as GenTL producer. The plugin has a library that acts as a GenTL consumer. GenTL consumer interprets the GenICam compliant camera capabilities via camera description file in XML format and configures as desired via GenAPI.
 
-TODO Add more details.
+## Versioning
+The source code is versioned with the format of 3 numbers separated by points. The first number is major version, which in this case is 1. The second number is minor version, which increments for every release like engineering releases, alpha or PV etc., The third number is the revision number, which increments when a feature gets merged from a feature branch. It resets when the minor version number increments for a release.
+First engineering release version is v1.0.0
+Second engineering release version is v1.1.0
+Alpha release version is v1.2.0
+PV release version is v1.3.0
 
 ## Build and Install
 Following is the command to build the plugin.
