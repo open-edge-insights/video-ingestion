@@ -48,7 +48,6 @@ static char* g_vi_config = NULL;
 static std::condition_variable g_err_cv;
 static ConfigMgr* g_cfg_mgr = NULL;
 static std::atomic<bool> g_cfg_change;
-static char* server_config = NULL;
 
 void usage(const char* name) {
     printf("Usage: %s \n", name);
@@ -92,7 +91,8 @@ void vi_initialize(char* vi_config, std::string app_name){
         g_vi = NULL;
     }
 
-    if (server_config != NULL) {
+    int server_num = g_cfg_mgr->getNumServers();
+    if (server_num != -1) {
         try {
             g_ch = new CommandHandler(g_cfg_mgr);
         } catch(const char *err) {
