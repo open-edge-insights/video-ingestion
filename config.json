@@ -34,8 +34,7 @@
                 "EndPoint": "127.0.0.1:66013",
                 "AllowedClients": [
                     "*"
-                ],
-                "zmq_recv_hwm": 50
+                ]
             }
         ],
         "Publishers": [
@@ -48,8 +47,7 @@
                 ],
                 "AllowedClients": [
                     "VideoAnalytics", "Visualizer", "WebVisualizer", "TLSRemoteAgent", "RestDataExport"
-                ],
-                "zmq_recv_hwm": 50
+                ]
             }
         ]
     }
