@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
       - name: ia-video-ingestion
-        image: ia_video_ingestion:${EIS_VERSION}
+        image: ${DOCKER_REGISTRY}ia_video_ingestion:${EIS_VERSION}
         securityContext:
           privileged: true
         volumeMounts:
