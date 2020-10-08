@@ -278,15 +278,6 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
           "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-
-  * `GVA - Gstreamer ingestor with GVA elements`
-
-      ```javascript
-      {
-        "type": "gstreamer",
-        "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/Safety_Full_Hat_and_Vest.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
-      }
-
   **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
 
   ----
@@ -300,15 +291,6 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 exposure-time=3250 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-
-  * `GVA - Gstreamer ingestor with GVA elements`
-
-    ```javascript
-     {
-       "type": "gstreamer",
-       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 exposure-time=3250 ! vaapipostproc format=bgrx ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert !  video/x-raw,format=BGR ! appsink"
-     }
-    ```
 
   * `Basler USB3.0 Interface camera with Gstreamer Ingestor`
 
@@ -346,15 +328,6 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
       }
       ```
 
-  * `GVA - Gstreamer ingestor with GVA elements`
-
-      ```javascript
-      {
-        "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
-      }
-      ```
-
   **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for more information/configuration on rtsp camera.**
 
   ----
@@ -378,15 +351,6 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
       }
       ```
 
-  * `GVA - Gstreamer ingestor with GVA elements`
-
-      ```javascript
-      {
-        "type": "gstreamer",
-        "pipeline": "v4l2src ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/frozen_inference_graph.xml ! appsink"
-      }
-      ```
-
   **Refer [docs/usb_doc.md](docs/usb_doc.md) for more information/configurations on usb camera.**
 
   ----
@@ -407,15 +371,6 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
       {
         "type": "gstreamer",
         "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
-      }
-      ```
-
-  * `GVA - Gstreamer ingestor with GVA elements`
-
-      ```javascript
-      {
-        "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
