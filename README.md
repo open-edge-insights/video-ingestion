@@ -301,7 +301,14 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
      }
      ```
 
-   TODO: * `Hardware trigger based ingestion with gstreamer ingestor`
+   * `Hardware trigger based ingestion with gstreamer ingestor`
+
+     ```javascript
+     {
+      "type": "gstreamer",
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 exposure-time=3250 trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
+     }
+     ```
 
   **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
