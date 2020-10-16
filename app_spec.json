@@ -20,7 +20,7 @@
             "PROFILING_MODE": "false",
             "PUBLISHER_TYPE": "zmq_tcp",
             "PUBLISHER_ENDPOINT": "0.0.0.0:${ep.output-vi.localport}",
-            "SERVER_ENDPOINT": "${ep.output-vi-sw-tr.localport}"
+            "SERVER_ENDPOINT": "0.0.0.0:${ep.output-vi-sw-tr.localport}"
         },
         "Endpoints": [
             {
