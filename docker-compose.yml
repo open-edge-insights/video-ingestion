@@ -60,15 +60,11 @@ services:
       - "vol_eis_socket:${SOCKET_DIR}"
       - "/dev:/dev"
       - "/var/tmp:/var/tmp"
-      - "/opt/Intel/OpenCL/Boards:/opt/Intel/OpenCL/Boards"
-      - "/opt/altera:/opt/altera"
-      - "/opt/intel/intelFPGA:/opt/intel/intelFPGA"
     privileged: true
     devices:
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
       # ion - VPU
-      # acla10_1150_sg20 - FPGA
       # USB camera devices
       # Selective mount can be done for deployment
       - "/dev/:/dev/"

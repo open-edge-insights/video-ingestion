@@ -60,12 +60,6 @@ spec:
           mountPath: ${SOCKET_DIR}
         - name: tmp
           mountPath: /var/tmp
-        - name: opencl
-          mountPath: /opt/Intel/OpenCL/Boards
-        - name: altera
-          mountPath: /opt/altera
-        - name: fpga
-          mountPath: /opt/intel/intelFPGA
         - name: "ca-cert"
           mountPath: /run/secrets/ca_etcd
         - name: "video-ingest-cert"
@@ -119,15 +113,6 @@ spec:
       - name: tmp
         hostPath:
           path: /var/tmp
-      - name: opencl
-        hostPath:
-          path: /opt/Intel/OpenCL/Boards
-      - name: altera
-        hostPath:
-          path: /opt/altera
-      - name: fpga
-        hostPath:
-          path: /opt/intel/intelFPGA
       - name: "ca-cert"
         secret:
           secretName: ca-etcd
