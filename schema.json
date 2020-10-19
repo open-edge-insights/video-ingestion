@@ -121,11 +121,9 @@
                "CPU",
                "GPU",
                "HDDL",
-               "MYRIAD",
-               "HETERO:FPGA,CPU",
-               "HETERO:FPGA,GPU"
+               "MYRIAD"
             ]
-          } 
+          }
         }
       }
     }

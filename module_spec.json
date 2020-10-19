@@ -6,10 +6,7 @@
         "Privileged": true,
         "TemporaryVolumes": [
             "/dev:/dev",
-            "/var/tmp:/var/tmp",
-            "/opt/Intel/OpenCL/Boards:/opt/Intel/OpenCL/Boards",
-            "/opt/altera:/opt/altera",
-            "/opt/intel/intelFPGA:/opt/intel/intelFPGA"
+            "/var/tmp:/var/tmp"
         ]
     },
     "DataStore": {
