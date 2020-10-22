@@ -63,6 +63,13 @@ struct _GstGencamsrc
 
   /* Declare plugin properties here */
   GencamParams properties;
+  gpointer gencam;
+
+  /* Declaration for FPS calculation*/
+  guint64 frames;
+  guint64 prevSecTime;
+  guint64 elapsedTime;
+
 };
 
 struct _GstGencamsrcClass

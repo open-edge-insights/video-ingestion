@@ -71,8 +71,7 @@ inline bool getBufferBool(const std::shared_ptr<const GenTLWrapper> &gentl,
 
   if (stream != 0 && buffer != 0)
   {
-     GenTL::GC_ERROR ret_val = gentl->DSGetBufferInfo(stream, buffer, cmd, &type, &ret, &size);
-     std::cout << ret_val <<"\n";
+    gentl->DSGetBufferInfo(stream, buffer, cmd, &type, &ret, &size);
   }
 
   return ret != 0;

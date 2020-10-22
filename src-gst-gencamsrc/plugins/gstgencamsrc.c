@@ -53,17 +53,16 @@
  * </refsect2>
  */
 
-#include <gst/gst.h>
-#include <gst/video/video-format.h>
-
 #include "gencambase.h"
 #include "gstgencamsrc.h"
 
 #define WIDTH (7680)
 #define HEIGHT (4320)
 #define TIMETICK_NS (1000000000UL)
+#define TIMETICK_MS (1000)
+#define FPS_REPORT_TIME TIMETICK_MS
 
-GST_DEBUG_CATEGORY_STATIC (gst_gencamsrc_debug_category);
+GST_DEBUG_CATEGORY (gst_gencamsrc_debug_category);
 #define GST_CAT_DEFAULT gst_gencamsrc_debug_category
 
 /* prototypes */
@@ -107,7 +106,6 @@ enum
   PROP_BINNINGVERTICAL,
   PROP_ACQUISITIONMODE,
   PROP_DEVICECLOCKSELECTOR,
-  PROP_DEVICECLOCKFREQUENCY,
   PROP_TRIGGERDELAY,
   PROP_TRIGGERDIVIDER,
   PROP_TRIGGERMULTIPLIER,
@@ -160,12 +158,11 @@ GST_STATIC_PAD_TEMPLATE ("src", GST_PAD_SRC, GST_PAD_ALWAYS,
     GST_STATIC_CAPS (GCS_CAPS));
 
 /* class initialization */
-
 #define gst_gencamsrc_parent_class parent_class
+
 G_DEFINE_TYPE_WITH_CODE (GstGencamsrc, gst_gencamsrc, GST_TYPE_PUSH_SRC,
     GST_DEBUG_CATEGORY_INIT (gst_gencamsrc_debug_category, "gencamsrc", 0,
         "debug category for gencamsrc element"));
-
 static void
 gst_gencamsrc_class_init (GstGencamsrcClass * klass)
 {
@@ -188,16 +185,11 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
   gobject_class->dispose = gst_gencamsrc_dispose;
   gobject_class->finalize = gst_gencamsrc_finalize;
 
-  // TODO cleanup as some of the following are not required
   base_src_class->get_caps = GST_DEBUG_FUNCPTR (gst_gencamsrc_get_caps);
-  // base_src_class->negotiate = GST_DEBUG_FUNCPTR (gst_gencamsrc_negotiate);
-  // base_src_class->fixate = GST_DEBUG_FUNCPTR (gst_gencamsrc_fixate);
   base_src_class->set_caps = GST_DEBUG_FUNCPTR (gst_gencamsrc_set_caps);
   base_src_class->start = GST_DEBUG_FUNCPTR (gst_gencamsrc_start);
   base_src_class->stop = GST_DEBUG_FUNCPTR (gst_gencamsrc_stop);
   base_src_class->get_times = GST_DEBUG_FUNCPTR (gst_gencamsrc_get_times);
-  // base_src_class->query = GST_DEBUG_FUNCPTR (gst_gencamsrc_query);
-  // base_src_class->event = GST_DEBUG_FUNCPTR (gst_gencamsrc_event);
 
   // Following are virtual overridden by push src
   push_src_class->create = GST_DEBUG_FUNCPTR (gst_gencamsrc_create);
@@ -287,12 +279,6 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
           "Selects the clock frequency to access from the device. Possible values (Sensor/SensorDigitization/CameraLink/Device-specific)",
           "", (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
-  g_object_class_install_property (gobject_class, PROP_DEVICECLOCKFREQUENCY,
-      g_param_spec_float ("device-clock-frequency", "DeviceClockFrequency",
-          "Returns the frequency of the selected Clock.",
-          -1 /*Min */ , INT_MAX /*Max */ , -1 /*Default */ ,
-          (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
   g_object_class_install_property (gobject_class, PROP_TRIGGERDELAY,
       g_param_spec_float ("trigger-delay", "TriggerDelay",
           "Specifies the delay in microseconds (us) to apply after the trigger reception before activating it.",
@@ -334,7 +320,7 @@ gst_gencamsrc_class_init (GstGencamsrcClass * klass)
 
   g_object_class_install_property (gobject_class, PROP_HWTRIGGERTIMEOUT,
       g_param_spec_int ("hw-trigger-timeout", "HardwareTriggerTimeout",
-          "Wait timeout (in sec) to receive frames before terminating the application.",
+          "Wait timeout (in multiples of 5 secs) to receive frames before terminating the application.",
           0 /*Min */ , INT_MAX /*Max */ , 10 /*Default */ ,
           (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
@@ -467,6 +453,9 @@ gst_gencamsrc_init (GstGencamsrc * gencamsrc)
   // Initialize data members
   gencamsrc->frameNumber = 0;
 
+  // Initialize core
+  gencamsrc->gencam = NULL;
+
   // Initialize plugin properties
   prop->deviceSerialNumber = NULL;
   prop->pixelFormat = "mono8\0";
@@ -511,14 +500,16 @@ gst_gencamsrc_init (GstGencamsrc * gencamsrc)
   prop->channelPacketDelay = -1;
   prop->acquisitionFrameRate = 0;
   prop->deviceClockSelector = NULL;
-  prop->deviceClockFrequency = -1;
   prop->deviceReset = false;
 
-  // Initialize gencam base class and assign properties
-  gencamsrc_init (&gencamsrc->properties);
+  gencamsrc->prevSecTime = 0;
+  gencamsrc->elapsedTime = 0;
+  gencamsrc->frames = 0;
 
-  // TODO replace FIXME log with DEBUG log later
-  GST_FIXME_OBJECT (gencamsrc, "The init function");
+  // Initialize gencam base class and assign properties
+  gencamsrc_init (&gencamsrc->properties, (GstBaseSrc *) gencamsrc);
+
+  GST_DEBUG_OBJECT (gencamsrc, "The init function");
 }
 
 void
@@ -575,9 +566,6 @@ gst_gencamsrc_set_property (GObject * object, guint property_id,
       break;
     case PROP_DEVICECLOCKSELECTOR:
       prop->deviceClockSelector = g_value_dup_string (value + '\0');
-      break;
-    case PROP_DEVICECLOCKFREQUENCY:
-      prop->deviceClockFrequency = g_value_get_float (value);
       break;
     case PROP_TRIGGERDELAY:
       prop->triggerDelay = g_value_get_float (value);
@@ -727,9 +715,6 @@ gst_gencamsrc_get_property (GObject * object, guint property_id,
     case PROP_DEVICECLOCKSELECTOR:
       g_value_set_string (value, prop->deviceClockSelector);
       break;
-    case PROP_DEVICECLOCKFREQUENCY:
-      g_value_set_float (value, prop->deviceClockFrequency);
-      break;
     case PROP_TRIGGERDELAY:
       g_value_set_float (value, prop->triggerDelay);
       break;
@@ -855,12 +840,6 @@ gst_gencamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
   GST_DEBUG_OBJECT (gencamsrc, "get_caps, src pad %" GST_PTR_FORMAT,
       src->srcpad);
 
-  // if device is not opened, return base. Currently forcing to FALSE
-  // TODO revisit this to return right capabilities
-  if (FALSE /*TRUE*/) {
-    return gst_pad_get_pad_template_caps (GST_BASE_SRC_PAD (src));
-  }
-
   char *type = "";
   char *format = "";
   if (strcmp (prop->pixelFormat, "mono8") == 0) {
@@ -910,8 +889,7 @@ gst_gencamsrc_get_caps (GstBaseSrc * src, GstCaps * filter)
       "height", G_TYPE_INT, prop->height, "framerate",
       GST_TYPE_FRACTION, 120, 1, NULL);
 
-  // TODO replace FIXME log with DEBUG log later
-  GST_FIXME_OBJECT (gencamsrc,
+  GST_DEBUG_OBJECT (gencamsrc,
       "The caps sent: %s, %s, %d x %d, variable fps.", type, format,
       prop->width, prop->height);
 
@@ -987,10 +965,9 @@ gst_gencamsrc_start (GstBaseSrc * src)
 {
   GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
 
-  // TODO replace FIXME log with DEBUG log later
-  GST_FIXME_OBJECT (gencamsrc, "camera open, set property and start");
+  GST_DEBUG_OBJECT (gencamsrc, "camera open, set property and start");
 
-  return gencamsrc_start ();
+  return gencamsrc_start (src);
 }
 
 static gboolean
@@ -998,10 +975,9 @@ gst_gencamsrc_stop (GstBaseSrc * src)
 {
   GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
 
-  // TODO replace FIXME log with DEBUG log later
-  GST_FIXME_OBJECT (gencamsrc, "stop camera and close");
+  GST_DEBUG_OBJECT (gencamsrc, "stop camera and close");
 
-  return gencamsrc_stop ();
+  return gencamsrc_stop (src);
 }
 
 /* given a buffer, return start and stop time when it should be pushed
@@ -1012,7 +988,6 @@ gst_gencamsrc_get_times (GstBaseSrc * src, GstBuffer * buffer,
 {
   GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
 
-  /* TODO use this if camera provides time stamp */
   {
     GstClockTime timestamp = GST_BUFFER_PTS (buffer);
     *start = timestamp;
@@ -1057,7 +1032,7 @@ gst_gencamsrc_create (GstPushSrc * src, GstBuffer ** buf)
 
   GST_DEBUG_OBJECT (gencamsrc, "create frames");
 
-  if (gencamsrc_create (buf, &mapInfo)) {
+  if (gencamsrc_create (buf, &mapInfo, (GstBaseSrc *) gencamsrc)) {
     // Set DTS to none
     // PTS is set inside the create function above
     GST_BUFFER_DTS (*buf) = GST_CLOCK_TIME_NONE;
@@ -1069,13 +1044,30 @@ gst_gencamsrc_create (GstPushSrc * src, GstBuffer ** buf)
     ++gencamsrc->frameNumber;
     GST_BUFFER_OFFSET_END (*buf) = gencamsrc->frameNumber;
 
-    // TODO change to GST_DEBUG_OBJECT
-    GST_FIXME_OBJECT (src,
+    GST_DEBUG_OBJECT (src,
         "Frame number: %u, Timestamp: %" GST_TIME_FORMAT,
         gencamsrc->frameNumber, GST_TIME_ARGS (GST_BUFFER_PTS (*buf)));
+
+    // get current time
+    gint64 time =
+        GST_TIME_AS_MSECONDS (gst_clock_get_time (gst_element_get_clock (
+                (GstElement *) gencamsrc)));
+    gencamsrc->prevSecTime =
+        ((gencamsrc->prevSecTime == 0) ? time : gencamsrc->prevSecTime);
+    gencamsrc->elapsedTime = time - gencamsrc->prevSecTime;
+    // check if time elapsed is > 1s
+    if (gencamsrc->elapsedTime >= FPS_REPORT_TIME) {
+      int64_t frames = gencamsrc->frameNumber - gencamsrc->frames;
+      int64_t elapsedTime = gencamsrc->elapsedTime;
+      GST_INFO_OBJECT (src, "FPS: %f (Calculated time per frame: %.1fms)",
+          ((float) frames / ((float) elapsedTime / FPS_REPORT_TIME)),
+          (float) elapsedTime / frames);
+      // record last frame# and frametime
+      gencamsrc->frames = gencamsrc->frameNumber;
+      gencamsrc->prevSecTime = time;
+    }
   } else {
-    // TODO change to GST_DEBUG_OBJECT
-    GST_FIXME_OBJECT (src, "Frame number: %u", gencamsrc->frameNumber);
+    GST_DEBUG_OBJECT (src, "Frame number: %u", gencamsrc->frameNumber);
     return GST_FLOW_ERROR;
   }
 
@@ -1091,7 +1083,7 @@ plugin_init (GstPlugin * plugin)
 }
 
 #ifndef VERSION
-#define VERSION "1.1.12"
+#define VERSION "1.2.5"
 #endif
 #ifndef PACKAGE
 #define PACKAGE "gst-gencamsrc"

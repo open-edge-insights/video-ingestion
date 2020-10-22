@@ -511,7 +511,10 @@ std::shared_ptr<Device> getDevice(const char *id)
 
             if (dev)
             {
-              ret=dev;
+              if (ret == nullptr)
+              {
+                ret=dev;
+              }
               found++;
             }
 
@@ -532,7 +535,10 @@ std::shared_ptr<Device> getDevice(const char *id)
 
           if (dev)
           {
-            ret=dev;
+            if (ret == nullptr)
+            {
+              ret=dev;
+            }
             found++;
           }
 
@@ -546,9 +552,10 @@ std::shared_ptr<Device> getDevice(const char *id)
 
   if (found > 1)
   {
-    std::cerr << "ERROR: Finding device '" << id << "' through different producers."
+    std::cerr << "WARNING: Finding device '" << id << "' through different producers."
               << std::endl;
-    ret.reset();
+    std::cerr << "Selecting " << ret->getParent()->getParent()->getFilename()
+              << std::endl;
   }
 
   return ret;

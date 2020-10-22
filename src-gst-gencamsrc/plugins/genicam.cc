@@ -36,15 +36,23 @@
  */
 
 #include "genicam.h"
+#include "gstgencamsrc.h"
+
+GST_DEBUG_CATEGORY_EXTERN (gst_gencamsrc_debug_category);
+#define GST_CAT_DEFAULT gst_gencamsrc_debug_category
 
 bool
-Genicam::Init (GencamParams * params)
+Genicam::Init (GencamParams * params, GstBaseSrc * src)
 {
+  gencamsrc = src;
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
+
   gencamParams = params;
 
   triggerMode.assign ("Off\0");
   deviceLinkThroughputLimitMode.assign ("Off\0");
 
+  GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
   return TRUE;
 }
 
@@ -56,6 +64,8 @@ Genicam::Start (void)
      Set the property (resolution, pixel format, etc.,)
      allocate buffers and start streaming from the camera */
 
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
+
   /* Get Serial Number */
   if (gencamParams->deviceSerialNumber == NULL) {
     getCameraSerialNumber ();
@@ -64,11 +74,10 @@ Genicam::Start (void)
   dev = rcg::getDevice (gencamParams->deviceSerialNumber);
 
   if (dev) {
-    //TODO : Logging 
 
     dev->open (rcg::Device::CONTROL);
-    std::cout << "Camera: " << gencamParams->deviceSerialNumber <<
-        " opened successfully.\n";
+    GST_INFO_OBJECT (gencamsrc, "Camera: %s opened successfully.",
+        gencamParams->deviceSerialNumber);
 
     nodemap = dev->getRemoteNodeMap ();
 
@@ -82,10 +91,6 @@ Genicam::Start (void)
       // DeviceReset feature
       if (gencamParams->deviceReset == true) {
         return resetDevice ();
-      }
-      // Device Clock Freequency feature
-      if (gencamParams->deviceClockFrequency > -1) {
-        setDeviceClockFrequency ();
       }
       // Binning selector feature
       if (gencamParams->binningSelector) {
@@ -125,17 +130,17 @@ Genicam::Start (void)
       }
     }
     catch (const std::exception & ex) {
-      std::cerr << "Exception: " << ex.what () << std::endl;
+      GST_ERROR_OBJECT (gencamsrc, "Exception: %s", ex.what ());
       Stop ();
       return FALSE;
     }
     catch (const GENICAM_NAMESPACE::GenericException & ex) {
-      std::cerr << "Exception: " << ex.what () << std::endl;
+      GST_ERROR_OBJECT (gencamsrc, "Exception: %s", ex.what ());
       Stop ();
       return FALSE;
     }
     catch ( ...) {
-      std::cerr << "Exception: unknown" << std::endl;
+      GST_ERROR_OBJECT (gencamsrc, "Exception: unknown");
       Stop ();
       return FALSE;
     }
@@ -148,6 +153,13 @@ Genicam::Start (void)
       if (offsetXYwritable) {
         setOffsetXY ();
       }
+      // Device Clock Selector feature
+      if (gencamParams->deviceClockSelector) {
+        setDeviceClockSelector ();
+      }
+      // Read Device Clock Frequency
+      getDeviceClockFrequency ();
+
       /* DeviceLinkThroughputLimit and Mode features */
       if (gencamParams->deviceLinkThroughputLimit > 0) {
         setDeviceLinkThroughputLimit ();
@@ -200,7 +212,8 @@ Genicam::Start (void)
         setBalanceWhiteAuto ();
 
       // Balance Ratio Feature
-      if (gencamParams->balanceRatio != 9999.0)
+      if (gencamParams->balanceRatio != 9999.0
+          || gencamParams->balanceRatioSelector)
         setBalanceRatio ();
 
       // Exposure Time Selector feature
@@ -280,11 +293,12 @@ Genicam::Start (void)
     }
 
   } else {
-    std::cerr << "Camera: " << gencamParams->deviceSerialNumber <<
-        " not detected\n";
+    GST_ERROR_OBJECT (gencamsrc, "Camera: %s not detected",
+        gencamParams->deviceSerialNumber);
     return FALSE;
   }
 
+  GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
   return TRUE;
 }
 
@@ -292,6 +306,7 @@ Genicam::Start (void)
 bool
 Genicam::Stop (void)
 {
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
   try {
     // Stop and close the streams opened
     if (stream.size () > 0) {
@@ -305,17 +320,18 @@ Genicam::Stop (void)
   }
   catch (const std::exception & ex)
   {
-    std::cerr << "Exception: " << ex.what () << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Exception: %s", ex.what ());
   } catch (const GENICAM_NAMESPACE::GenericException & ex)
   {
-    std::cerr << "Exception: " << ex.what () << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Exception: %s", ex.what ());
   } catch ( ...) {
-    std::cerr << "Exception: unknown" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Exception: unknown");
   }
 
   // Clear the system
   rcg::System::clearSystems ();
 
+  GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
   return TRUE;
 }
 
@@ -325,26 +341,21 @@ bool Genicam::Create (GstBuffer ** buf, GstMapInfo * mapInfo)
   /* Grab the buffer, copy and release, set framenum */
   int
       hwTriggerCheck = 0;
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
   try {
-#ifdef RANDOM_RGB_TEST
-    /* TODO Remove later. It is dummy creating and filling buffer for RGB */
-    guint
-        globalSize = gencamParams->width * gencamParams->height * 3;
-#else
     const
         rcg::Buffer *
         buffer;
 
-    while (!(buffer = stream[0]->grab (1000))) {
+    while (!(buffer = stream[0]->grab (5000))) {
       if (acquisitionMode != "Continuous" && triggerMode == "On"
           && triggerSource != "Software") {
         // If Hw trigger, wait for specified timeout
-        std::
-            cout << "Waiting for a Trigger (" << (gencamParams->hwTriggerTimeout
-            - ++hwTriggerCheck) << " sec)...\n";
+        GST_INFO_OBJECT (gencamsrc, "Waiting for a Trigger (%d) sec)...",
+            (gencamParams->hwTriggerTimeout - ++hwTriggerCheck));
       }
       if (hwTriggerCheck == gencamParams->hwTriggerTimeout) {
-        std::cerr << "No frame received from the camera\n";
+        GST_ERROR_OBJECT (gencamsrc, "No frame received from the camera");
         return FALSE;
       }
     }
@@ -352,19 +363,15 @@ bool Genicam::Create (GstBuffer ** buf, GstMapInfo * mapInfo)
         globalSize = buffer->getGlobalSize ();
     guint64
         timestampNS = buffer->getTimestampNS ();
-#endif
 
     *buf = gst_buffer_new_allocate (NULL, globalSize, NULL);
     if (*buf == NULL) {
-      std::cerr << "Buffer couldn't be allocated\n";
+      GST_ERROR_OBJECT (gencamsrc, "Buffer couldn't be allocated");
       return FALSE;
     }
     GST_BUFFER_PTS (*buf) = timestampNS;
     gst_buffer_map (*buf, mapInfo, GST_MAP_WRITE);
 
-#ifdef RANDOM_RGB_TEST
-    gen_random_rgb (mapInfo->data, mapInfo->size);
-#else
     memcpy (mapInfo->data, buffer->getGlobalBase (), mapInfo->size);
 
     // For Non continuous modes, execute TriggerSoftware command
@@ -380,33 +387,25 @@ bool Genicam::Create (GstBuffer ** buf, GstMapInfo * mapInfo)
         setTriggerSoftware ();
       }
     }
-#endif
+    GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
     return TRUE;
   }
 
   catch (const std::exception & ex) {
-    std::cerr << "Exception: " << ex.what () << std::endl;
-  } catch (const GENICAM_NAMESPACE::GenericException & ex)
-  {
-    std::cerr << "Exception: " << ex.what () << std::endl;
-  } catch ( ...) {
-    std::cerr << "Exception: unknown" << std::endl;
+    GST_ERROR_OBJECT (gencamsrc, "Exception: %s", ex.what ());
+    return FALSE;
+  }
+  catch (const GENICAM_NAMESPACE::GenericException & ex) {
+    GST_ERROR_OBJECT (gencamsrc, "Exception: %s", ex.what ());
+    return FALSE;
+  }
+  catch ( ...) {
+    GST_ERROR_OBJECT (gencamsrc, "Exception: unknown");
+    return FALSE;
   }
 
   return FALSE;
 }
-
-
-#ifdef RANDOM_RGB_TEST
-static void
-gen_random_rgb (guint8 * buf, guint size)
-{
-  static guint
-      val = 0;
-  memset (buf, val, size);
-  val = (val > 250) ? 0 : val + 5;
-}
-#endif
 
 
 bool
@@ -542,7 +541,7 @@ Genicam::setEnumFeature (const char *featureName, const char *str,
   std::vector < std::string > featureList;
 
   if (featureName == NULL || str == NULL) {
-    std::cout << "ERROR:: Enter valid feature and mode \n";
+    GST_ERROR_OBJECT (gencamsrc, "Enter valid feature and mode");
     return isEnumFeatureSet;
   }
   try {
@@ -551,8 +550,8 @@ Genicam::setEnumFeature (const char *featureName, const char *str,
 
     // Check if list is empty
     if (featureList.size () == 0) {
-      std::cout << "WARNING:: " << featureName <<
-          ": list empty, writing not supported" << std::endl;
+      GST_WARNING_OBJECT (gencamsrc, "%s: list empty, writing not supported",
+          featureName);
       return isEnumFeatureSet;
     }
 
@@ -568,28 +567,31 @@ Genicam::setEnumFeature (const char *featureName, const char *str,
   }
   catch (const std::exception & ex)
   {
-    std::cout << "Exception: " << ex.what () << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Exception: %s", ex.what ());
   } catch ( ...) {
-    std::cerr << "Exception: unknown" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Exception: unknown");
   }
 
   if (!matchFound) {
     // User parameter did not match
-    std::cout << "WARNING:: Invalid " << featureName << ": \"" << str <<
-        "\"" << ". Supported list below:" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "%s: Invalid mode \"%s\".", featureName,
+        str);
+    GST_INFO_OBJECT (gencamsrc, "Supported list below:");
     for (size_t k = 0; k < featureList.size (); k++) {
-      std::cout << "    " << featureList[k] << std::endl;
+      GST_INFO_OBJECT (gencamsrc, "    %s", featureList[k].c_str ());
     }
-    std::cout << "  " << featureName << " is \"" << rcg::getEnum (nodemap,
-        featureName, false) << "\"" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "  %s is \"%s\"", featureName,
+        rcg::getEnum (nodemap, featureName, false).c_str ());
   } else if (matchFound && !isEnumFeatureSet) {
     // Command failed
-    std::cout << "WARNING:: " << featureName << ": \"" << str <<
-        "\" set failed.\n";
+    std::string featureStr = rcg::getEnum (nodemap, featureName, false);
+    GST_WARNING_OBJECT (gencamsrc, "%s: %s set failed. Current mode %s",
+        featureName, str, featureStr.c_str ());
   } else {
     // Command passed
     std::string featureStr = rcg::getEnum (nodemap, featureName, false);
-    std::cout << featureName << ": \"" << featureStr << "\" set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "%s: \"%s\" set successful.", featureName,
+        featureStr.c_str ());
   }
 
   return isEnumFeatureSet;
@@ -605,6 +607,10 @@ Genicam::setIntFeature (const char *featureName, int *val, const bool ex)
 
   rcg::getInteger (nodemap, featureName, &vMin, &vMax, &vInc, false, false);
 
+  if (vInc == 0) {
+    vInc = 1;
+  }
+
   /* Value of integer should be aligned such that difference of value and Min
    * should be a factor of vInc
    */
@@ -614,13 +620,13 @@ Genicam::setIntFeature (const char *featureName, int *val, const bool ex)
   }
   // check Range and cap it if needed
   if (*val < vMin) {
-    std::cout << "WARNING:: " << featureName << ": value " << *val <<
-        " capping near minimum " << vMin << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "%s: value %d capping near minimum %ld",
+        featureName, *val, vMin);
     // Increase the value to vMin so that  "value-vMin" is a factor of "vInc".
     *val = vMin;
   } else if (*val > vMax) {
-    std::cout << "WARNING:: " << featureName << ": value " << *val <<
-        " capping near maximum " << vMax << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "%s: value %d capping near maximum %ld",
+        featureName, *val, vMax);
     // Decrease the value if difference between "value-vMin" is not a factor of "vInc".
     diff = vMax - vMin;
     *val = vMax - (diff % vInc);
@@ -631,18 +637,18 @@ Genicam::setIntFeature (const char *featureName, int *val, const bool ex)
   }
   catch (const std::exception & ex)
   {
-    std::cout << "Exception: " << ex.what () << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Exception: %s", ex.what ());
   }
 
   if (!isIntFeatureSet) {
     // Command failed
-    std::cout << "WARNING:: " << featureName << ": " << *val <<
-        " set failed.\n";
+    int ret = rcg::getInteger (nodemap, featureName, NULL, NULL, false, false);
+    GST_WARNING_OBJECT (gencamsrc, "%s: %d set failed. Current value is %d",
+        featureName, *val, ret);
   } else {
     // Command passed
-    int ret =
-        rcg::getInteger (nodemap, featureName, NULL, NULL, NULL, false, false);
-    std::cout << featureName << ": " << ret << " set successful.\n";
+    int ret = rcg::getInteger (nodemap, featureName, NULL, NULL, false, false);
+    GST_INFO_OBJECT (gencamsrc, "%s: %d set successful.", featureName, ret);
   }
 
   return isIntFeatureSet;
@@ -659,12 +665,12 @@ Genicam::setFloatFeature (const char *featureName, float *val, const bool ex)
 
   // check Range and cap it if needed
   if (*val < vMin) {
-    std::cout << "WARNING:: " << featureName << ": value " << *val <<
-        " capping near minimum " << vMin << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "%s: value %f capping near minimum %lf",
+        featureName, *val, vMin);
     *val = vMin;
   } else if (*val > vMax) {
-    std::cout << "WARNING:: " << featureName << ": value " << *val <<
-        " capping near maximum " << vMax << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "%s: value %f capping near maximum %lf",
+        featureName, *val, vMax);
     *val = vMax;
   }
   // Configure Float feature
@@ -673,17 +679,18 @@ Genicam::setFloatFeature (const char *featureName, float *val, const bool ex)
   }
   catch (const std::exception & ex)
   {
-    std::cout << "Exception: " << ex.what () << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Exception: %s", ex.what ());;
   }
 
   if (!isFloatFeatureSet) {
     // Command failed
-    std::cout << "WARNING:: " << featureName << ": " << *val <<
-        " set failed.\n";
+    float ret = rcg::getFloat (nodemap, featureName, NULL, NULL, false, false);
+    GST_WARNING_OBJECT (gencamsrc, "%s: %f set failed. Current value is %f",
+        featureName, *val, ret);
   } else {
     // Command passed
     float ret = rcg::getFloat (nodemap, featureName, NULL, NULL, false, false);
-    std::cout << featureName << ": " << ret << " set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "%s: %f set successful.", featureName, ret);
   }
 
   return isFloatFeatureSet;
@@ -693,20 +700,27 @@ Genicam::setFloatFeature (const char *featureName, float *val, const bool ex)
 void
 Genicam::getCameraInfo (void)
 {
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
+
   if (isFeature ("DeviceVendorName\0", NULL)) {
     camInfo.vendorName = rcg::getString (nodemap, "DeviceVendorName", 0, 0);
-    std::cout << "Camera Vendor: " << camInfo.vendorName << std::endl;
+    GST_INFO_OBJECT (gencamsrc, "Camera Vendor: %s",
+        camInfo.vendorName.c_str ());
   }
   if (isFeature ("DeviceModelName\0", NULL)) {
     camInfo.modelName = rcg::getString (nodemap, "DeviceModelName", 0, 0);
-    std::cout << "Camera Model: " << camInfo.modelName << std::endl;
+    GST_INFO_OBJECT (gencamsrc, "Camera Model: %s", camInfo.modelName.c_str ());
   }
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
 }
 
 
 bool
 Genicam::getCameraSerialNumber (void)
 {
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
+
   // get all systems
   std::vector < std::shared_ptr < rcg::System > >system =
       rcg::System::getSystems ();
@@ -727,8 +741,8 @@ Genicam::getCameraSerialNumber (void)
             device[j]->getSerialNumber ()) != serials.end ();
         if (!match) {
           serials.push_back (device[j]->getSerialNumber ());
-          std::cout << "> Camera found with Serial# " <<
-              device[j]->getSerialNumber () << std::endl;
+          GST_INFO_OBJECT (gencamsrc, "> Camera found with Serial# %s",
+              device[j]->getSerialNumber ().c_str ());
         }
       }
       // Close interfaces
@@ -740,12 +754,15 @@ Genicam::getCameraSerialNumber (void)
 
   if (serials.size () == 0) {
     // No cameras found
-    std::cout << "ERROR: No Cameras found." << std::endl;
+    GST_ERROR_OBJECT (gencamsrc, "No Cameras found.");
   } else {
     // Connect to the first camera found
-    std::cout << "Connecting to camera: " << serials[0].c_str () << std::endl;
+    GST_INFO_OBJECT (gencamsrc, "Connecting to camera: %s",
+        serials[0].c_str ());
     gencamParams->deviceSerialNumber = serials[0].c_str ();
   }
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
 
   return (!serials.empty ());
 }
@@ -754,15 +771,21 @@ Genicam::getCameraSerialNumber (void)
 bool
 Genicam::resetDevice (void)
 {
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
+
   // WARNING:: Do not modify unless absolutely sure
   rcg::callCommand (nodemap, "DeviceReset", true);
 
   // Device will poweroff immediately
-  std::cout << "DeviceReset: " << gencamParams->deviceReset << " triggered\n";
-  std::cout << "Device will take a few seconds to reset to factory default\n";
+  GST_INFO_OBJECT (gencamsrc, "DeviceReset: %d triggered",
+      gencamParams->deviceReset);
+  GST_INFO_OBJECT (gencamsrc,
+      "Device will take a few seconds to reset to factory default");
 
   // Stop gracefully if poweroff taking time
   Stop ();
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return FALSE;
 }
 
@@ -771,11 +794,15 @@ bool
 Genicam::setBinningSelector (void)
 {
   bool isBinningSelectorSet = false;
-  std::vector < std::string > binningEngines;
+
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
 
   //Possible values : Sensor, Region0, Region1, Region2
   isBinningSelectorSet =
       setEnumFeature ("BinningSelector\0", gencamParams->binningSelector, true);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
+
   return isBinningSelectorSet;
 }
 
@@ -784,6 +811,8 @@ bool
 Genicam::setBinningHorizontalMode (void)
 {
   bool isBinningHorizontalModeSet = false;
+
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
 
   std::vector < std::string > binningHorizontalModes;
 
@@ -835,29 +864,33 @@ Genicam::setBinningHorizontalMode (void)
     }
 
   } else {
-    std::cout << "WARNING:: Invalid BinningHorizontalMode: " <<
-        gencamParams->binningHorizontalMode << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Invalid BinningHorizontalMode: %s",
+        gencamParams->binningHorizontalMode);
     return FALSE;
   }
 
 
   if (isBinningHorizontalModeSet) {
     // Binning Horizontal Mode set success
-    std::cout << "BinningHorizontalMode: \"" <<
-        gencamParams->binningHorizontalMode << "\" set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "BinningHorizontalMode: \"%s\" set successful.",
+        gencamParams->binningHorizontalMode);
   } else {
     // Binning horizontal modes not supported by the camera
-    std::cout << "WARNING:: BinningHorizontalMode: \"" <<
-        gencamParams->binningHorizontalMode << "\" not set. ";
+    GST_WARNING_OBJECT (gencamsrc,
+        "BinningHorizontalMode: Invalid mode \"%s\".",
+        gencamParams->binningHorizontalMode);
     if (binningHorizontalModes.size () > 0) {
-      std::cout << "Supported binning horizontal modes are," << std::endl;
+      GST_INFO_OBJECT (gencamsrc, "Supported binning horizontal modes are,");
       for (size_t k = 0; k < binningHorizontalModes.size (); k++) {
-        std::cout << "    " << binningHorizontalModes[k] << std::endl;
+        GST_INFO_OBJECT (gencamsrc, "    %s",
+            binningHorizontalModes[k].c_str ());
       }
     } else {
-      std::cout << "Feature not supported\n";
+      GST_WARNING_OBJECT (gencamsrc, "Feature not supported");
     }
   }
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
 
   return TRUE;
 }
@@ -869,12 +902,14 @@ Genicam::setBinningHorizontal (void)
   bool ret = false;
   int64_t vMin, vMax;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   if (rcg::getInteger (nodemap, "BinningHorizontal", &vMin, &vMax, false, true)) {
     ret =
         setIntFeature ("BinningHorizontal\0", &gencamParams->binningHorizontal,
         false);
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return ret;
 }
 
@@ -883,6 +918,8 @@ bool
 Genicam::setBinningVerticalMode (void)
 {
   bool isBinningVerticalModeSet = false;
+
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
 
   std::vector < std::string > binningVerticalModes;
 
@@ -930,29 +967,30 @@ Genicam::setBinningVerticalMode (void)
     }
 
   } else {
-    std::cout << "WARNING:: Invalid BinningVerticalMode: " <<
-        gencamParams->binningVerticalMode << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Invalid BinningVerticalMode: %s",
+        gencamParams->binningVerticalMode);
     return FALSE;
   }
 
   if (isBinningVerticalModeSet) {
     // Binning Vertical Mode set success
-    std::cout << "BinningVerticalMode: \"" << gencamParams->binningVerticalMode
-        << "\" set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "BinningVerticalMode: \"%s\" set successful.",
+        gencamParams->binningVerticalMode);
   } else {
     // Binning vertical modes not supported by the camera
-    std::cout << "WARNING:: BinningVerticalMode: \"" <<
-        gencamParams->binningVerticalMode << "\" not set. ";
+    GST_WARNING_OBJECT (gencamsrc, "BinningVerticalMode: Invalid mode \"%s\".",
+        gencamParams->binningVerticalMode);
     if (binningVerticalModes.size () > 0) {
-      std::cout << "Supported binning vertical modes are," << std::endl;
+      GST_INFO_OBJECT (gencamsrc, "Supported binning vertical modes are,");
       for (size_t k = 0; k < binningVerticalModes.size (); k++) {
-        std::cout << "    " << binningVerticalModes[k] << std::endl;
+        GST_INFO_OBJECT (gencamsrc, "    %s", binningVerticalModes[k].c_str ());
       }
     } else {
-      std::cout << "Feature not supported\n";
+      GST_WARNING_OBJECT (gencamsrc, "Feature not supported");
     }
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return TRUE;
 }
 
@@ -963,12 +1001,14 @@ Genicam::setBinningVertical (void)
   bool ret = false;
   int64_t vMin, vMax;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   if (rcg::getInteger (nodemap, "BinningVertical", &vMin, &vMax, false, true)) {
     ret =
         setIntFeature ("BinningVertical\0", &gencamParams->binningVertical,
         false);
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return ret;
 }
 
@@ -978,9 +1018,11 @@ Genicam::setDecimationHorizontal (void)
 {
   bool isDecimationHorizontalSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Is DecimationHorizontal supported? if not then return
   if (!isFeature ("DecimationHorizontal\0", NULL)) {
-    std::cout << "WARNING:: DecimationHorizontal: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc,
+        "DecimationHorizontal: feature not supported");
     return isDecimationHorizontalSet;
   }
   // Configure Decimation
@@ -988,6 +1030,7 @@ Genicam::setDecimationHorizontal (void)
       setIntFeature ("DecimationHorizontal\0",
       &gencamParams->decimationHorizontal, true);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isDecimationHorizontalSet;
 }
 
@@ -997,9 +1040,10 @@ Genicam::setDecimationVertical (void)
 {
   bool isDecimationVerticalSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Is DecimationVertical supported? if not then return
   if (!isFeature ("DecimationVertical\0", NULL)) {
-    std::cout << "WARNING:: DecimationVertical: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "DecimationVertical: feature not supported");
     return isDecimationVerticalSet;
   }
   // Configure Decimation
@@ -1007,6 +1051,7 @@ Genicam::setDecimationVertical (void)
       setIntFeature ("DecimationVertical\0",
       &gencamParams->decimationVertical, true);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isDecimationVerticalSet;
 }
 
@@ -1017,6 +1062,7 @@ Genicam::setPixelFormat (void)
   bool isPixelFormatSet = false;
   std::vector < std::string > pixelFormats;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Read the pixel formats supported by the camera
   rcg::getEnum (nodemap, "PixelFormat", pixelFormats, true);
 
@@ -1118,24 +1164,26 @@ Genicam::setPixelFormat (void)
 
   if (isPixelFormatSet) {
     // Format set success
-    std::cout << "PixelFormat: \"" << rcg::getEnum (nodemap,
-        "PixelFormat") << "\" set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "PixelFormat: \"%s\" set successful.",
+        rcg::getEnum (nodemap, "PixelFormat", false).c_str ());
     if (isFeature ("PixelSize\0", NULL)) {
-      std::cout << "PixelSize: \"" << rcg::getEnum (nodemap, "PixelSize",
-          false) << "\" set\n";
+      GST_INFO_OBJECT (gencamsrc, "PixelSize: \"%s\" set successful.",
+          rcg::getEnum (nodemap, "PixelSize", false).c_str ());
     }
   } else {
     // Format is not supported by the camera, terminate
-    std::cout << "PixelFormat: \"" << gencamParams->pixelFormat <<
-        "\" not supported by the camera\n";
-    std::cout << "Pixel formats supported are below," << std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "PixelFormat: \"%s\" not supported by the camera",
+        gencamParams->pixelFormat);
+    GST_INFO_OBJECT (gencamsrc, "Pixel formats supported are below,");
     for (size_t k = 0; k < pixelFormats.size (); k++) {
-      std::cout << "    " << pixelFormats[k] << std::endl;
+      GST_INFO_OBJECT (gencamsrc, "    %s", pixelFormats[k].c_str ());
     }
     Stop ();
     return FALSE;
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return TRUE;
 }
 
@@ -1148,6 +1196,7 @@ Genicam::setWidthHeight (void)
   char str[32] = "Feature not writable";
   bool isWidthHeightSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Write Offsets = 0, so that resolution can be set first smoothly
   // Offsets will be configured later
   // Also, check if offset is a writable feature. If not, ignore setting it later
@@ -1160,7 +1209,7 @@ Genicam::setWidthHeight (void)
     // Feature not writable
     if (strncmp (ex.what (), str, strlen (str)) == 0) {
       offsetXYwritable = false;
-      std::cout << "WARNING:: OffsetX and OffsetY not writable" << std::endl;
+      GST_WARNING_OBJECT (gencamsrc, "OffsetX and OffsetY not writable");
     }
   }
 
@@ -1168,25 +1217,24 @@ Genicam::setWidthHeight (void)
   widthMax = rcg::getInteger (nodemap, "WidthMax", NULL, NULL, false, 0);
   heightMax = rcg::getInteger (nodemap, "HeightMax", NULL, NULL, false, 0);
 
-  std::cout << "Maximum resolution supported by Camera: " << widthMax << " x "
-      << heightMax << std::endl;
+  GST_INFO_OBJECT (gencamsrc, "Maximum resolution supported by Camera: %d x %d",
+      widthMax, heightMax);
 
   // Maximum Width check
   rcg::getInteger (nodemap, "Width", &vMinX, &vMaxX, false, false);
   if (gencamParams->width > vMaxX) {
     // Align the width to 4
     gencamParams->width = ROUNDED_DOWN (vMaxX, 0x4 - 1);
-    std::
-        cout << "WARNING:: Width: capping to maximum " << gencamParams->width <<
-        std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Width: capping to maximum %d",
+        gencamParams->width);
   }
   // Maximum Height check
   rcg::getInteger (nodemap, "Height", &vMinY, &vMaxY, false, false);
   if (gencamParams->height > vMaxY) {
     // Align the height to 4
     gencamParams->height = ROUNDED_DOWN (vMaxY, 0x4 - 1);
-    std::cout << "WARNING:: Height: capping to maximum " << gencamParams->height
-        << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Height: capping to maximum %d",
+        gencamParams->height);
   }
 
   isWidthHeightSet =
@@ -1195,14 +1243,15 @@ Genicam::setWidthHeight (void)
       rcg::setInteger (nodemap, "Height", gencamParams->height, true);
 
   if (isWidthHeightSet) {
-    std::cout << "Current resolution: " << rcg::getInteger (nodemap, "Width",
-        NULL, NULL, false, true) << " x " << rcg::getInteger (nodemap, "Height",
-        NULL, NULL, false, true) << " set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "Current resolution: %ld x %ld",
+        rcg::getInteger (nodemap, "Width", NULL, NULL, false, true),
+        rcg::getInteger (nodemap, "Height", NULL, NULL, false, true));
   } else {
-    std::cout << "ERROR:: Width and Height set error" << std::endl;
+    GST_ERROR_OBJECT (gencamsrc, "Width and Height set error");
     Stop ();
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isWidthHeightSet;
 }
 
@@ -1212,9 +1261,11 @@ Genicam::setOffsetXY (void)
 {
   bool isOffsetXYset = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   isOffsetXYset = setIntFeature ("OffsetX\0", &gencamParams->offsetX, true);
   isOffsetXYset |= setIntFeature ("OffsetY\0", &gencamParams->offsetY, true);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isOffsetXYset;
 }
 
@@ -1228,6 +1279,7 @@ Genicam::setAcquisitionFrameRate (void)
   double vMin, vMax;
   char frameRateString[32];
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   if (isFeature ("AcquisitionFrameRate\0", NULL)) {
     strncpy (frameRateString, "AcquisitionFrameRate\0",
         sizeof ("AcquisitionFrameRate\0"));
@@ -1235,8 +1287,8 @@ Genicam::setAcquisitionFrameRate (void)
     strncpy (frameRateString, "AcquisitionFrameRateAbs\0",
         sizeof ("AcquisitionFrameRateAbs\0"));
   } else {
-    std::cout << "WARNING:: AcquisitionFrameRate: feature not supported" <<
-        std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "AcquisitionFrameRate: feature not supported");
   }
 
   frameRate =
@@ -1253,15 +1305,16 @@ Genicam::setAcquisitionFrameRate (void)
 
   if (!isFrameRateSet) {
     gencamParams->acquisitionFrameRate = frameRate;
-    std::cout <<
-        "WARNING:: AcquisitionFrameRate not configurable, current FrameRate = "
-        << frameRate << std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "AcquisitionFrameRate not configurable, current FrameRate = %f",
+        frameRate);
   } else {
     isFrameRateSet =
         setFloatFeature (frameRateString, &gencamParams->acquisitionFrameRate,
         true);
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isFrameRateSet;
 }
 
@@ -1270,8 +1323,9 @@ bool
 Genicam::setExposureMode (void)
 {
   bool isExposureModeSet = false;
-
   double vMin, vMax, expTime;
+
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   (expTime =
       rcg::getFloat (nodemap, "ExposureTime", &vMin, &vMax, false,
           0)) ? expTime : rcg::getFloat (nodemap, "ExposureTimeAbs", &vMin,
@@ -1286,6 +1340,8 @@ Genicam::setExposureMode (void)
   // Possible values: Off, Timed, TriggerWidth, TriggerControlled
   isExposureModeSet =
       setEnumFeature ("ExposureMode\0", gencamParams->exposureMode, false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isExposureModeSet;
 }
 
@@ -1296,12 +1352,13 @@ Genicam::setExposureTime (void)
   bool isExposureTimeSet = false;
   char exposureTimeStr[32];
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   if (isFeature ("ExposureTime\0", NULL)) {
     strncpy (exposureTimeStr, "ExposureTime", sizeof ("ExposureTime\0"));
   } else if (isFeature ("ExposureTimeAbs\0", NULL)) {
     strncpy (exposureTimeStr, "ExposureTimeAbs", sizeof ("ExposureTimeAbs\0"));
   } else {
-    std::cout << "WARNING:: ExposureTime: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "ExposureTime: feature not supported");
     return isExposureTimeSet;
   }
 
@@ -1310,15 +1367,15 @@ Genicam::setExposureTime (void)
 
   // Proceed only if ExposureMode = Timed and ExposureAuto = Off
   if (exposureMode != "Timed" || exposureAuto != "Off") {
-    std::cout <<
-        "WARNING:: ExposureTime not set, exposureMode must be \"Timed\"" <<
-        " and exposureAuto must be \"Off\"" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "ExposureTime not set, exposureMode must be \"Timed\" and exposureAuto must be \"Off\"");
     return isExposureTimeSet;
   }
 
   isExposureTimeSet =
       setFloatFeature (exposureTimeStr, &gencamParams->exposureTime, false);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isExposureTimeSet;
 }
 
@@ -1328,15 +1385,18 @@ Genicam::setBlackLevelSelector (void)
 {
   bool isBlackLevelSelectorSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // check if blackLevelSelector is present
   if (isFeature ("BlackLevelSelector\0", NULL) == false) {
-    std::cout << "WARNING:: BlackLevelSelector: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "BlackLevelSelector: feature not supported");
     return isBlackLevelSelectorSet;
   }
   // Possible values: All, Red, Green, Blue, Y, U, V, Tap1, Tap2...
   isBlackLevelSelectorSet =
       setEnumFeature ("BlackLevelSelector\0", gencamParams->blackLevelSelector,
       false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isBlackLevelSelectorSet;
 }
 
@@ -1346,9 +1406,10 @@ Genicam::setBlackLevelAuto (void)
 {
   bool isBlackLevelAutoSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // check if blackLevelSelector is present
   if (!isFeature ("BlackLevelAuto\0", NULL)) {
-    std::cout << "WARNING:: BlackLevelAuto: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "BlackLevelAuto: feature not supported");
     return isBlackLevelAutoSet;
   }
   // Possible values: Off, Once, Continuous
@@ -1358,6 +1419,7 @@ Genicam::setBlackLevelAuto (void)
   std::string str = rcg::getEnum (nodemap, "BlackLevelAuto", false);
   blackLevelAuto.assign (str);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isBlackLevelAutoSet;
 }
 
@@ -1369,11 +1431,12 @@ Genicam::setBlackLevel (void)
   char blackLevelStr[32];
   featureType fType = TYPE_NO, fTypeTemp;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Proceed only if BlackLevelAuto is "Off"
   if ((isFeature ("BlackLevelAuto\0", NULL)) && (blackLevelAuto != "Off")
       && (blackLevelAuto != "")) {
-    std::cout <<
-        "WARNING: BlackLevel not set, BlackLevelAuto should be \"Off\"\n";
+    GST_WARNING_OBJECT (gencamsrc,
+        "BlackLevel not set, BlackLevelAuto should be \"Off\"");
     return isBlackLevelSet;
   }
   // Enable the blacklevel enable bit in case if it is present
@@ -1389,7 +1452,7 @@ Genicam::setBlackLevel (void)
     fType = fTypeTemp;
   } else {
     // Feature not found return
-    std::cout << "WARNING:: BlackLevel: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "BlackLevel: feature not supported");
     return isBlackLevelSet;
   }
 
@@ -1405,6 +1468,7 @@ Genicam::setBlackLevel (void)
         setFloatFeature (blackLevelStr, &gencamParams->blackLevel, false);
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isBlackLevelSet;
 }
 
@@ -1415,9 +1479,10 @@ Genicam::setGamma (void)
   bool isGammaSet = false;
   std::string gammaSelector;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if Gamma feature is present
   if (!isFeature ("Gamma\0", NULL)) {
-    std::cout << "WARNING:: Gamma: feature not supported" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "Gamma: feature not supported");
     return isGammaSet;
   }
   // Set GammaSelector feature
@@ -1427,8 +1492,7 @@ Genicam::setGamma (void)
       setEnumFeature ("GammaSelector\0", gencamParams->gammaSelector, false);
     } else {
       // Feature not found, still don't return and try to set Gamma
-      std::
-          cout << "WARNING:: GammaSelector: feature not supported" << std::endl;
+      GST_WARNING_OBJECT (gencamsrc, "GammaSelector: feature not supported");
     }
   }
   // Enable Gamma Feature
@@ -1439,14 +1503,14 @@ Genicam::setGamma (void)
   // if Gammaselector is present, and it's valie should be User
   gammaSelector = rcg::getEnum (nodemap, "GammaSelector", false);
   if (isFeature ("GammaSelector\0", NULL) && gammaSelector != "User") {
-    std::cout <<
-        "WARNING:: Gamma set failed because GammaSelector is not \"User\"" <<
-        std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "Gamma set failed because GammaSelector is not \"User\"");
     return isGammaSet;
   }
   // Set the feature
   isGammaSet = setFloatFeature ("Gamma\0", &gencamParams->gamma, false);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isGammaSet;
 }
 
@@ -1457,13 +1521,23 @@ Genicam::setBalanceRatio (void)
   double vMin, vMax;
   char balanceRatioStr[32];
 
-  // Check if Auto White Balance is "Off", if not then return
-  std::string balanceWhiteAuto =
-      rcg::getEnum (nodemap, "BalanceWhiteAuto", false);
-  if (balanceWhiteAuto != "Off") {
-    std::cout <<
-        "WARNING:: Ignore setting \"BalanceRatio\" as \"BalanceWhiteAuto\" not \"Off\""
-        << std::endl;
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
+
+  // Set BalanceRatioSelector feature
+  if (!isFeature ("BalanceRatioSelector\0", NULL)) {
+    // Don't return, still set the BalanceRatio if present
+    GST_WARNING_OBJECT (gencamsrc,
+        "BalanceRatioSelector: feature not supported");
+  } else {
+    if (gencamParams->balanceRatioSelector) {
+      // Possible values: All, Red, Green, Blue, Y, U, V, Tap1, Tap2...
+      setEnumFeature ("BalanceRatioSelector\0",
+          gencamParams->balanceRatioSelector, false);
+    }
+  }
+
+  // No need to configure balance ratio, return
+  if (gencamParams->balanceRatio == 9999.0) {
     return isBalanceRatioSet;
   }
   // Check the feature string if it exists or not
@@ -1474,38 +1548,28 @@ Genicam::setBalanceRatio (void)
         sizeof ("BalanceRatioAbs\0"));
   } else {
     // Feature does not exist
-    std::cout << "WARNING:: BalanceRatio: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "BalanceRatio: feature not supported");
     return isBalanceRatioSet;
   }
 
-  // Set BalanceRatioSelector feature
-  std::string balanceRatioSelector;
-  if (!isFeature ("BalanceRatioSelector\0", NULL)) {
-    // Don't return, still set the BalanceRatio if present
-    std::cout << "WARNING: BalanceRatioSelector: feature not supported" <<
-        std::endl;
-  } else {
-    if (!gencamParams->balanceRatioSelector) {
-      // If there is no input for "BalanceRatioSelector", read existing value
-      balanceRatioSelector =
-          rcg::getEnum (nodemap, "BalanceRatioSelector", false);
-    } else {
-      balanceRatioSelector.assign (gencamParams->balanceRatioSelector);
-      // Possible values: All, Red, Green, Blue, Y, U, V, Tap1, Tap2...
-      setEnumFeature ("BalanceRatioSelector\0", balanceRatioSelector.c_str (),
-          false);
-    }
+  // Check if Auto White Balance is "Off", if not then return
+  std::string balanceWhiteAuto =
+      rcg::getEnum (nodemap, "BalanceWhiteAuto", false);
+  if (balanceWhiteAuto != "Off") {
+    GST_WARNING_OBJECT (gencamsrc,
+        "Ignore setting \"BalanceRatio\" as \"BalanceWhiteAuto\" not \"Off\"");
+    return isBalanceRatioSet;
   }
   // Set the BalanceRatio feature
   // Track min and max value
   rcg::getFloat (nodemap, balanceRatioStr, &vMin, &vMax, false, 0);
   if (gencamParams->balanceRatio < vMin) {
-    std::cout << "WARNING:: BalanceRatio: capping to minimum " << vMin <<
-        std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "BalanceRatio: capping to minimum %lf",
+        vMin);
     gencamParams->balanceRatio = vMin;
   } else if (gencamParams->balanceRatio > vMax) {
-    std::cout << "WARNING:: BalanceRatio: capping to maximum " << vMax <<
-        std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "BalanceRatio: capping to maximum %lf",
+        vMax);
     gencamParams->balanceRatio = vMax;
   }
 
@@ -1515,15 +1579,16 @@ Genicam::setBalanceRatio (void)
 
   // Failed to set the feature
   if (!isBalanceRatioSet) {
-    std::cout << "WARNING:: BalanceRatio: " <<
-        gencamParams->balanceRatio << " set failed.\n";
+    GST_WARNING_OBJECT (gencamsrc, "BalanceRatio: %f set failed.",
+        gencamParams->balanceRatio);
   } else {
-    balanceRatioSelector =
+    std::string balanceRatioSelector =
         rcg::getEnum (nodemap, "BalanceRatioSelector", false);
-    std::cout << "BalanceRatio[" << balanceRatioSelector << "]: " <<
-        gencamParams->balanceRatio << " set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "BalanceRatio[%s]: %f set successful.",
+        balanceRatioSelector.c_str (), gencamParams->balanceRatio);
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isBalanceRatioSet;
 }
 
@@ -1532,15 +1597,18 @@ Genicam::setBalanceWhiteAuto (void)
 {
   bool isBalanceWhiteAutoSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // check if BalanceWhiteAuto is present
   if (isFeature ("BalanceWhiteAuto\0", NULL) == false) {
-    std::cout << "WARNING:: BalanceWhiteAuto: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "BalanceWhiteAuto: feature not supported");
     return isBalanceWhiteAutoSet;
   }
   // Possible values: Off, Once, Continuous
   isBalanceWhiteAutoSet =
       setEnumFeature ("BalanceWhiteAuto\0", gencamParams->balanceWhiteAuto,
       false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isBalanceWhiteAutoSet;
 }
 
@@ -1550,14 +1618,17 @@ Genicam::setExposureAuto (void)
 {
   bool isExposureAutoSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // check if ExposureAuto is present
   if (isFeature ("ExposureAuto\0", NULL) == false) {
-    std::cout << "WARNING:: ExposureAuto: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "ExposureAuto: feature not supported");
     return isExposureAutoSet;
   }
   // Possible values: Off, Once, Continuous
   isExposureAutoSet =
       setEnumFeature ("ExposureAuto\0", gencamParams->exposureAuto, false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isExposureAutoSet;
 }
 
@@ -1567,10 +1638,11 @@ Genicam::setExposureTimeSelector (void)
 {
   bool isExposureTimeSelectorSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if ExposureTimeSelector feature is present.
   if (!isFeature ("ExposureTimeSelector\0", NULL)) {
-    std::cout <<
-        "WARNING: ExposureTimeSelector: feature not Supported" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "ExposureTimeSelector: feature not Supported");
     return isExposureTimeSelectorSet;
   }
 
@@ -1578,10 +1650,11 @@ Genicam::setExposureTimeSelector (void)
      exposure time mode. If common both should be common.
      For others, time mode should be individual */
   if (strcasecmp (gencamParams->exposureTimeSelector, "Common") == 0) {
-    std::cout << "Setting ExposureTimeSelector to \"Common\"\n";
+    GST_INFO_OBJECT (gencamsrc, "Setting ExposureTimeSelector to \"Common\"");
     rcg::setEnum (nodemap, "ExposureTimeMode", "Common", false);
   } else {
-    std::cout << "Setting ExposureTimeSelector to \"Individual\"\n";
+    GST_INFO_OBJECT (gencamsrc,
+        "Setting ExposureTimeSelector to \"Individual\"");
     rcg::setEnum (nodemap, "ExposureTimeMode", "Individual", false);
   }
 
@@ -1589,6 +1662,7 @@ Genicam::setExposureTimeSelector (void)
       setEnumFeature ("ExposureTimeSelector\0",
       gencamParams->exposureTimeSelector, false);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isExposureTimeSelectorSet;
 }
 
@@ -1597,17 +1671,18 @@ bool
 Genicam::setGainSelector (void)
 {
   bool isGainSelectorSet = false;
-  std::vector < std::string > gainSelectors;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if GainSelector feature is present.
-  rcg::getEnum (nodemap, "GainSelector", gainSelectors, false);
-  if (gainSelectors.empty ()) {
-    std::cout << "WARNING:: GainSelector: feature not supported" << std::endl;
+  if (!isFeature ("GainSelector\0", NULL)) {
+    GST_WARNING_OBJECT (gencamsrc, "GainSelector: feature not supported");
     return isGainSelectorSet;
   }
 
   isGainSelectorSet =
       setEnumFeature ("GainSelector\0", gencamParams->gainSelector, true);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isGainSelectorSet;
 }
 
@@ -1619,10 +1694,11 @@ Genicam::setGain (void)
   double vMin, vMax, gain;
   int64_t vMinInt, vMaxInt, gainInt;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Proceed only if GainAuto is "Off"
   if ((isFeature ("GainAuto\0", NULL)) && (gainAuto != "Off")
       && (gainAuto != "")) {
-    std::cout << "WARNING: Gain not set, GainAuto should be \"Off\"\n";
+    GST_WARNING_OBJECT (gencamsrc, "Gain not set, GainAuto should be \"Off\"");
     return isGainSet;
   }
   gain = rcg::getFloat (nodemap, "Gain", &vMin, &vMax, false);
@@ -1631,7 +1707,7 @@ Genicam::setGain (void)
     // Let's check if deviation
     gainInt = rcg::getInteger (nodemap, "GainRaw", &vMinInt, &vMaxInt, false);
     if (!gainInt && !vMinInt && !vMaxInt) {
-      std::cout << "WARNING:: Gain: feature not supported\n";
+      GST_WARNING_OBJECT (gencamsrc, "Gain: feature not supported");
       return isGainSet;
     }
     // Deviation it is, It's gain raw instead of gain and int instead of float
@@ -1647,6 +1723,7 @@ Genicam::setGain (void)
     gencamParams->gain = (float) gainTemp;
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isGainSet;
 }
 
@@ -1656,15 +1733,18 @@ Genicam::setGainAuto (void)
 {
   bool isGainAutoSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // check if feature is present
   if (!isFeature ("GainAuto\0", NULL)) {
-    std::cout << "WARNING:: GainAuto: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "GainAuto: feature not supported");
     return isGainAutoSet;
   }
   //Possible values: Off, Once, Continuous
   isGainAutoSet = setEnumFeature ("GainAuto\0", gencamParams->gainAuto, false);
   std::string str = rcg::getEnum (nodemap, "GainAuto", false);
   gainAuto.assign (str);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isGainAutoSet;
 }
 
@@ -1674,15 +1754,18 @@ Genicam::setGainAutoBalance (void)
 {
   bool isGainAutoBalanceSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if feature not supported
   if (!isFeature ("GainAutoBalance\0", NULL)) {
-    std::cout << "WARNING:: GainAutoBalance: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "GainAutoBalance: feature not supported");
     return isGainAutoBalanceSet;
   }
   // Possible values: Off, Once, Continuous
   isGainAutoBalanceSet =
       setEnumFeature ("GainAutoBalance\0", gencamParams->gainAutoBalance,
       false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isGainAutoBalanceSet;
 }
 
@@ -1692,15 +1775,17 @@ Genicam::setTriggerDivider (void)
 {
   bool ret = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // check if feature is present
   if (!isFeature ("TriggerDivider\0", NULL)) {
-    std::cout << "WARNING:: TriggerDivider: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "TriggerDivider: feature not supported");
     return ret;
   }
   // Set Trigger Divider for the incoming Trigger Pulses.
   ret =
       setIntFeature ("TriggerDivider\0", &gencamParams->triggerDivider, false);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return ret;
 }
 
@@ -1710,9 +1795,10 @@ Genicam::setTriggerMultiplier (void)
 {
   bool ret = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // check if feature is present
   if (!isFeature ("TriggerMultiplier\0", NULL)) {
-    std::cout << "WARNING:: TriggerMultiplier: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "TriggerMultiplier: feature not supported");
     return ret;
   }
   // Set Trigger Multiplier for the incoming Trigger Pulses.
@@ -1720,6 +1806,7 @@ Genicam::setTriggerMultiplier (void)
       setIntFeature ("TriggerMultiplier\0", &gencamParams->triggerMultiplier,
       false);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return ret;
 }
 
@@ -1730,6 +1817,7 @@ Genicam::setTriggerDelay (void)
   bool ret = false;
   char triggerDelayStr[32];
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check the feature string if it exists or not
   if (isFeature ("TriggerDelay\0", NULL)) {
     strncpy (triggerDelayStr, "TriggerDelay\0", sizeof ("TriggerDelay\0"));
@@ -1738,13 +1826,14 @@ Genicam::setTriggerDelay (void)
         sizeof ("TriggerDelayAbs\0"));
   } else {
     // Feature does not exist
-    std::cout << "WARNING:: TriggerDelay: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "TriggerDelay: feature not supported");
     return ret;
   }
 
   // Set Trigger Delay after trigger reception before activating it.
   ret = setFloatFeature (triggerDelayStr, &gencamParams->triggerDelay, false);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return ret;
 }
 
@@ -1754,16 +1843,18 @@ Genicam::setTriggerMode (const char *tMode)
 {
   bool ret = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Set the Trigger Mode.
   ret = rcg::setEnum (nodemap, "TriggerMode", tMode, false);
 
   if (!ret) {
-    std::cout << "WARNING:: TriggerMode: " << tMode << " set failed.\n";
+    GST_WARNING_OBJECT (gencamsrc, "TriggerMode: %s set failed.", tMode);
   } else {
-    std::cout << "TriggerMode: " << tMode << " set successful.\n";
+    GST_INFO_OBJECT (gencamsrc, "TriggerMode: %s set successful.", tMode);
     triggerMode.assign (tMode);
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return ret;
 }
 
@@ -1773,14 +1864,17 @@ Genicam::setTriggerOverlap (void)
 {
   bool isTriggerOverlapSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if the feature is supported or not.
   if (!isFeature ("TriggerOverlap\0", NULL)) {
-    std::cout << "WARNING: TriggerOverlap: feature not Supported" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "TriggerOverlap: feature not Supported");
     return isTriggerOverlapSet;
   }
   // Possible values: Off, ReadOut, PreviousFrame, PreviousLine
   isTriggerOverlapSet =
       setEnumFeature ("TriggerOverlap\0", gencamParams->triggerOverlap, false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isTriggerOverlapSet;
 }
 
@@ -1790,16 +1884,18 @@ Genicam::setTriggerActivation (void)
 {
   bool isTriggerActivationSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if the feature is supported or not.
   if (!isFeature ("TriggerActivation\0", NULL)) {
-    std::cout << "WARNING: TriggerActivation: feature not Supported" <<
-        std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "TriggerActivation: feature not Supported");
     return isTriggerActivationSet;
   }
   // Possible values: RisingEdge, FallingEdge, AnyEdge. LevelHigh, LevelLow
   isTriggerActivationSet =
       setEnumFeature ("TriggerActivation\0", gencamParams->triggerActivation,
       false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isTriggerActivationSet;
 }
 
@@ -1809,6 +1905,7 @@ Genicam::setAcquisitionMode (void)
 {
   bool isAcquisitionModeSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Possible values: Continuous, MultiFrame, SingleFrame
   isAcquisitionModeSet =
       setEnumFeature ("AcquisitionMode\0", gencamParams->acquisitionMode,
@@ -1825,71 +1922,62 @@ Genicam::setAcquisitionMode (void)
     setTriggerMode ("On");
 
     // Set "FrameTriggerWait" to check AcquisitionStatus in Create for TriggerSource = Software
-    std::cout << "Setting AcquisitionStatusSelector to \"FrameTriggerWait\"\n";
+    GST_INFO_OBJECT (gencamsrc,
+        "Setting AcquisitionStatusSelector to \"FrameTriggerWait\"");
     rcg::setEnum (nodemap, "AcquisitionStatusSelector", "FrameTriggerWait",
         false);
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isAcquisitionModeSet;
 }
 
 
 bool
-Genicam::setDeviceClockFrequency (void)
+Genicam::setDeviceClockSelector (void)
 {
-  bool isDeviceClockFrequencySet = false;
-  double vMin, vMax;
+  bool isDeviceClockSelectorSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
+  // Check if DeviceClockSelector is present or not, if not then return
+  if (!isFeature ("DeviceClockSelector\0", NULL)) {
+    GST_WARNING_OBJECT (gencamsrc,
+        "DeviceClockSelector: feature not supported");
+    return isDeviceClockSelectorSet;
+  }
+  // Possible values: Sensor, SensorDigitization, CameraLink, Device-specific
+  isDeviceClockSelectorSet =
+      setEnumFeature ("DeviceClockSelector\0",
+      gencamParams->deviceClockSelector, false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
+  return isDeviceClockSelectorSet;
+}
+
+
+bool
+Genicam::getDeviceClockFrequency (void)
+{
+  float deviceClockFrequency;
+
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if DeviceClockFrequency is present or not, if not then return
   if (!isFeature ("DeviceClockFrequency\0", NULL)) {
-    std::cout << "WARNING:: DeviceClockFrequency: feature not supported\n";
-    return isDeviceClockFrequencySet;
-  }
-  // Check if DeviceClockSelector is supported or not.
-  std::string deviceClockSelector;
-  if (!isFeature ("DeviceClockSelector\0", NULL)) {
-    // Don't return, still set the DeviceClockFrequency if present
-    std::cout << "WARNING: DeviceClockSelector: feature not supported" <<
-        std::endl;
-  } else {
-    if (!gencamParams->deviceClockSelector) {
-      deviceClockSelector =
-          rcg::getEnum (nodemap, "DeviceClockSelector", false);
-    } else {
-      deviceClockSelector.assign (gencamParams->deviceClockSelector);
-      // Possible values: Sensor, SensorDigitization, CameraLink, Device-specific
-      setEnumFeature ("DeviceClockSelector\0", deviceClockSelector.c_str (),
-          false);
-    }
+    GST_WARNING_OBJECT (gencamsrc,
+        "DeviceClockFrequency: feature not supported");
+    return false;
   }
 
-  // Proceed with DeviceClockFrequency
-  // Check min and max
-  rcg::getFloat (nodemap, "DeviceClockFrequency", &vMin, &vMax, false, 0);
-  if (gencamParams->deviceClockFrequency < vMin) {
-    std::cout << "WARNING:: DeviceClockFrequency less than minimum " << vMin <<
-        " Capping it to " << vMin << std::endl;
-    gencamParams->deviceClockFrequency = vMin;
-  }
-  if (gencamParams->deviceClockFrequency > vMax) {
-    std::cout << "WARNING:: DeviceClockFrequency greater than maximum " << vMax
-        << " Capping it to " << vMax << std::endl;
-    gencamParams->deviceClockFrequency = vMax;
-  }
+  deviceClockFrequency =
+      rcg::getFloat (nodemap, "DeviceClockFrequency", NULL, NULL, false, 0);
 
-  isDeviceClockFrequencySet = rcg::setFloat (nodemap, "DeviceClockFrequency",
-      gencamParams->deviceClockFrequency, false);
+  std::string deviceClockSelector =
+      rcg::getEnum (nodemap, "DeviceClockSelector", false);
+  GST_INFO_OBJECT (gencamsrc, "DeviceClockFrequency[%s]: value is %f.",
+      deviceClockSelector.c_str (), deviceClockFrequency);
 
-  // Failed to set the feature
-  if (!isDeviceClockFrequencySet) {
-    std::cout << "WARNING:: DeviceClockFrequency: " <<
-        gencamParams->deviceClockFrequency << " set failed.\n";
-  } else {
-    deviceClockSelector = rcg::getEnum (nodemap, "DeviceClockSelector", false);
-    std::cout << "DeviceClockFrequency[" << deviceClockSelector << "]: " <<
-        gencamParams->deviceClockFrequency << " set successful.\n";
-  }
-  return isDeviceClockFrequencySet;
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
+  return true;
 }
 
 
@@ -1898,21 +1986,22 @@ Genicam::setTriggerSoftware (void)
 {
   bool ret = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Proceed only when TriggerSource = Software
   if (triggerSource != "Software") {
-    std::cout <<
-        "WARNING:: TriggerSoftware: command not trigerred; TriggerSource is not \"Software\""
-        << std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "TriggerSoftware: command not trigerred; TriggerSource is not \"Software\"");
     return ret;
   }
   // Execute TriggerSoftware command
   ret = rcg::callCommand (nodemap, "TriggerSoftware", false);
   if (!ret) {
-    std::cerr << "WARNING:: TriggerSoftware set failed." << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "TriggerSoftware set failed.");
   } else {
-    std::cout << "Call Command: \"TriggerSoftware\"\n";
+    GST_INFO_OBJECT (gencamsrc, "Call Command: \"TriggerSoftware\"");
   }
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return ret;
 }
 
@@ -1922,10 +2011,10 @@ Genicam::setTriggerSelector (void)
 {
   bool isTriggerSelectorSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if feature is supported or not.
   if (!isFeature ("TriggerSelector\0", NULL)) {
-    std::
-        cout << "WARNING:: TriggerSelector: feature not supported" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "TriggerSelector: feature not supported");
     return isTriggerSelectorSet;
   }
   // Possible values: AcquisitionStart, AcquisitionEnd, AcquisitionActive, FrameStart, FrameEnd,
@@ -1934,6 +2023,8 @@ Genicam::setTriggerSelector (void)
   isTriggerSelectorSet =
       setEnumFeature ("TriggerSelector\0", gencamParams->triggerSelector,
       false);
+
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isTriggerSelectorSet;
 }
 
@@ -1944,19 +2035,19 @@ Genicam::setTriggerSource (void)
   bool isTriggerSourceSet = false;
   std::vector < std::string > triggerSources;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Check if feature is supported or not.
   rcg::getEnum (nodemap, "TriggerSource", triggerSources, false);
   if (triggerSources.size () == 0) {
-    std::cout << "WARNING:: TriggerSource: feature not Supported" << std::endl;
+    GST_WARNING_OBJECT (gencamsrc, "TriggerSource: feature not Supported");
     return isTriggerSourceSet;
   }
   // Proceed only if TriggerMode is ON
   /* TODO By default, setting trigger source software is a good idea
      even if trigger mode is not on */
   if (triggerMode != "On") {
-    std::cout <<
-        "WARNING:: TriggerSource: not configured as TriggerMode is not \"On\""
-        << std::endl;
+    GST_WARNING_OBJECT (gencamsrc,
+        "TriggerSource: not configured as TriggerMode is not \"On\"");
     return isTriggerSourceSet;
   }
   // Possible values: Software, SoftwareSignal<n>, Line<n>, UserOutput<n>, Counter<n>Start,
@@ -1968,6 +2059,7 @@ Genicam::setTriggerSource (void)
   std::string tSource = rcg::getEnum (nodemap, "TriggerSource", false);
   triggerSource.assign (tSource);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isTriggerSourceSet;
 }
 
@@ -1978,9 +2070,11 @@ Genicam::setDeviceLinkThroughputLimit (void)
   bool isThroughputLimitSet = false;
   std::vector < std::string > throughputLimitModes;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Is DeviceLinkThroughputLimit supported? if not then return
   if (!isFeature ("DeviceLinkThroughputLimit\0", NULL)) {
-    std::cout << "WARNING:: DeviceLinkThroughputLimit: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc,
+        "DeviceLinkThroughputLimit: feature not supported");
     return isThroughputLimitSet;
   }
   // Is DeviceLinkThroughputLimitMode supported? Enable if supported
@@ -1991,13 +2085,15 @@ Genicam::setDeviceLinkThroughputLimit (void)
     deviceLinkThroughputLimitMode.assign ("On\0");
     rcg::setEnum (nodemap, "DeviceLinkThroughputLimitMode",
         deviceLinkThroughputLimitMode.c_str (), false);
-    std::cout << "Setting DeviceLinkThroughputLimitMode to \"On\"\n";
+    GST_INFO_OBJECT (gencamsrc,
+        "Setting DeviceLinkThroughputLimitMode to \"On\"");
   }
   // Configure DeviceLinkThroughputLimit
   isThroughputLimitSet =
       setIntFeature ("DeviceLinkThroughputLimit\0",
       &gencamParams->deviceLinkThroughputLimit, true);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isThroughputLimitSet;
 }
 
@@ -2007,9 +2103,10 @@ Genicam::setChannelPacketSize (void)
 {
   bool isChannelPacketSizeSet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Is GevSCPSPacketSize supported? if not then return
   if (!isFeature ("GevSCPSPacketSize\0", NULL)) {
-    std::cout << "WARNING:: GevSCPSPacketSize: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "GevSCPSPacketSize: feature not supported");
     return isChannelPacketSizeSet;
   }
   // Configure GevSCPSPacketSize
@@ -2017,6 +2114,7 @@ Genicam::setChannelPacketSize (void)
       setIntFeature ("GevSCPSPacketSize\0", &gencamParams->channelPacketSize,
       true);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isChannelPacketSizeSet;
 }
 
@@ -2026,14 +2124,16 @@ Genicam::setChannelPacketDelay (void)
 {
   bool isChannelPacketDelaySet = false;
 
+  GST_TRACE_OBJECT (gencamsrc, "START: %s", __func__);
   // Is GevSCPD supported? if not then return
   if (!isFeature ("GevSCPD\0", NULL)) {
-    std::cout << "WARNING:: GevSCPD: feature not supported\n";
+    GST_WARNING_OBJECT (gencamsrc, "GevSCPD: feature not supported");
     return isChannelPacketDelaySet;
   }
   // Configure GevSCPD
   isChannelPacketDelaySet =
       setIntFeature ("GevSCPD\0", &gencamParams->channelPacketDelay, false);
 
+  GST_TRACE_OBJECT (gencamsrc, "END: %s", __func__);
   return isChannelPacketDelaySet;
 }

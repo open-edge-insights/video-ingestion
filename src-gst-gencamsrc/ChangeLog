@@ -1,3 +1,22 @@
+Version 1.2.5
+- Fixed issues on device clock selector and frequency
+
+Version 1.2.4
+- Made Genicam object multi entrant
+- Logging levels enhanced
+- Code cleanup
+
+Version 1.2.3
+- Enhanced logging mechanism to use Gst runtime configurable logging
+
+Version 1.2.2
+- Increased grab timeout to 5 seconds
+- Rebased rc_genicam_api to latest v2.4.1
+
+Version 1.2.1
+- Implemented actual fps calculation
+- Enhanced to handle multiple gentl producers if specified
+
 Version 1.1.12
 - Implemented opening the first camera found, serial is optional
 - Implemented set float method
