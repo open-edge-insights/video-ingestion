@@ -41,7 +41,7 @@
 #include <gst/gst.h>
 #include <gst/video/video-format.h>
 
-#include <gencambase.h>
+#include "gencambase.h"
 
 //---------------------------- includes for streaming -----------------------------
 #include "genicam-core/rc_genicam_api/buffer.h"
@@ -66,12 +66,6 @@
 #include <thread>
 // ------------------------------------------------------------------------------
 
-// TODO : Can be removed later
-// This basic RANDOM_RGB_TEST can be kept while in developing state.
-// Enable the below macro for dummy data test. undefine it for actual camera
-// data.
-//#define RANDOM_RGB_TEST
-
 #define EXTERNC extern "C"
 
 #define ROUNDED_DOWN(val, align)        ((val) & ~((align)))
@@ -86,7 +80,7 @@ public:
    @param params       Pointer to gencamParams structure to initialize
    @return             True if data member is assigned from the pointer
    */
-  bool Init (GencamParams * params);
+  bool Init (GencamParams * params, GstBaseSrc * src);
 
   /*
    * Opens the camera device, configures the camera with the defined parameters
@@ -120,6 +114,9 @@ public:
 private:
   /* Pointer to gencamParams structure */
     GencamParams * gencamParams;
+
+  /* Pointer to gencamsrc structure */
+    GstBaseSrc * gencamsrc;
 
   /* Serial number of all connected cameras */
     std::vector <std::string> serials;
@@ -165,9 +162,6 @@ private:
 
   /* For checking if Acquisition Status is a feature or not */
   bool isAcquisitionStatusFeature;
-
-  /* Max Width and max Height */
-  // TODO move maxWidth and maxHeight from gencamParams to here
 
   /* Device Link Throughput Limit Mode
    * This is not exposed outside and set automatically depending
@@ -240,8 +234,11 @@ private:
   /* Sets acquisition frame rate */
   bool setAcquisitionFrameRate (void);
 
-  /* Sets device clock frequency */
-  bool setDeviceClockFrequency (void);
+  /* Sets device clock selector */
+  bool setDeviceClockSelector (void);
+
+  /* Gets device clock frequency */
+  bool getDeviceClockFrequency (void);
 
   /* Sets exposure mode */
   bool setExposureMode (void);

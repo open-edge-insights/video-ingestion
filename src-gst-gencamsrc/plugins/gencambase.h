@@ -40,14 +40,8 @@
 #include <stdbool.h>
 
 #include <gst/gst.h>
+#include <gst/base/gstpushsrc.h>
 #include <gst/video/video-format.h>
-
-// TODO : Can be removed later
-// This basic RANDOM_RGB_TEST can be kept while in developing state.
-// Enable the below macro for dummy data test. undefine it for actual camera
-// data.
-//#define RANDOM_RGB_TEST
-
 
 #define EXTERNC extern "C"
 
@@ -108,21 +102,20 @@ extern "C"
     float blackLevel;           /* configure overall brightness of the picture */
     float gamma;                /* Controls the gamma correction of pixel intensity */
     float balanceRatio;         /* Controls ratio of the selected color */
-    float deviceClockFrequency; /* Returns the frequency of the selected Clock */
     bool deviceReset;           /* Resets the device to factory state */
   } GencamParams;
 
   /* Initialize generic camera base class */
-  bool gencamsrc_init (GencamParams *);
+  bool gencamsrc_init (GencamParams *, GstBaseSrc *);
 
   /* Open the camera device and connect */
-  bool gencamsrc_start (void);
+  bool gencamsrc_start (GstBaseSrc * src);
 
   /* Close the device */
-  bool gencamsrc_stop (void);
+  bool gencamsrc_stop (GstBaseSrc * src);
 
   /* Receive the frame to create output buffer */
-  bool gencamsrc_create (GstBuffer ** buf, GstMapInfo * mapInfo);
+  bool gencamsrc_create (GstBuffer ** buf, GstMapInfo * mapInfo, GstBaseSrc *src);
 #ifdef __cplusplus
 }
 #endif

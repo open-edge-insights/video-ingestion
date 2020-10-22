@@ -38,56 +38,84 @@
 #include <gst/gst.h>
 #include <gst/video/video-format.h>
 
-#include <gencambase.h>
-#include <genicam.h>
+#include "genicam.h"
+#include "gstgencamsrc.h"
 
+GST_DEBUG_CATEGORY_EXTERN (gst_gencamsrc_debug_category);
+#define GST_CAT_DEFAULT gst_gencamsrc_debug_category
 
 using namespace std;
 
-Genicam gGencamsrc;
-
 
 EXTERNC bool
-gencamsrc_init (GencamParams * properties)
+gencamsrc_init (GencamParams * properties, GstBaseSrc * src)
 {
   bool retVal = false;
 
-  std::cout << "gencamsrc_init\n";
+  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
 
-  retVal = gGencamsrc.Init (properties);
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
 
+  Genicam *genicam = new Genicam;
+  retVal = genicam->Init (properties, src);
+
+  gencamsrc->gencam = (void *) genicam;
+
+  GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
   return retVal;
 }
 
 
 EXTERNC bool
-gencamsrc_start (void)
+gencamsrc_start (GstBaseSrc * src)
 {
   bool retVal = false;
 
-  //std::cout << "gencamsrc_start\n";
+  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
 
-  retVal = gGencamsrc.Start ();
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
 
+  Genicam *genicam = (Genicam *) gencamsrc->gencam;
+  retVal = genicam->Start ();
+
+  GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
   return retVal;
 }
 
 
 EXTERNC bool
-gencamsrc_stop (void)
+gencamsrc_stop (GstBaseSrc * src)
 {
   bool retVal = false;
 
-  //std::cout << "gencamsrc_stop\n";
+  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
 
-  retVal = gGencamsrc.Stop ();
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
 
+  Genicam *genicam = (Genicam *) gencamsrc->gencam;
+  retVal = genicam->Stop ();
+
+  delete genicam;
+  genicam = nullptr;
+  gencamsrc->gencam = genicam;
+
+  GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
   return retVal;
 }
 
 
 EXTERNC bool
-gencamsrc_create (GstBuffer ** buf, GstMapInfo * mapInfo)
+gencamsrc_create (GstBuffer ** buf, GstMapInfo * mapInfo, GstBaseSrc * src)
 {
-  return gGencamsrc.Create (buf, mapInfo);
+  bool retVal = false;
+  GstGencamsrc *gencamsrc = GST_GENCAMSRC (src);
+
+  GST_DEBUG_OBJECT (gencamsrc, "START: %s", __func__);
+
+  Genicam *genicam = (Genicam *) gencamsrc->gencam;
+  retVal = genicam->Create (buf, mapInfo);
+
+  GST_DEBUG_OBJECT (gencamsrc, "END: %s", __func__);
+
+  return retVal;
 }
