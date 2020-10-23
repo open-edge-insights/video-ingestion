@@ -280,7 +280,7 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 exposure-time=3250 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
@@ -289,7 +289,7 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
      ```javascript
      {
        "type": "gstreamer",
-       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=rgb8 width=1920 height=1080 exposure-time=3250 ! videoconvert !  video/x-raw,format=BGR ! appsink"
+       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=rgb8 ! videoconvert !  video/x-raw,format=BGR ! appsink"
      }
      ```
 
@@ -298,10 +298,18 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
      ```javascript
      {
       "type": "gstreamer",
-      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 exposure-time=3250 trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
      }
      ```
-
+  **Note:**
+  * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200`. One can refer the below example pipeline:
+    ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+    ```
+  * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
   **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
   ----
