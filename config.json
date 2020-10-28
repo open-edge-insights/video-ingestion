@@ -14,7 +14,6 @@
         "sw_trigger": {
             "init_state": "running"
         },
-        "max_jobs": 20,
         "max_workers":4,
         "udfs": [{
             "name": "pcb.pcb_filter",

@@ -81,11 +81,6 @@
         }
       }
     },
-    "max_jobs": {
-      "description": "Number of queued UDF jobs",
-      "type": "integer",
-      "default": 20
-    },
     "max_workers": {
       "description": "Number of threads acting on queued jobs",
       "type": "integer",
