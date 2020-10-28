@@ -45,7 +45,7 @@ overhead of VA(VideoAnalytics) service.
 ---
 **NOTE**:
 
-* The `max_jobs`, `max_workers` and `udfs` are configuration keys related to udfs.
+* The `max_workers` and `udfs` are configuration keys related to udfs.
   For more details on udf configuration, please visit
   [../common/video/udfs/README.md](../common/video/udfs/README.md)
 * For details on Etcd and MessageBus endpoint configuration, visit
@@ -129,11 +129,6 @@ Below is the JSON schema for app's config:
           "default": 0.0
         }
       }
-    },
-    "max_jobs": {
-      "description": "Number of queued UDF jobs",
-      "type": "integer",
-      "default": 20
     },
     "max_workers": {
       "description": "Number of threads acting on queued jobs",
