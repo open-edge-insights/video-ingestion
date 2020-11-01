@@ -229,6 +229,8 @@ a collection of GStreamer elements to enable CNN model based video analytics cap
 
 **Refer [docs/gva_doc.md](docs/gva_doc.md) for more information on GVA elements.**
 
+**Refer [CustomUdfs-GVASafetyGearIngestion](../CustomUdfs/GVASafetyGearIngestion/README.md) to refer GVA based CustomUdf container added for SafetyGear sample.**
+
   ----
 #### `Generic Plugin`
 Generic Plugin is a gstreamer generic source plugin that communicates and streams from a GenICam based camera which provides a GenTL producer. In order to use
