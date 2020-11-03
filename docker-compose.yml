@@ -34,7 +34,6 @@ services:
         EIS_USER_NAME: ${EIS_USER_NAME}
         # set CMAKE_BUILD_TYPE value to "Debug" to generate debug symbols
         CMAKE_BUILD_TYPE: "Release"
-        WITH_PROFILE: "OFF"
         DOCKER_REGISTRY: ${DOCKER_REGISTRY}
         RUN_TESTS: "OFF"
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EIS_VERSION}
