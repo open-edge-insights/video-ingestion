@@ -41,6 +41,10 @@ services:
     hostname: ia_video_ingestion
     network_mode: host
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "exit", "0"]
+      interval: 5m 
+
     ipc: "none"
     environment:
       AppName: "VideoIngestion"
@@ -60,6 +64,7 @@ services:
       - "/dev:/dev"
       - "/var/tmp:/var/tmp"
     privileged: true
+      
     devices:
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
