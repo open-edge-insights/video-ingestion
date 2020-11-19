@@ -41,6 +41,8 @@ using namespace eis::udf;
 Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
       m_service_name(service_name), m_th(NULL), m_initialized(false), m_stop(false), m_udf_input_queue(frame_queue), m_snapshot_cv(snapshot_cv), m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
 
+        // Initializing snapshot variable
+        m_snapshot = false;
         m_ingestor_block_key = m_service_name + "_ingestor_blocked_ts";
         config_value_t* cvt_poll_interval = config->get_config_value(config->cfg, POLL_INTERVAL);
         if(cvt_poll_interval != NULL) {
