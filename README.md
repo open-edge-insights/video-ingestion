@@ -229,9 +229,22 @@ a collection of GStreamer elements to enable CNN model based video analytics cap
   ----
 #### `Generic Plugin`
 Generic Plugin is a gstreamer generic source plugin that communicates and streams from a GenICam based camera which provides a GenTL producer. In order to use
-the generic plugin with VI one must install the respective GenICam camera SDK and make sure the compatible GenTL producer for the camera is installed. All of the mentioned camera SDKs in [install_genicam_sdk.sh](install_genicam_sdk.sh) will be installed during build. Set `GENICAM` environment variable for exporting the GenTL producer path in [../build/docker-compose.yml](../build/docker-compose.yml) accordingly.
+the generic plugin with VI one must install the respective GenICam camera SDK and make sure the compatible GenTL producer for the camera is installed.
 
-**Refer the below snippet example to select `Basler` camera and export its GenTL producer path in [../build/docker-compose.yml](../build/docker-compose.yml)**
+**Refer [src-gst-gencamsrc/README.md](src-gst-gencamsrc/README.md) for more information on Generic Plugin**.
+
+  ----
+
+#### `Adding new GigE camera support to VideoIngestion`
+In order to use the generic plugin with newer Genicam camera SDK follow the below steps:
+
+1. Install the respective GenICam camera SDK by adding the camera SDK installation steps in [install_genicam_sdk.sh](install_genicam_sdk.sh) script. All of the mentioned camera SDKs in [install_genicam_sdk.sh](install_genicam_sdk.sh) will be installed during docker build as this script will be executed during VideoIngestion build. Hence one can choose to add multiple Genicam SDK in the scipt.
+
+2. After making sure the compatible GenTL producer is successfully installed one must add a case statement in [gentl_producer_env.sh](gentl_producer_env.sh) scipt to export the GenTL producer path to `GENICAM_GENTL64_PATH` env variable. In order to verify the GenTL producer path one can search for the `.cti` file under the installation path. Typically GenTL provider is characterized by a file with `.cti` extension. Path to cti library containing folder must be exported to env variable named `GENICAM_GENTL64_PATH` (`GENICAM_GENTL32_PATH` for 32 bit providers).
+
+3. Set `GENICAM` env variable in [../build/docker-compose.yml](../build/docker-compose.yml) to execute the corresponding case statement in [gentl_producer_env.sh](gentl_producer_env.sh) and export the GenTL producer path accordingly. GenTL producer path will be exported during docker runtime. Hence one can choose to add install multiple Genicam camera SDK during docker build and then switch between GenTL providers during docker runtime by modifying the `GENICAM` env variable in [../build/docker-compose.yml](../build/docker-compose.yml).
+
+**Refer the below snippet example to select `Basler` camera and export its GenTL producer path in [../build/docker-compose.yml](../build/docker-compose.yml)** assuming the corresponding Basler Camera SDK and GenTL producer is installed.
 ```bash
  ia_video_ingestion:
  ...
@@ -240,9 +253,7 @@ the generic plugin with VI one must install the respective GenICam camera SDK an
    # Setting GENICAM value to the respective camera which needs to be used
    GENICAM: "Basler"
 ```
-**Refer [src-gst-gencamsrc/README.md](src-gst-gencamsrc/README.md) for more information on Generic Plugin**.
-
-----
+  ----
 
 #### `Camera Configuration`
 
