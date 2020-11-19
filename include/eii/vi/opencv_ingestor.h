@@ -42,9 +42,6 @@ namespace eis {
             // OpenCV video capture object
             cv::VideoCapture* m_cap;
 
-            // Flag for if the frame should be resized
-            bool m_resize;
-
             // Resize parameters
             int m_width;
             int m_height;

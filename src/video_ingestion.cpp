@@ -221,11 +221,15 @@ VideoIngestion::VideoIngestion(
 
     PublisherCfg* pub_ctx = ctx->getPublisherByIndex(0);
     if (pub_ctx == NULL) {
-        LOG_ERROR_0("pub_ctx initialization failed");
+        const char* err = "pub_ctx initialization failed";
+        LOG_ERROR("%s", err);
+        throw(err);
     }
     config_t* pub_config = pub_ctx->getMsgBusConfig();
     if (pub_config == NULL) {
-        LOG_ERROR_0("Failed to fetch msgbus config for Publisher");
+        const char* err = "Failed to fetch msgbus config for Publisher";
+        LOG_ERROR("%s", err);
+        throw(err);
     }
     std::vector<std::string> topics = pub_ctx->getTopics();
     if (topics.empty()) {
@@ -304,7 +308,10 @@ msg_envelope_elem_body_t* VideoIngestion::process_snapshot(msg_envelope_elem_bod
                 return m_commandhandler->form_reply_payload((int)REQ_ALREADY_RUNNING, err, NULL);
             }
 
-            IngestRetCode ret = m_ingestor->start(true);
+            IngestRetCode ret = IngestRetCode::NOT_INITIALIZED;
+            if (m_ingestor) {
+                ret = m_ingestor->start(true);
+            }
             if (ret != IngestRetCode::SUCCESS) {
                 LOG_ERROR("Failed to start ingestor thread: %d",ret);
                 std::string err = "Failed to start ingestor thread";
