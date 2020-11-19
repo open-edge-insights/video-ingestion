@@ -226,6 +226,14 @@ a collection of GStreamer elements to enable CNN model based video analytics cap
 
 **Refer [CustomUdfs-GVASafetyGearIngestion](../CustomUdfs/GVASafetyGearIngestion/README.md) to refer GVA based CustomUdf container added for SafetyGear sample.**
 
+In case one needs to run GVA use-case in VI refer the below steps:
+
+1. Copy the IR model files under `[WORKDIR]/IEdgeInsights/VideoIngestion/models` directory.
+
+2. Refer [docs/gva_doc.md](docs/gva_doc.md) for the GVA configuration with the supported camera.
+
+3. Provision, Build and Run EIS by refering [../README.md](../README.md)
+
   ----
 #### `Generic Plugin`
 Generic Plugin is a gstreamer generic source plugin that communicates and streams from a GenICam based camera which provides a GenTL producer. In order to use
