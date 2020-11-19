@@ -1,5 +1,55 @@
 ### GVA (GStreamer Video Analytics)
 
+GVA use case configurations with different cameras:
+
+* `Video File - Gstreamer ingestor with GVA elements`
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/<VIDEO_FILE> ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/<DETECTION_MODEL> ! appsink"
+      }
+      ```
+
+      **Note:** In case one needs to use GVA with a video file using multifilesrc element then copy the video file to [WORKDIR]/IEdgeInsights/VideoIngestion/test_videos and provide the location of the video file accordingly in the gstreamer pipeline.
+
+
+ * `Generic Plugin - Gstreamer ingestor with GVA elements`
+
+    ```javascript
+     {
+       "type": "gstreamer",
+       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 exposure-time=3250 ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert !  video/x-raw,format=BGR ! appsink"
+     }
+    ```
+
+ * `RTSP camera - Gstreamer ingestor with GVA elements`
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+ * `USB camera - Gstreamer ingestor with GVA elements`
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "v4l2src ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/<DETECTION_MODEL> ! appsink"
+      }
+      ```
+ * `RTSP simulated - Gstreamer ingestor with GVA elements`
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+
 **Note**:
 
 * GVA elements can only be used with `gstreamer` ingestor
