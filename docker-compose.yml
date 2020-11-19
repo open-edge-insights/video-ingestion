@@ -52,6 +52,7 @@ services:
       PROFILING_MODE: ${PROFILING_MODE}
       no_proxy: ${eis_no_proxy},${RTSP_CAMERA_IP},${ETCD_HOST}
       ETCD_HOST: ${ETCD_HOST}
+      ETCD_CLIENT_PORT: ${ETCD_CLIENT_PORT}
       ETCD_PREFIX: ${ETCD_PREFIX}
 
       # Setting GENICAM value to the respective camera which needs to be used
