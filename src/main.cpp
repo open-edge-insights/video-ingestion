@@ -119,6 +119,7 @@ void vi_initialize(char* vi_config, std::string app_name){
 }
 
 void on_change_config_callback(const char* key, config_t* value, void* user_data) {
+    LOG_INFO("Callback triggered for key %s", key);
     char* vi_config = configt_to_char(value);
     if(strcmp(g_vi_config, vi_config)){
 	// Deleting of g_vi, g_vi_config was hanging with gstreamer ingestor.
