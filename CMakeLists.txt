@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Intel Corporation.
+# Copyright (c) 2020 Intel Corporation.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -55,13 +55,34 @@ endif()
 # Finding packages
 find_package(OpenCV REQUIRED)
 find_package(EISMsgEnv REQUIRED)
+find_package(cJSON REQUIRED)
+find_package(Threads REQUIRED)
 find_package(EISUtils REQUIRED)
-find_package(EISConfigMgrNew REQUIRED)
+find_package(EISConfigMgrStatic REQUIRED)
 find_package(EISMessageBus REQUIRED)
 find_package(UDFLoader REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(IntelSafeString REQUIRED)
 find_package(WJE REQUIRED)
+
+## --- Picked required gRPC related CMake configuration taken from https://github.com/grpc/grpc/blob/master/examples/cpp/helloworld/CMakeLists.txt --- ##
+# Looks for protobuf-config.cmake file installed by Protobuf's cmake installation.
+set(protobuf_MODULE_COMPATIBLE TRUE)
+find_package(Protobuf CONFIG REQUIRED)
+message(STATUS "Using protobuf ${protobuf_VERSION}")
+
+set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)
+set(_REFLECTION gRPC::grpc++_reflection)
+set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
+
+# Find gRPC installation
+# Looks for gRPCConfig.cmake file installed by gRPC's cmake installation.
+find_package(gRPC CONFIG REQUIRED)
+message(STATUS "Using gRPC ${gRPC_VERSION}")
+
+set(_GRPC_GRPCPP gRPC::grpc++)
+set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+## --- Picked required gRPC related CMake configuration taken from https://github.com/grpc/grpc/blob/master/examples/cpp/helloworld/CMakeLists.txt --- ##
 
 pkg_check_modules(GST REQUIRED
     gstreamer-1.0>=1.14
@@ -73,9 +94,10 @@ pkg_check_modules(GST REQUIRED
 include_directories(
     include/
     ${OpenCV_INCLUDE_DIRS}
+    ${CJSON_INCLUDE_DIRS}
     ${EISMsgEnv_INCLUDE}
     ${EISUtils_INCLUDE}
-    ${EISConfigMgrNew_INCLUDE}
+    ${EISConfigMgrStatic_INCLUDE}
     ${EISMessageBus_INCLUDE}
     ${UDFLoader_INCLUDE}
     ${GST_INCLUDE_DIRS}
@@ -88,16 +110,19 @@ add_executable(video-ingestion ${SOURCES})
 target_link_libraries(video-ingestion
     PUBLIC
         ${OpenCV_LIBS}
-        ${EISUtils_LIBRARIES}
+        ${IntelSafeString_LIBRARIES}
+        ${CJSON_LIBRARIES}
         ${EISMsgEnv_LIBRARIES}
-        ${EISConfigMgrNew_LIBRARIES}
+        ${EISUtils_LIBRARIES}
+        ${EISConfigMgrStatic_LIBRARIES}
         ${EISMessageBus_LIBRARIES}
         ${UDFLoader_LIBRARIES}
         ${GST_LIBRARIES}
+        ${_REFLECTION}
+        ${_GRPC_GRPCPP}
+        ${_PROTOBUF_LIBPROTOBUF}
     PRIVATE
         ${ZMQ_LIBRARIES}
-        ${CJSON_LIBRARIEES}
-        ${IntelSafeString_LIBRARIES}
         wjelement
         wjreader)
 
