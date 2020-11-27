@@ -15,7 +15,7 @@
             "CONFIGMGR_CERT": "${databucket.cert}",
             "CONFIGMGR_KEY": "${databucket.key}",
             "ETCD_PREFIX": "$ETCD_PREFIX",
-            "GENICAM": "Basler",
+            "GENICAM": "Matrix_Vision",
             "DEV_MODE": "$DEV_MODE",
             "PROFILING_MODE": "false",
             "PUBLISHER_TYPE": "zmq_tcp",
