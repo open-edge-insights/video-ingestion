@@ -62,4 +62,4 @@ The following are the list of properties supported by the `gencamsrc` gstreamer 
 
 * `hw-trigger-timeout` is the time for which the plugin waits for the H/W trigger. The reason this time-out value is in multiple of 5 sec is because the maximum grab timeout for each frame is 5 secs. Hence even if `hw-trigger-timeout=1` is set, the plugin will wait for 5 secs.
 
-   For this time-out value to fuction one must set the GST logs for `gencamsrc` element to INFO mode by referring [../docs/gstreamer_ingestor_doc.md](../docs/gstreamer_ingestor_doc.md) to set the `GST_DEBUG` env variable in [../docker-compose.yml](../docker-compose.yml)
+* In case frame capture is failing when multiple basler cameras are used, use the `packet-delay` property to increase the delay between the transmission of each packet for the selected stream channel. Depending on the number of cameras appropriate delay can be set. Increasing the `packet-delay` will decrease the frame rate.

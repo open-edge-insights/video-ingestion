@@ -9,23 +9,23 @@
     | Basler acA1920-40gc | mono8<br>ycbcr422_8<br>bayerrggb |
     | Basler acA1920-150uc | mono8<br>rgb8<br>bgr8<br>bayerbggr |
 
-  * In case one wants to use any of the bayer pixel-format then `bayer2rgb` element needs to be used to covert raw bayer data to RGB. Refer the below pipeline.
+  * In case one wants to use any of the bayer pixel-format then `bayer2rgb` element needs to be used to covert raw bayer data to RGB. Refer the below example pipeline.
 
     ```javascript
     {
       "type": "gstreamer",
-      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=bayerrggb width=1920 height=1080 ! bayer2rgb ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=bayerrggb ! bayer2rgb ! videoconvert ! video/x-raw,format=BGR ! appsink"
     }
     ```
 
-  * In case one wants to use `mono8` image format or wants to work with monochrome camera then change the image format to mono8 in the pipeline. Since `gstreamer` ingestor expects a `BGR` image format, a single channel GRAY8 format would be converted to 3 channel BGR format.
+  * In case one wants to use `mono8` image format or wants to work with monochrome camera then change the `pixel-format` to `mono8` in the pipeline. Since `gstreamer` ingestor expects a `BGR` image format, a single channel `GRAY8` format would be converted to 3 channel BGR format.
 
     **Example pipeline to use `mono8` imageformat or work with monochrome basler camera:**
 
     ```javascript
     {
     "type": "gstreamer",
-    "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=mono8 width=1920 height=1080 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+    "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=mono8 ! videoconvert ! video/x-raw,format=BGR ! appsink"
     }
     ```
 
@@ -36,7 +36,7 @@
     ```javascript
     {
       "type": "gstreamer",
-      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! vaapipostproc height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"
     }
     ```
 
@@ -47,16 +47,9 @@
     ```javascript
     {
       "type": "gstreamer",
-      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
     }
     ```
-
-  * In case multiple Basler cameras are connected use serial parameter to specify the camera to be used in the gstreamer pipeline in the video config file for camera mode.
-
-  * In case frame read is failing when multiple basler cameras are used, use the interpacketdelay property to increase the delay between the
-transmission of each packet for the selected stream channel. Depending on the number of cameras, use an appropriate delay can be set.
-
-    TODO: **Example pipeline value to increase the interpacket delay
 
   `Basler camera hardware triggering`
 
