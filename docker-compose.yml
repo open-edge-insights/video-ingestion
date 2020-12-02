@@ -61,8 +61,7 @@ services:
       GENICAM: "Matrix_Vision"
 
       # Setting the GST log levels
-      # gencamsrc:4 log level needed for hw-trigger-timeout
-      GST_DEBUG: "1,gencamsrc:4"
+      GST_DEBUG: "1,gencamsrc:1"
 
       # Provisioning related variable
       CertType: "zmq"
