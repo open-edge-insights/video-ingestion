@@ -2,7 +2,7 @@ dnl required version of autoconf
 AC_PREREQ([2.53])
 
 dnl TODO: fill in your package name and package version here
-AC_INIT([gst-gencamsrc],[1.2.5])
+AC_INIT([gst-gencamsrc],[1.2.7])
 
 dnl required versions of gstreamer and plugins-base
 GST_REQUIRED=1.0.0
@@ -75,7 +75,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([ ], [ ])], [
 
 ROOT_DIR="$PWD"
 CPPFLAGS="$GST_CFLAGS -I $ROOT_DIR/plugins/genicam-core/genicam/include -std=c++11"
-GST_LIBS="$GST_LIBS -lGenApi_gcc42_v3_1 -lGCBase_gcc42_v3_1 -llog4cpp_gcc42_v3_1 -lLog_gcc42_v3_1 -lMathParser_gcc42_v3_1 -lXmlParser_gcc42_v3_1 -lNodeMapData_gcc42_v3_1"
+GST_LIBS="$GST_LIBS -lGenApi_gcc7_v3_1 -lGCBase_gcc7_v3_1 -llog4cpp_gcc7_v3_1 -lLog_gcc7_v3_1 -lMathParser_gcc7_v3_1 -lXmlParser_gcc7_v3_1 -lNodeMapData_gcc7_v3_1"
 
 dnl set the plugindir where plugins should be installed (for plugins/Makefile.am)
 if test "x${prefix}" = "x$HOME"; then

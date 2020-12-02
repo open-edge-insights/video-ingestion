@@ -70,6 +70,7 @@
 
 #define ROUNDED_DOWN(val, align)        ((val) & ~((align)))
 #define ROUNDED_UP(  val, align)        ROUNDED_DOWN((val) + (align) - 1, (align))
+#define GRAB_DELAY 5  // In seconds
 
 class Genicam
 {
