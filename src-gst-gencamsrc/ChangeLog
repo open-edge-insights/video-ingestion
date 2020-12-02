@@ -1,3 +1,10 @@
+Version 1.2.7
+- Updated GenICam runtime libraries with missing files
+
+Version 1.2.6
+- Integrated GenICam runtime libraries with security fixes to repo
+- Hardware trigger timeout logic declubbed from logging
+
 Version 1.2.5
 - Fixed issues on device clock selector and frequency
 

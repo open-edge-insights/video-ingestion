@@ -347,12 +347,15 @@ bool Genicam::Create (GstBuffer ** buf, GstMapInfo * mapInfo)
         rcg::Buffer *
         buffer;
 
-    while (!(buffer = stream[0]->grab (5000))) {
+    while (!(buffer = stream[0]->grab (GRAB_DELAY * 1000))) {
       if (acquisitionMode != "Continuous" && triggerMode == "On"
           && triggerSource != "Software") {
         // If Hw trigger, wait for specified timeout
-        GST_INFO_OBJECT (gencamsrc, "Waiting for a Trigger (%d) sec)...",
-            (gencamParams->hwTriggerTimeout - ++hwTriggerCheck));
+        int
+            tLeft =
+            (gencamParams->hwTriggerTimeout - ++hwTriggerCheck) * GRAB_DELAY;
+        GST_INFO_OBJECT (gencamsrc, "Waiting %d more seconds for trigger..",
+            tLeft);
       }
       if (hwTriggerCheck == gencamParams->hwTriggerTimeout) {
         GST_ERROR_OBJECT (gencamsrc, "No frame received from the camera");
