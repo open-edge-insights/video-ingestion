@@ -299,7 +299,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
    * `Hardware trigger based ingestion with gstreamer ingestor`
@@ -307,7 +307,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
      ```javascript
      {
       "type": "gstreamer",
-      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
      }
      ```
   **Note:**
