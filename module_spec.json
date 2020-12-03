@@ -2,7 +2,7 @@
     "SchemaVersion": "0.2",
     "Runtime": "docker",
     "RuntimeOptions": {
-        "ContainerImage": "ia_video_ingestion:$EIS_VERSION",
+        "ContainerImage": "${idx:ia_video_ingestion:$EIS_VERSION}",
         "Privileged": true,
         "TemporaryVolumes": [
             "/dev:/dev",
