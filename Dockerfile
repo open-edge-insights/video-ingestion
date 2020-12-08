@@ -79,8 +79,6 @@ COPY src-gst-gencamsrc ./src-gst-gencamsrc
 COPY install_gencamsrc_gstreamer_plugin.sh .
 RUN ./install_gencamsrc_gstreamer_plugin.sh
 
-COPY gentl_producer_env.sh ./gentl_producer_env.sh
-
 ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
 
 ENV PYTHONPATH ${PYTHONPATH}:.
@@ -93,8 +91,7 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     LD_RUN_PATH="/usr/lib" \
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
     TERM="xterm" \
-    GST_DEBUG="1" \
-    MODELS_PATH=$MODELS_PATH:"${PY_WORK_DIR}/VideoIngestion/models/"
+    GST_DEBUG="1"
 
 # Installing dependent python modules - needed by opencv
 COPY vi_requirements.txt .

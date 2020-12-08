@@ -219,20 +219,14 @@ The following are the type of ingestors supported:
 
   ----
 #### `Gstreamer Video Analytics`
-VI module supports the usage of GVA (Gstreamer Video Analytics) plugins with `gstreamer` ingestor. [GVA](https://github.com/opencv/gst-video-analytics) is
+VI module supports the usage of GVA (Gstreamer Video Analytics) plugins with `gstreamer` ingestor. [GVA](https://github.com/openvinotoolkit/dlstreamer_gst) is
 a collection of GStreamer elements to enable CNN model based video analytics capabilities (such as object detection, classification, recognition) in GStreamer framework.
 
 **Refer [docs/gva_doc.md](docs/gva_doc.md) for more information on GVA elements.**
 
 **Refer [CustomUdfs-GVASafetyGearIngestion](../CustomUdfs/GVASafetyGearIngestion/README.md) to refer GVA based CustomUdf container added for SafetyGear sample.**
 
-In case one needs to run GVA use-case in VI refer the below steps:
-
-1. Copy the IR model files under `[WORKDIR]/IEdgeInsights/VideoIngestion/models` directory.
-
-2. Refer [docs/gva_doc.md](docs/gva_doc.md) for the GVA configuration with the supported camera.
-
-3. Provision, Build and Run EIS by refering [../README.md](../README.md)
+**Refer [models-readme](models/README.md) to run GVA usecase inside VI container.**
 
   ----
 #### `Generic Plugin`
