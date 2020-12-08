@@ -30,10 +30,6 @@ ARG EIS_UID
 ARG EIS_USER_NAME
 RUN useradd -r -u ${EIS_UID} -G video ${EIS_USER_NAME}
 
-# Installing genicam SDK
-COPY install_genicam_sdk.sh ./install_genicam_sdk.sh
-RUN ./install_genicam_sdk.sh
-
 # Installing python boost and common build dependencies
 RUN apt-get update && \
     apt-get install -y libboost-python-dev unzip \
@@ -42,7 +38,23 @@ RUN apt-get update && \
     ca-certificates pkg-config bison flex libcurl4-gnutls-dev zlib1g-dev \
     automake
 
-ENV PYLON_CAMEMU 1
+### Note: In case one cannot non-interactively download the camera SDK from the web then first download the camera SDK onto to the system, place it under VideoIngestion directory and use the COPY instruction to use it in the build context.
+
+# Adding dependency needed for Matrix Vision SDK
+RUN apt-get install -y net-tools iproute2
+
+# Installing Matrix Vision Camera SDK
+ARG MATRIX_VISION_SDK_VER=2.38.0
+
+RUN mkdir -p matrix_vision_downloads && \
+    cd matrix_vision_downloads && \
+    wget http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
+    wget http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
+    chmod +x install_mvGenTL_Acquire.sh && \
+    ./install_mvGenTL_Acquire.sh && \
+    rm -rf matrix_vision_downloads
+
+### To install other/newer Genicam camera SDKs add the installation steps here
 
 # Build Intel(R) Media SDK
 ARG MSDK_REPO=https://github.com/Intel-Media-SDK/MediaSDK/releases/download/intel-mediasdk-19.1.0/MediaStack.tar.gz
