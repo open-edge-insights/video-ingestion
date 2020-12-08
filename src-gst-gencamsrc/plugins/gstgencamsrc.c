@@ -1083,7 +1083,7 @@ plugin_init (GstPlugin * plugin)
 }
 
 #ifndef VERSION
-#define VERSION "1.2.7"
+#define VERSION "1.3.0"
 #endif
 #ifndef PACKAGE
 #define PACKAGE "gst-gencamsrc"
