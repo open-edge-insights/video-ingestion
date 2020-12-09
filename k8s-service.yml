@@ -83,6 +83,8 @@ spec:
           value: '${PROVISION_MODE}'
         - name:  ETCD_PREFIX
           value: '${ETCD_PREFIX}'
+        - name:  GENICAM
+          value: 'Matrix_Vision'
         - name: CONFIGMGR_CACERT
           value: "/run/secrets/ca_etcd/ca_certificate.pem"
         - name: CONFIGMGR_CERT
