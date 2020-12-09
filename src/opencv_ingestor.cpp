@@ -187,10 +187,6 @@ void OpenCvIngestor::run(bool snapshot_mode) {
                 DO_PROFILING(this->m_profile, meta_data, m_ingestor_block_key.c_str());
             }
 
-            // Profiling start
-            DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_exit")
-            // Profiling end
-
             frame = NULL;
 
             if(snapshot_mode) {

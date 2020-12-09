@@ -535,11 +535,6 @@ GstreamerIngestor* ctx) {
                     // Add timestamp which acts as a marker if queue if blocked
                     DO_PROFILING(ctx->m_profile, meta_data, ctx->m_ingestor_block_key.c_str());
                 }
-
-                // Profiling start
-                DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_exit");
-                // Profiling end
-
             }
         } else {
             LOG_ERROR_0("Failed to get GstBuffer");
