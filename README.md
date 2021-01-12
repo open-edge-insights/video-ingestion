@@ -48,8 +48,10 @@ overhead of VA(VideoAnalytics) service.
 * The `max_workers` and `udfs` are configuration keys related to udfs.
   For more details on udf configuration, please visit
   [../common/video/udfs/README.md](../common/video/udfs/README.md)
-* For details on Etcd and MessageBus endpoint configuration, visit
-  [Etcd_Secrets_and_MsgBus_Endpoint_Configuration](../Etcd_Secrets_and_MsgBus_Endpoint_Configuration.md).
+* For more details on Etcd secrets and messagebus endpoint configuration, visit 
+  [Etcd_Secrets_Configuration.md](../Etcd_Secrets_Configuration.md) and
+  [MessageBus Configuration](../common/libs/ConfigMgr/README.md#interfaces) respectively.
+
 
 ---
 
