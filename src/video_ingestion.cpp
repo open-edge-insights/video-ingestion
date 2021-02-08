@@ -149,7 +149,7 @@ VideoIngestion::VideoIngestion(
     m_udf_input_queue = new FrameQueue(queue_size);
 
     config_value_object_t* ingestor_cvt = ingestor_value->body.object;
-    m_ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value);
+    m_ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value, NULL);
     if (m_ingestor_cfg == NULL) {
         const char* err = "Unable to get ingestor config";
         LOG_ERROR("%s", err);
