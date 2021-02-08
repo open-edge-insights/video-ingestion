@@ -30,18 +30,11 @@ ARG EIS_UID
 ARG EIS_USER_NAME
 RUN useradd -r -u ${EIS_UID} -G video ${EIS_USER_NAME}
 
-# Installing python boost and common build dependencies
-RUN apt-get update && \
-    apt-get install -y libboost-python-dev unzip \
-    build-essential \
-    autoconf make pciutils cpio libtool lsb-release \
-    ca-certificates pkg-config bison flex libcurl4-gnutls-dev zlib1g-dev \
-    automake
-
 ### Note: In case one cannot non-interactively download the camera SDK from the web then first download the camera SDK onto to the system, place it under VideoIngestion directory and use the COPY instruction to use it in the build context.
 
 # Adding dependency needed for Matrix Vision SDK
-RUN apt-get install -y net-tools iproute2
+RUN apt-get update && \
+    apt-get install -y net-tools iproute2
 
 # Installing Matrix Vision Camera SDK
 ARG MATRIX_VISION_SDK_VER=2.38.0
