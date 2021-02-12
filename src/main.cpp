@@ -25,22 +25,22 @@
 
 #include <unistd.h>
 #include <condition_variable>
-#include "eis/vi/video_ingestion.h"
+#include "eii/vi/video_ingestion.h"
 #include <mutex>
 #include <atomic>
 #include <csignal>
 #include <safe_lib.h>
 #include <stdbool.h>
-#include <eis/utils/json_validator.h>
+#include <eii/utils/json_validator.h>
 #include <fstream>
 #include <iostream>
 
 #define MAX_CONFIG_KEY_LENGTH 250
 
-using namespace eis::vi;
-using namespace eis::ch;
-using namespace eis::utils;
-using namespace eis::config_manager;
+using namespace eii::vi;
+using namespace eii::ch;
+using namespace eii::utils;
+using namespace eii::config_manager;
 
 static CommandHandler* g_ch = NULL;
 static VideoIngestion* g_vi = NULL;

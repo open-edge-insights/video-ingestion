@@ -25,9 +25,9 @@
 
 #include <iostream>
 #include <safe_lib.h>
-#include "eis/vi/video_ingestion.h"
-#include "eis/vi/ingestor.h"
-#include "eis/vi/gstreamer_ingestor.h"
+#include "eii/vi/video_ingestion.h"
+#include "eii/vi/ingestor.h"
+#include "eii/vi/gstreamer_ingestor.h"
 #include <mutex>
 
 #define INTEL_VENDOR "GenuineIntel"
@@ -37,10 +37,10 @@
 #define SW_TRIGGER "sw_trigger"
 #define ARGUMENTS "arguments"
 
-using namespace eis::vi;
-using namespace eis::utils;
-using namespace eis::msgbus;
-using namespace eis::udf;
+using namespace eii::vi;
+using namespace eii::utils;
+using namespace eii::msgbus;
+using namespace eii::udf;
 
 VideoIngestion::VideoIngestion(
         std::string app_name, std::condition_variable& err_cv, char* vi_config, ConfigMgr* ctx, CommandHandler* commandhandler) :

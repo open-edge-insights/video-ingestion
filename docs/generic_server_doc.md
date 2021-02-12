@@ -1,6 +1,6 @@
 **VideoIngestion micro-service exposes the functionality of software trigger in the following ways:**
 
-  1) It can accept software trigger to "START_INGESTION"/ "STOP_INGESTION"/ "SNAPSHOT" from any client utility which uses the EIS messagebus over server-client model.
+  1) It can accept software trigger to "START_INGESTION"/ "STOP_INGESTION"/ "SNAPSHOT" from any client utility which uses the EII messagebus over server-client model.
 
   2) The software trigger functionality of VI is demonstrated using an sample baremetal utility called "SW_Trigger_utility", which is shipped with the VideoIngestion code in tools repo, the details of the usage of this utility is mentioned in [../../tools/SWTriggerUtility/README.md](../../tools/SWTriggerUtility/README.md).
 

@@ -24,31 +24,31 @@
  * @brief VideoIngestion interface
  */
 
-#ifndef _EIS_VI_VIDEOINGESTION_H
-#define _EIS_VI_VIDEOINGESTION_H
+#ifndef _EII_VI_VIDEOINGESTION_H
+#define _EII_VI_VIDEOINGESTION_H
 
 #include <thread>
 #include <functional>
 #include <atomic>
 #include <condition_variable>
-#include <eis/udf/frame.h>
+#include <eii/udf/frame.h>
 #include <string.h>
-#include <eis/utils/config.h>
-#include <eis/utils/thread_safe_queue.h>
-#include <eis/utils/json_config.h>
-#include <eis/msgbus/msgbus.h>
-#include <eis/msgbus/msg_envelope.h>
-#include <eis/udf/udf_manager.h>
-#include "eis/vi/ingestor.h"
-#include "eis/config_manager/config_mgr.hpp"
-#include "eis/ch/command_handler.h"
+#include <eii/utils/config.h>
+#include <eii/utils/thread_safe_queue.h>
+#include <eii/utils/json_config.h>
+#include <eii/msgbus/msgbus.h>
+#include <eii/msgbus/msg_envelope.h>
+#include <eii/udf/udf_manager.h>
+#include "eii/vi/ingestor.h"
+#include "eii/config_manager/config_mgr.hpp"
+#include "eii/ch/command_handler.h"
 
-using namespace eis::utils;
-using namespace eis::udf;
-using namespace eis::ch;
-using namespace eis::config_manager;
+using namespace eii::utils;
+using namespace eii::udf;
+using namespace eii::ch;
+using namespace eii::config_manager;
 
-namespace eis {
+namespace eii {
     namespace vi {
 
         /**
@@ -69,10 +69,10 @@ namespace eis {
                 // CommandHandler object
                 CommandHandler* m_commandhandler;
 
-                // EIS MsgBus Publisher
+                // EII MsgBus Publisher
                 msgbus::Publisher* m_publisher;
 
-                // EIS UDFManager
+                // EII UDFManager
                 UdfManager* m_udf_manager;
 
                 // UDF input queue

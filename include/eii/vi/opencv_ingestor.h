@@ -23,15 +23,15 @@
  * @brief OpenCV Ingestor interface
  */
 
-#ifndef _EIS_VI_OPENCV_H
-#define _EIS_VI_OPENCV_H
+#ifndef _EII_VI_OPENCV_H
+#define _EII_VI_OPENCV_H
 
 #include <opencv2/opencv.hpp>
-#include <eis/utils/thread_safe_queue.h>
-#include "eis/vi/ingestor.h"
+#include <eii/utils/thread_safe_queue.h>
+#include "eii/vi/ingestor.h"
 
 
-namespace eis {
+namespace eii {
     namespace vi {
 
         /**
@@ -91,6 +91,6 @@ namespace eis {
         };
 
     } // vi
-} // eis
+} // eii
 
-#endif // _EIS_VI_OPENCV_H
+#endif // _EII_VI_OPENCV_H

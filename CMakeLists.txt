@@ -25,7 +25,7 @@ project(video-ingestion VERSION 1.0.0 LANGUAGES C CXX)
 option(WITH_PROFILE "Compile in profiling mode" OFF)
 
 # Globals
-set(EIS_COMMON_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../common/cmake")
+set(EII_COMMON_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../common/cmake")
 
 # Set C++ version
 set(CMAKE_CXX_STANDARD 14)
@@ -38,7 +38,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 set(CMAKE_SHARED_LINKER_FLAGS "-z noexecstack -z relro -z now")
 
 # Add cmake module path
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${EIS_COMMON_CMAKE}")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${EII_COMMON_CMAKE}")
 
 #if(WITH_PROFILE)
 #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
@@ -54,12 +54,12 @@ endif()
 
 # Finding packages
 find_package(OpenCV REQUIRED)
-find_package(EISMsgEnv REQUIRED)
+find_package(EIIMsgEnv REQUIRED)
 find_package(cJSON REQUIRED)
 find_package(Threads REQUIRED)
-find_package(EISUtils REQUIRED)
-find_package(EISConfigMgrStatic REQUIRED)
-find_package(EISMessageBus REQUIRED)
+find_package(EIIUtils REQUIRED)
+find_package(EIIConfigMgrStatic REQUIRED)
+find_package(EIIMessageBus REQUIRED)
 find_package(UDFLoader REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(IntelSafeString REQUIRED)
@@ -95,10 +95,10 @@ include_directories(
     include/
     ${OpenCV_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
-    ${EISMsgEnv_INCLUDE}
-    ${EISUtils_INCLUDE}
-    ${EISConfigMgrStatic_INCLUDE}
-    ${EISMessageBus_INCLUDE}
+    ${EIIMsgEnv_INCLUDE}
+    ${EIIUtils_INCLUDE}
+    ${EIIConfigMgrStatic_INCLUDE}
+    ${EIIMessageBus_INCLUDE}
     ${UDFLoader_INCLUDE}
     ${GST_INCLUDE_DIRS}
     ${IntelSafeString_INCLUDE})
@@ -112,10 +112,10 @@ target_link_libraries(video-ingestion
         ${OpenCV_LIBS}
         ${IntelSafeString_LIBRARIES}
         ${CJSON_LIBRARIES}
-        ${EISMsgEnv_LIBRARIES}
-        ${EISUtils_LIBRARIES}
-        ${EISConfigMgrStatic_LIBRARIES}
-        ${EISMessageBus_LIBRARIES}
+        ${EIIMsgEnv_LIBRARIES}
+        ${EIIUtils_LIBRARIES}
+        ${EIIConfigMgrStatic_LIBRARIES}
+        ${EIIMessageBus_LIBRARIES}
         ${UDFLoader_LIBRARIES}
         ${GST_LIBRARIES}
         ${_REFLECTION}
