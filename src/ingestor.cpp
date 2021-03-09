@@ -28,15 +28,15 @@
 #include <string>
 #include <string.h>
 #include <algorithm>
-#include <eis/utils/logger.h>
-#include <eis/utils/thread_safe_queue.h>
-#include "eis/vi/ingestor.h"
-#include "eis/vi/opencv_ingestor.h"
-#include "eis/vi/gstreamer_ingestor.h"
+#include <eii/utils/logger.h>
+#include <eii/utils/thread_safe_queue.h>
+#include "eii/vi/ingestor.h"
+#include "eii/vi/opencv_ingestor.h"
+#include "eii/vi/gstreamer_ingestor.h"
 
-using namespace eis::vi;
-using namespace eis::utils;
-using namespace eis::udf;
+using namespace eii::vi;
+using namespace eii::utils;
+using namespace eii::udf;
 
 Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type=EncodeType::NONE, int enc_lvl=0) :
       m_service_name(service_name), m_th(NULL), m_initialized(false), m_stop(false), m_udf_input_queue(frame_queue), m_snapshot_cv(snapshot_cv), m_enc_type(enc_type), m_enc_lvl(enc_lvl) {
@@ -92,7 +92,7 @@ IngestRetCode Ingestor::start(bool snapshot_mode) {
     return IngestRetCode::SUCCESS;
 }
 
-Ingestor* eis::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl) {
+Ingestor* eii::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl) {
     Ingestor* ingestor = NULL;
     // Create the ingestor object based on the type specified in the config
     if(!strcmp(type, "opencv")) {

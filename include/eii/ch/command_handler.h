@@ -24,21 +24,21 @@
  * @brief CommandHandler interface
  */
 
-#ifndef _EIS_CH_COMMANDHANDLER_H
-#define _EIS_CH_COMMANDHANDLER_H
+#ifndef _EII_CH_COMMANDHANDLER_H
+#define _EII_CH_COMMANDHANDLER_H
 
 #include <map>
 #include <condition_variable>
 #include <functional>
 #include <thread>
 #include <atomic>
-#include <eis/msgbus/msg_envelope.h>
-#include <eis/msgbus/msgbus.h>
-#include "eis/config_manager/config_mgr.hpp"
+#include <eii/msgbus/msg_envelope.h>
+#include <eii/msgbus/msgbus.h>
+#include "eii/config_manager/config_mgr.hpp"
 #include "commands.h"
 
 
-namespace eis {
+namespace eii {
     namespace ch {
 
         class CommandHandler {
@@ -87,7 +87,7 @@ namespace eis {
                  * @param ctx - ConfigManager object
                  * return value - returns the error codes.
                  */
-                int service_init(eis::config_manager::ConfigMgr* ctx);
+                int service_init(eii::config_manager::ConfigMgr* ctx);
 
             public:
             
@@ -95,7 +95,7 @@ namespace eis {
                  * Constructor
                  * @param ctx - ConfigManager object
                  */
-                CommandHandler(eis::config_manager::ConfigMgr* ctx);
+                CommandHandler(eii::config_manager::ConfigMgr* ctx);
                 
                 /**
                  * Add the callback functions to the map with the key value
@@ -119,5 +119,5 @@ namespace eis {
 
         }; // CommandHandler class ending
     } // ch namespace ending
-} // eis namespace ending
+} // eii namespace ending
 #endif

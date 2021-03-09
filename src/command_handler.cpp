@@ -23,11 +23,11 @@
  * @brief CommandHandler Implementation
  */
 
-#include "eis/ch/command_handler.h"
+#include "eii/ch/command_handler.h"
 #include <unistd.h>
 
-using namespace eis::ch;
-using namespace eis::config_manager;
+using namespace eii::ch;
+using namespace eii::config_manager;
 
 #define COMMAND "command"
 #define REPLY_PAYLOAD "reply_payload"

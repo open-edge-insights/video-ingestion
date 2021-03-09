@@ -28,15 +28,15 @@
 #include <cerrno>
 #include <unistd.h>
 
-#include <eis/msgbus/msgbus.h>
-#include <eis/utils/logger.h>
-#include <eis/utils/json_config.h>
-#include "eis/vi/opencv_ingestor.h"
+#include <eii/msgbus/msgbus.h>
+#include <eii/utils/logger.h>
+#include <eii/utils/json_config.h>
+#include "eii/vi/opencv_ingestor.h"
 
 
-using namespace eis::vi;
-using namespace eis::utils;
-using namespace eis::udf;
+using namespace eii::vi;
+using namespace eii::utils;
+using namespace eii::udf;
 
 #define PIPELINE "pipeline"
 #define LOOP_VIDEO "loop_video"

@@ -24,10 +24,10 @@
  * @brief Client Commands interface
  */
 
-#ifndef _EIS_COMMAND_H
-#define _EIS_COMMAND_H
+#ifndef _EII_COMMAND_H
+#define _EII_COMMAND_H
 
-namespace eis {
+namespace eii {
     enum AckToClient {
         REQ_HONORED=0,
         REQ_NOT_HONORED=1,
@@ -44,5 +44,5 @@ namespace eis {
         // MORE COMMANDS TO BE ADDED BASED ON THE NEED
     };
 
-} // eis namespace end
+} // eii namespace end
 #endif

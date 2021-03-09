@@ -24,16 +24,16 @@
  * @brief Ingestor interface
  */
 
-#ifndef _EIS_VI_INGESTOR_H
-#define _EIS_VI_INGESTOR_H
+#ifndef _EII_VI_INGESTOR_H
+#define _EII_VI_INGESTOR_H
 
 #include <string>
 #include <thread>
 #include <atomic>
-#include <eis/utils/thread_safe_queue.h>
-#include <eis/udf/frame.h>
-#include <eis/utils/config.h>
-#include <eis/utils/profiling.h>
+#include <eii/utils/thread_safe_queue.h>
+#include <eii/udf/frame.h>
+#include <eii/utils/config.h>
+#include <eii/utils/profiling.h>
 #include <chrono>
 
 #define TYPE1 "type"
@@ -41,10 +41,10 @@
 #define POLL_INTERVAL "poll_interval"
 
 
-using namespace eis::utils;
-using namespace eis::udf;
+using namespace eii::utils;
+using namespace eii::udf;
 
-namespace eis {
+namespace eii {
     namespace vi {
 
         /**
@@ -204,5 +204,5 @@ namespace eis {
         Ingestor* get_ingestor(config_t* ingestor_cfg, FrameQueue* udf_input_queue, const char* type, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl);
 
     } // vi
-} // eis
-#endif // _EIS_VI_INGESTOR_H
+} // eii
+#endif // _EII_VI_INGESTOR_H

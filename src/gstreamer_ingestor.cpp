@@ -28,11 +28,11 @@
 #endif
 
 #include <cstring>
-#include "eis/utils/logger.h"
-#include "eis/vi/gstreamer_ingestor.h"
-#include "eis/vi/gva_roi_meta.h"
-#include <eis/udf/frame.h>
-#include <eis/utils/thread_safe_queue.h>
+#include "eii/utils/logger.h"
+#include "eii/vi/gstreamer_ingestor.h"
+#include "eii/vi/gva_roi_meta.h"
+#include <eii/udf/frame.h>
+#include <eii/utils/thread_safe_queue.h>
 #include <sstream>
 #include <fstream>
 #include <random>
@@ -41,8 +41,8 @@
 #define UUID_LENGTH 5
 #define PIPELINE "pipeline"
 
-using namespace eis::vi;
-using namespace eis::udf;
+using namespace eii::vi;
+using namespace eii::udf;
 
 static EncodeType g_enc_type;
 static bool g_first_frame = true;

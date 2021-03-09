@@ -2,13 +2,13 @@
 
 The VideoIngestion(VI) module is mainly responsibly for ingesting the video frames
 coming from a video source like video file or basler/RTSP/USB camera
-into the EIS stack for further processing. Additionally, by having VI run with
+into the EII stack for further processing. Additionally, by having VI run with
 classifier and post-processing UDFs, VI can perform the job of VA(VideoAnalytics)
 service also.
 
 The high level logical flow of VideoIngestion pipeline is as below:
 
-1. App reads the application configuration via EIS Configuration Manager which
+1. App reads the application configuration via EII Configuration Manager which
    has details of `ingestor`, `encoding` and `udfs`.
 2. Based on the ingestor configuration, app reads the video frames from
    the video file or camera.
@@ -21,7 +21,7 @@ The high level logical flow of VideoIngestion pipeline is as below:
    [../common/video/udfs/README.md](../common/video/udfs/README.md) for more details.
 4. App gets the msgbus endpoint configuration from system environment and
    based on the configuration, app publishes the data on the mentioned topic
-   on EIS MessageBus.
+   on EII MessageBus.
 
 ---
 **NOTE**:
@@ -62,7 +62,7 @@ definition in docker-compose.
 Developer mode related overrides go into docker-compose-dev.override.yml
 
 If `AppName` is `VideoIngestion`, then the app's config would be fetched from
-`/VideoIngestion/config` key via EIS Configuration Manager.
+`/VideoIngestion/config` key via EII Configuration Manager.
 Below is the JSON schema for app's config:
 
 ```javascript

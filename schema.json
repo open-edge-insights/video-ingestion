@@ -72,7 +72,7 @@
       ],
       "properties": {
         "init_state": {
-          "description": "Signifies the initial state of Video Ingestion service when the EIS pipeline is started",
+          "description": "Signifies the initial state of Video Ingestion service when the EII pipeline is started",
           "type": "string",
           "enum": [
               "running",

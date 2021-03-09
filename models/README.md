@@ -10,4 +10,4 @@
 
   2. Refer [docs/gva_doc.md](../docs/gva_doc.md) for the GVA configuration with the supported camera.
 
-  3. Provision, Build and Run EIS by refering [main-README.md](../../README.md).
+  3. Provision, Build and Run EII by refering [main-README.md](../../README.md).

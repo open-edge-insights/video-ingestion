@@ -24,17 +24,17 @@
  * @brief Gstreamer ingestor interface
  */
 
-#ifndef _EIS_VI_GSTREAMER_H
-#define _EIS_VI_GSTREAMER_H
+#ifndef _EII_VI_GSTREAMER_H
+#define _EII_VI_GSTREAMER_H
 
 #include <gst/gst.h>
 #include <glib.h>
-#include <eis/utils/thread_safe_queue.h>
-#include <eis/utils/json_config.h>
-#include <eis/udf/frame.h>
-#include "eis/vi/ingestor.h"
+#include <eii/utils/thread_safe_queue.h>
+#include <eii/utils/json_config.h>
+#include <eii/udf/frame.h>
+#include "eii/vi/ingestor.h"
 
-namespace eis {
+namespace eii {
     namespace vi {
 
         /**
@@ -97,6 +97,6 @@ namespace eis {
         };
 
     } // vi
-} // eis
+} // eii
 
-#endif // _EIS_VI_GSTREAMER_H
+#endif // _EII_VI_GSTREAMER_H
