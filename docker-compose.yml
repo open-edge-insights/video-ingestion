@@ -34,6 +34,7 @@ services:
         EII_USER_NAME: ${EII_USER_NAME}
         # set CMAKE_BUILD_TYPE value to "Debug" to generate debug symbols
         CMAKE_BUILD_TYPE: "Release"
+        CMAKE_INSTALL_PREFIX: ${EII_INSTALL_PATH}
         DOCKER_REGISTRY: ${DOCKER_REGISTRY}
         RUN_TESTS: "OFF"
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EII_VERSION}
@@ -46,7 +47,6 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "exit", "0"]
       interval: 5m
-
     ipc: "none"
     environment:
       AppName: "VideoIngestion"
@@ -56,13 +56,10 @@ services:
       ETCD_HOST: ${ETCD_HOST}
       ETCD_CLIENT_PORT: ${ETCD_CLIENT_PORT}
       ETCD_PREFIX: ${ETCD_PREFIX}
-
       # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
       GENICAM: "Matrix_Vision"
-
       # Setting the GST log levels
       GST_DEBUG: "1,gencamsrc:1"
-
       # Provisioning related variable
       CertType: "zmq"
     volumes:

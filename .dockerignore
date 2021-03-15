@@ -1,0 +1,12 @@
+# build artifacts
+build
+src-gst-gencamsrc/build
+
+# READMEs
+docs
+*.md
+
+# Docker and orchestrator specific files
+Dockerfile
+*.yml
+*_spec.json

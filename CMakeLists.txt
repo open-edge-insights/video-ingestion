@@ -105,6 +105,7 @@ include_directories(
 
 # Find C++ sources
 file(GLOB SOURCES "src/*.cpp")
+link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 
 add_executable(video-ingestion ${SOURCES})
 target_link_libraries(video-ingestion
