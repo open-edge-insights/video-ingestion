@@ -88,6 +88,6 @@
 
    Note: For custom udfs a CMakeLists.txt file needs to be created and must reside in the udf directory which is added as a subdirectory to `[WORKDIR]/IEdgeInsights/common/video/udfs/native/CMakeLists.txt` file.
 
-5. Run eii_builder and provision EII by refering `[WORKDIR]/IEdgeInsights/README.md`
+5. Run builder and provision by refering `[WORKDIR]/IEdgeInsights/README.md`
 
 6. Build and run VideoIngestion & VideoAnalytics services.
