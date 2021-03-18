@@ -100,6 +100,7 @@ WORKDIR ${GO_WORK_DIR}
 
 COPY --from=common /usr/local/include /usr/local/include
 COPY --from=common /usr/local/lib /usr/local/lib
+COPY --from=common /usr/local/bin/proto* /usr/local/bin/grpc* /usr/local/bin/
 COPY --from=common ${GO_WORK_DIR}/common/cmake ./common/cmake
 COPY --from=common ${GO_WORK_DIR}/common/libs ./common/libs
 COPY --from=common ${GO_WORK_DIR}/common/util ${GO_WORK_DIR}/common/util
