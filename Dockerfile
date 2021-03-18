@@ -84,9 +84,9 @@ RUN useradd -r -u ${EII_UID} -G video ${EII_USER_NAME}
 RUN apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
     iproute2 \
-    libtool && \
+    libtool \
     net-tools \
-    wget \
+    wget && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
