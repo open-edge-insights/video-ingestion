@@ -82,7 +82,7 @@ ARG EII_USER_NAME
 RUN useradd -r -u ${EII_UID} -G video ${EII_USER_NAME}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    autoconf \
+    automake \
     iproute2 \
     libtool \
     net-tools \
