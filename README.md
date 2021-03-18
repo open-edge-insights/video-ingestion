@@ -48,7 +48,7 @@ overhead of VA(VideoAnalytics) service.
 * The `max_workers` and `udfs` are configuration keys related to udfs.
   For more details on udf configuration, please visit
   [../common/video/udfs/README.md](../common/video/udfs/README.md)
-* For more details on Etcd secrets and messagebus endpoint configuration, visit 
+* For more details on Etcd secrets and messagebus endpoint configuration, visit
   [Etcd_Secrets_Configuration.md](../Etcd_Secrets_Configuration.md) and
   [MessageBus Configuration](../common/libs/ConfigMgr/README.md#interfaces) respectively.
 
@@ -100,8 +100,7 @@ Below is the JSON schema for app's config:
       "description": "Ingestor object",
       "type": "object",
       "required": [
-        "type",
-        "pipeline"
+        "type"
       ],
       "properties": {
         "type": {
@@ -109,7 +108,8 @@ Below is the JSON schema for app's config:
           "type": "string",
           "enum": [
               "opencv",
-              "gstreamer"
+              "gstreamer",
+              "realsense"
             ]
         },
         "pipeline": {
@@ -129,6 +129,15 @@ Below is the JSON schema for app's config:
           "description": "polling interval for reading ingested frames",
           "type": "number",
           "default": 0.0
+        },
+        "serial": {
+         "description": "serial number of realsense device",
+         "type": "string"
+        },
+        "imu_on" : {
+         "description": "flag to enable/disable IMU data. Inertial Measurement Units (IMU) are sensors which allow measurement of both directional movement and rotation",
+         "type": "boolean",
+         "default": false
         }
       }
     },
@@ -194,8 +203,12 @@ The following are the type of ingestors supported:
 
 1. OpenCV
 2. GStreamer
+3. RealSense
 
 **Refer [docs/gstreamer_ingestor_doc.md](docs/gstreamer_ingestor_doc.md) for more information/configuration on gstreamer ingestor.**
+
+**For more information on Intel RealSense refer [Intel-RealSense](https://www.intelrealsense.com/)**
+**For more information on Intel RealSense SDK refer [librealsense](https://github.com/IntelRealSense/librealsense)**
 
   ----
 #### `Camera independent Software Trigger way of video ingestion`
@@ -390,4 +403,15 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
 
   ----
 
+* `RealSense Depth Camera`
 
+  * `RealSense Ingestor`
+
+    ```javascript
+       "ingestor": {
+            "type": "realsense",
+            "serial": "<DEVICE_SERIAL_NUMBER>",
+            "imu_on": true
+        },
+     ```
+  **Note**: RealSense Ingestor was tested with Intel RealSense Depth Camera D435i

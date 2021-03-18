@@ -122,6 +122,7 @@ target_link_libraries(video-ingestion
         ${_REFLECTION}
         ${_GRPC_GRPCPP}
         ${_PROTOBUF_LIBPROTOBUF}
+        realsense2
     PRIVATE
         ${ZMQ_LIBRARIES}
         wjelement

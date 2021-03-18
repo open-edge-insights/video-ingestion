@@ -33,6 +33,7 @@
 #include "eii/vi/ingestor.h"
 #include "eii/vi/opencv_ingestor.h"
 #include "eii/vi/gstreamer_ingestor.h"
+#include "eii/vi/realsense_ingestor.h"
 
 using namespace eii::vi;
 using namespace eii::utils;
@@ -99,6 +100,8 @@ Ingestor* eii::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const
         ingestor = new OpenCvIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
     } else if(!strcmp(type, "gstreamer")) {
         ingestor = new GstreamerIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
+    } else if(!strcmp(type, "realsense")) {
+        ingestor = new RealSenseIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
     } else {
         throw("Unknown ingestor");
     }

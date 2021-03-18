@@ -27,47 +27,6 @@ FROM ${DOCKER_REGISTRY}ia_openvino_base:$EII_VERSION as openvino_base
 FROM ${DOCKER_REGISTRY}ia_eiibase:$EII_VERSION as builder
 LABEL description="VideoIngestion image"
 
-### Note: In case one cannot non-interactively download the camera SDK from the web then first download the camera SDK onto to the system, place it under VideoIngestion directory and use the COPY instruction to use it in the build context.
-
-# Adding dependency needed for Matrix Vision SDK
-RUN apt-get update && \
-    apt-get install -y iproute2 \
-                       net-tools \
-                       wget && \
-    rm -rf /var/lib/apt/lists/*
-
-# Installing Matrix Vision Camera SDK
-ARG MATRIX_VISION_SDK_VER=2.38.0
-
-RUN mkdir -p matrix_vision_downloads && \
-    cd matrix_vision_downloads && \
-    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
-    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
-    chmod +x install_mvGenTL_Acquire.sh && \
-    ./install_mvGenTL_Acquire.sh && \
-    rm -rf matrix_vision_downloads
-
-### To install other/newer Genicam camera SDKs add the installation steps here
-
-# Build Intel(R) Media SDK
-ARG MSDK_REPO=https://github.com/Intel-Media-SDK/MediaSDK/releases/download/intel-mediasdk-19.1.0/MediaStack.tar.gz
-
-RUN wget -O - ${MSDK_REPO} | tar xz && \
-    cd MediaStack && \
-    cp -a opt/. /opt/ && \
-    cp -a etc/. /opt/ && \
-    ldconfig
-
-ENV DEBIAN_FRONTEND="noninteractive" \
-    MFX_HOME=$MFX_HOME:"/opt/intel/mediasdk/" \
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"/opt/intel/mediasdk" \
-    LIBVA_DRIVERS_PATH=$LIBVA_DRIVERS_PATH:"/usr/lib/x86_64-linux-gnu/dri/" \
-    LIBVA_DRIVER_NAME="iHD" \
-    LD_RUN_PATH="/usr/lib" \
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
-    TERM="xterm" \
-    GST_DEBUG="1"
-
 WORKDIR /app
 ARG CMAKE_INSTALL_PREFIX
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_INSTALL_PREFIX}/include
@@ -80,24 +39,55 @@ COPY --from=video_common /eii/common/libs ./common/libs
 COPY --from=video_common /eii/common/util ./common/util
 COPY --from=openvino_base /opt/intel /opt/intel
 
-# Copy src code
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib
+
+# Build Intel® RealSense™ SDK 2.0
+ARG LIBREALSENSE_VER=https://github.com/IntelRealSense/librealsense/archive/v2.41.0.tar.gz
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    libssl-dev \
+    libusb-1.0-0-dev \
+    libgtk-3-dev \
+    libglfw3-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN wget -O - ${LIBREALSENSE_VER} | tar xz && \
+    cd librealsense-2.41.0 && \
+    mkdir build && \
+    cd build && \
+    cmake ../ -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} && \
+    make && \
+    make install
+
+# Copy VideoIngestion source code
 COPY . ./VideoIngestion
 ARG WITH_PROFILE
-ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib
-# Build GenICam plugin and video-ingestion app
+
+# Build VideoIngestion application
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
                   cd VideoIngestion && \
-                  ./install_gencamsrc_gstreamer_plugin.sh && \
                   rm -rf build && \
                   mkdir build && \
                   cd build && \
-                  cmake -DCMAKE_INSTALL_INCLUDEDIR=${CMAKE_INSTALL_PREFIX}/include -DCMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DWITH_PROFILE=${WITH_PROFILE} .. && \
+                  cmake -DCMAKE_INSTALL_INCLUDEDIR=${CMAKE_INSTALL_PREFIX}/include -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DWITH_PROFILE=${WITH_PROFILE} .. && \
                   make"
 
 FROM openvino_base as runtime
 ARG EII_UID
 ARG EII_USER_NAME
 RUN useradd -r -u ${EII_UID} -G video ${EII_USER_NAME}
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    autoconf \
+    iproute2 \
+    libtool && \
+    net-tools \
+    wget \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 ARG CMAKE_INSTALL_PREFIX
@@ -112,25 +102,48 @@ COPY --from=builder /app/VideoIngestion/test_videos ./test_videos
 COPY --from=builder /root/.local/lib/python3.6/site-packages .local/lib/python3.6/site-packages
 COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc ./VideoIngestion/src-gst-gencamsrc
 COPY --from=builder /app/VideoIngestion/install_gencamsrc_gstreamer_plugin.sh ./VideoIngestion/install_gencamsrc_gstreamer_plugin.sh
+
+# Installing Generic Plugin
 RUN cd VideoIngestion && \
      ./install_gencamsrc_gstreamer_plugin.sh
-#COPY --from=builder /usr/local/lib/gstreamer-1.0/libgstgencamsrc.* /usr/local/lib/gstreamer1.0/
+
+# Build Intel(R) Media SDK
+ARG MSDK_REPO=https://github.com/Intel-Media-SDK/MediaSDK/releases/download/intel-mediasdk-19.1.0/MediaStack.tar.gz
+
+RUN wget -O - ${MSDK_REPO} | tar xz && \
+    cd MediaStack && \
+    cp -a opt/. /opt/ && \
+    cp -a etc/. /opt/ && \
+    ldconfig
+
+ENV DEBIAN_FRONTEND="noninteractive" \
+    MFX_HOME=$MFX_HOME:"/opt/intel/mediasdk/" \
+    PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/intel/mediasdk" \
+    GST_VAAPI_ALL_DRIVERS="1" \
+    LIBVA_DRIVERS_PATH=$LIBVA_DRIVERS_PATH:"/opt/intel/mediasdk/lib64:/usr/lib/x86_64-linux-gnu/dri/" \
+    LIBVA_DRIVER_NAME="iHD" \
+    LD_RUN_PATH="/usr/lib" \
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/opt/intel/mediasdk/lib64:/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
+    LIBRARY_PATH="/usr/lib" \
+    TERM="xterm" \
+    GST_DEBUG="1"
+
+### Note: In case one cannot non-interactively download the camera SDK from the
+### web then first download the camera SDK onto to the system, place it under
+### VideoIngestion directory and use the COPY instruction to use it in the build context.
 
 # Installing Matrix Vision Camera SDK
 ARG MATRIX_VISION_SDK_VER=2.38.0
 
-RUN apt-get update && \
-    apt-get install -y iproute2 \
-                       net-tools \
-                       wget && \
-    rm -rf /var/lib/apt/lists/* && \
-    mkdir -p matrix_vision_downloads && \
+RUN mkdir -p matrix_vision_downloads && \
     cd matrix_vision_downloads && \
     wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
     wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
     chmod +x install_mvGenTL_Acquire.sh && \
     ./install_mvGenTL_Acquire.sh && \
     rm -rf matrix_vision_downloads
+
+### To install other/newer Genicam camera SDKs add the installation steps here
 
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
 ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.6/site-packages
