@@ -81,22 +81,7 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
         }
 
         // TODO: Verify with multi cam scenario
-        // When multiple devices are connected
-        /*if (dev_list.size() > 1) {
-            std::vector<std::string> serials;
-            for (auto&& dev : m_ctx.query_devices())
-                serials.push_back(dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
-            for (auto&& s : serials)
-            {
-                if(m_serial == s) {
-                    LOG_DEBUG_0("Input serial matches RealSense Device Serial");
-                } else {
-                    const char* err = "Input serial not matching with RealSence Device Serial";
-                    LOG_ERROR("%s", err);
-                    throw(err);
-                }
-            }
-        }*/
+
     }
 
     // Enable streaming configuration
@@ -105,8 +90,6 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
     m_cfg.enable_stream(RS2_STREAM_DEPTH, RS2_FORMAT_Z16);
 
     //TODO: Verify pose stream from tracking camera
-    //m_cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
-
 
     config_value_t* cvt_loop_video = config->get_config_value(
             config->cfg, IMU);
@@ -146,9 +129,6 @@ RealSenseIngestor::~RealSenseIngestor() {
 void free_rs2_frame(void* obj) {
     // This may not be needed as the frame memory
     // is internally handled.
-    //LOG_DEBUG_0("Freeing RealSense frame");
-    //rs2_frame* frame = (rs2_frame*) obj;
-    //delete frame;
 
 }
 
@@ -297,22 +277,96 @@ void RealSenseIngestor::read(Frame*& frame) {
     rs2::video_frame color = data.get_color_frame();
 
     // Retrieve the first depth frame
-    //rs2::depth_frame depth = data.get_depth_frame();
+    rs2::depth_frame depth = data.get_depth_frame();
 
     // Query frame width and height
     const int color_width = color.get_width();
     const int color_height = color.get_height();
-    //const int depth_width = depth.get_width();
-    //const int depth_height = depth.get_height();
+    const int depth_width = depth.get_width();
+    const int depth_height = depth.get_height();
 
     frame = new Frame(
             (void*) color.get(), color_width , color_height,
             3, (void*)color.get_data(), free_rs2_frame);
 
+    // Base64 encoded data is about 4/3 times the original data size.
+    // Keeping some additional margin by mul by 5 and then div by 3
+    char* base64_encoded_depth = (char*)malloc((depth.get_data_size()*sizeof(char)*5) / 3);
+    if(base64_encoded_depth == NULL) {
+        const char* err = "Failed to allocate memory for base64_encode";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    size_t base64_encoded_depth_len;
+
+    // Base64 enocde the depth frame data
+    LOG_DEBUG_0("Base64 encode the depth frame data");
+    base64_encode(reinterpret_cast<const char*>(depth.get_data()), depth.get_data_size(),
+                  base64_encoded_depth, &base64_encoded_depth_len, BASE64_FORCE_AVX2);
+
+    msgbus_ret_t ret;
+
+    // Add Base64 encoded depth frame to frame metadata
+    msg_envelope_t* rs2_base64_encoded_depth = frame->get_meta_data();
+
+    msg_envelope_elem_body_t* e_base64_depth = msgbus_msg_envelope_new_string(base64_encoded_depth);
+    if(e_base64_depth == NULL) {
+        delete frame;
+        const char* err = "Failed to initialize base64 encoded depth frame";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_base64_encoded_depth, "rs_depth_b64", e_base64_depth);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err = "Failed to put base64 encoded depth frame in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    if(base64_encoded_depth != NULL) {
+         free(base64_encoded_depth);
+    }
+
+    msg_envelope_elem_body_t* e_depth_width = msgbus_msg_envelope_new_integer(depth_width);
+    if(e_depth_width == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize depth frame width meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_base64_encoded_depth, "rs2_depth_width", e_depth_width);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_depth_width);
+        const char* err = "Failed to put depth frame width in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_depth_height = msgbus_msg_envelope_new_integer(depth_height);
+    if(e_depth_height == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize depth frame height meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_base64_encoded_depth, "rs2_depth_height", e_depth_height);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_depth_width);
+        msgbus_msg_envelope_elem_destroy(e_depth_height);
+        const char* err = "Failed to put depth frame height in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
     if (m_imu_support) {
         // Add IMU data to frame metadata
-        msgbus_ret_t ret = MSG_SUCCESS;
-
         msg_envelope_t* rs2_imu_meta_data = frame->get_meta_data();
 
         msg_envelope_elem_body_t* rs2_meta_arr = msgbus_msg_envelope_new_array();
@@ -340,6 +394,7 @@ void RealSenseIngestor::read(Frame*& frame) {
             }
             ret = msgbus_msg_envelope_elem_object_put(accel_obj, "accel_sample_x", accel_x);
             if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(accel_x);
                 LOG_ERROR_0("Failed to put accel sample x-coordinate metadata");
                 delete frame;
             }
@@ -351,6 +406,8 @@ void RealSenseIngestor::read(Frame*& frame) {
             }
             ret = msgbus_msg_envelope_elem_object_put(accel_obj, "accel_sample_y", accel_y);
             if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(accel_x);
+                msgbus_msg_envelope_elem_destroy(accel_y);
                 LOG_ERROR_0("Failed to put accel sample y-coordinate metadata");
                 delete frame;
             }
@@ -362,6 +419,9 @@ void RealSenseIngestor::read(Frame*& frame) {
             }
             ret = msgbus_msg_envelope_elem_object_put(accel_obj, "accel_sample_z", accel_z);
             if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(accel_x);
+                msgbus_msg_envelope_elem_destroy(accel_y);
+                msgbus_msg_envelope_elem_destroy(accel_z);
                 LOG_ERROR_0("Failed to put accel sample z-coordinate metadata");
                 delete frame;
             }
@@ -392,6 +452,7 @@ void RealSenseIngestor::read(Frame*& frame) {
             }
             ret = msgbus_msg_envelope_elem_object_put(gyro_obj, "gyro_sample_x", gyro_x);
             if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(gyro_x);
                 LOG_ERROR_0("Failed to put gyro sample x-coordinate metadata");
                 delete frame;
             }
@@ -403,6 +464,8 @@ void RealSenseIngestor::read(Frame*& frame) {
             }
             ret = msgbus_msg_envelope_elem_object_put(gyro_obj, "gyro_sample_y", gyro_y);
             if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(gyro_x);
+                msgbus_msg_envelope_elem_destroy(gyro_y);
                 LOG_ERROR_0("Failed to put gyro sample y-coordinate metadata");
                 delete frame;
             }
@@ -414,6 +477,9 @@ void RealSenseIngestor::read(Frame*& frame) {
             }
             ret = msgbus_msg_envelope_elem_object_put(gyro_obj, "gyro_sample_z", gyro_z);
             if(ret != MSG_SUCCESS) {
+                msgbus_msg_envelope_elem_destroy(gyro_x);
+                msgbus_msg_envelope_elem_destroy(gyro_y);
+                msgbus_msg_envelope_elem_destroy(gyro_z);
                 LOG_ERROR_0("Failed to put gyro sample z-coordinate metadata");
                 delete frame;
             }
@@ -426,58 +492,6 @@ void RealSenseIngestor::read(Frame*& frame) {
         }
 
         //TODO: Verify pose sample from tracking camera
-        /*/if (rs2::pose_frame pose_frame = data.first_or_default(RS2_STREAM_POSE))
-        {
-            rs2_pose pose_sample = pose_frame.get_pose_data();
-            LOG_DEBUG("Pose Sample x:%f,y:%f,z:%f", pose_sample.translation.x, pose_sample.translation.y, pose_sample.translation.z);
-
-
-            msg_envelope_elem_body_t* pose_obj= msgbus_msg_envelope_new_object();
-            if(pose_obj == NULL) {
-                LOG_ERROR_0("Failed to initialize pose metadata");
-                delete frame;
-            }
-
-            msg_envelope_elem_body_t* pose_x = msgbus_msg_envelope_new_floating(pose_sample.translation.x);
-            if(accel_x == NULL) {
-                LOG_ERROR_0("Failed to initialize pose sample x-coordinate metadata");
-                delete frame;
-            }
-            ret = msgbus_msg_envelope_elem_object_put(pose_obj, "pose_sample_x", pose_x);
-            if(ret != MSG_SUCCESS) {
-                LOG_ERROR_0("Failed to put pose sample x-coordinate metadata");
-                delete frame;
-            }
-
-
-            msg_envelope_elem_body_t* pose_y = msgbus_msg_envelope_new_floating(pose_sample.translation.y);
-            if(pose_y == NULL) {
-                LOG_ERROR_0("Failed to initialize pose sample y-coordinate metadata");
-                delete frame;
-            }
-            ret = msgbus_msg_envelope_elem_object_put(pose_obj, "pose_sample_y", pose_y);
-            if(ret != MSG_SUCCESS) {
-                LOG_ERROR_0("Failed to put pose sample y-coordinate metadata");
-                delete frame;
-            }
-
-            msg_envelope_elem_body_t* pose_z = msgbus_msg_envelope_new_floating(pose_sample.translation.z);
-            if(pose_z == NULL) {
-                LOG_ERROR_0("Failed to initialize accel sample z-coordinate metadata");
-                delete frame;
-            }
-            ret = msgbus_msg_envelope_elem_object_put(pose_obj, "pose_sample_z", pose_z);
-            if(ret != MSG_SUCCESS) {
-                LOG_ERROR_0("Failed to put pose sample z-coordinate metadata");
-                delete frame;
-            }
-
-            ret = msgbus_msg_envelope_elem_array_add(rs2_meta_arr, pose_obj);
-            if(ret != MSG_SUCCESS) {
-                LOG_ERROR_0("Failed to add pose object to rs2 metadata");
-                delete frame;
-            }
-        }*/
 
         ret = msgbus_msg_envelope_put(rs2_imu_meta_data, "rs2_imu_meta_data", rs2_meta_arr);
         if(ret != MSG_SUCCESS) {

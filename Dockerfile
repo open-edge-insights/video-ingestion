@@ -90,22 +90,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-ARG CMAKE_INSTALL_PREFIX
-COPY --from=builder ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
-COPY --from=builder /app/common/util/__init__.py common/util/
-COPY --from=builder /app/common/util/*.py common/util/
-COPY --from=builder /app/VideoIngestion/build/video-ingestion ./VideoIngestion/build/
-COPY --from=builder /app/VideoIngestion/schema.json ./VideoIngestion/
-COPY --from=builder /app/VideoIngestion/*.sh ./VideoIngestion/
-COPY --from=builder /app/VideoIngestion/models ./models
-COPY --from=builder /app/VideoIngestion/test_videos ./test_videos
-COPY --from=builder /root/.local/lib/python3.6/site-packages .local/lib/python3.6/site-packages
-COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc ./VideoIngestion/src-gst-gencamsrc
-COPY --from=builder /app/VideoIngestion/install_gencamsrc_gstreamer_plugin.sh ./VideoIngestion/install_gencamsrc_gstreamer_plugin.sh
-
-# Installing Generic Plugin
-RUN cd VideoIngestion && \
-     ./install_gencamsrc_gstreamer_plugin.sh
 
 # Build Intel(R) Media SDK
 ARG MSDK_REPO=https://github.com/Intel-Media-SDK/MediaSDK/releases/download/intel-mediasdk-19.1.0/MediaStack.tar.gz
@@ -143,7 +127,24 @@ RUN mkdir -p matrix_vision_downloads && \
     ./install_mvGenTL_Acquire.sh && \
     rm -rf matrix_vision_downloads
 
-### To install other/newer Genicam camera SDKs add the installation steps here
+## To install other/newer Genicam camera SDKs add the installation steps here
+
+ARG CMAKE_INSTALL_PREFIX
+COPY --from=builder ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
+COPY --from=builder /app/common/util/__init__.py common/util/
+COPY --from=builder /app/common/util/*.py common/util/
+COPY --from=builder /app/VideoIngestion/build/video-ingestion ./VideoIngestion/build/
+COPY --from=builder /app/VideoIngestion/schema.json ./VideoIngestion/
+COPY --from=builder /app/VideoIngestion/*.sh ./VideoIngestion/
+COPY --from=builder /app/VideoIngestion/models ./models
+COPY --from=builder /app/VideoIngestion/test_videos ./test_videos
+COPY --from=builder /root/.local/lib/python3.6/site-packages .local/lib/python3.6/site-packages
+COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc ./VideoIngestion/src-gst-gencamsrc
+COPY --from=builder /app/VideoIngestion/install_gencamsrc_gstreamer_plugin.sh ./VideoIngestion/install_gencamsrc_gstreamer_plugin.sh
+
+# Installing Generic Plugin
+RUN cd VideoIngestion && \
+     ./install_gencamsrc_gstreamer_plugin.sh
 
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
 ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.6/site-packages
