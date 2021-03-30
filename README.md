@@ -48,7 +48,7 @@ overhead of VA(VideoAnalytics) service.
 * The `max_workers` and `udfs` are configuration keys related to udfs.
   For more details on udf configuration, please visit
   [../common/video/udfs/README.md](../common/video/udfs/README.md)
-* For more details on Etcd secrets and messagebus endpoint configuration, visit 
+* For more details on Etcd secrets and messagebus endpoint configuration, visit
   [Etcd_Secrets_Configuration.md](../Etcd_Secrets_Configuration.md) and
   [MessageBus Configuration](../common/libs/ConfigMgr/README.md#interfaces) respectively.
 
@@ -288,7 +288,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
   **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
 
   ----
-* `Basler Camera`
+* `Generic Plugin`
 
   * `Gstreamer Ingestor`
 
@@ -298,6 +298,8 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+   **Note:** Generic Plugin can work with GenICam compliant cameras. The above gstreamer pipeline was tested with Basler and IDS GigE cameras. The appropriate `serial` and the supported `pixel-format` needs to be provided. If `serial` is not provided then the first connected camera in the device list will be used. If `pixel-format` is not provided then the default `mono8` pixel format will be used.
+
    * `Hardware trigger based ingestion with gstreamer ingestor`
 
      ```javascript

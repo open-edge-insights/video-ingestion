@@ -49,24 +49,6 @@ RUN mkdir -p matrix_vision_downloads && \
 
 ### To install other/newer Genicam camera SDKs add the installation steps here
 
-# Build Intel(R) Media SDK
-ARG MSDK_REPO=https://github.com/Intel-Media-SDK/MediaSDK/releases/download/intel-mediasdk-19.1.0/MediaStack.tar.gz
-
-RUN wget -O - ${MSDK_REPO} | tar xz && \
-    cd MediaStack && \
-    cp -a opt/. /opt/ && \
-    cp -a etc/. /opt/ && \
-    ldconfig
-
-ENV LIBVA_DRIVERS_PATH=/opt/intel/mediasdk/lib64
-ENV LIBVA_DRIVER_NAME=iHD
-ENV PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/intel/mediasdk/lib64/pkgconfig
-ENV GST_VAAPI_ALL_DRIVERS=1
-ENV LIBRARY_PATH=/usr/lib
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/mediasdk/lib64
-
-ENV PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig
-
 # Build Generic Plugin
 COPY src-gst-gencamsrc ./src-gst-gencamsrc
 COPY install_gencamsrc_gstreamer_plugin.sh .
@@ -77,12 +59,13 @@ ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
 ENV PYTHONPATH ${PYTHONPATH}:.
 
 ENV DEBIAN_FRONTEND="noninteractive" \
-    MFX_HOME=$MFX_HOME:"/opt/intel/mediasdk/" \
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"/opt/intel/mediasdk" \
-    LIBVA_DRIVERS_PATH=$LIBVA_DRIVERS_PATH:"/usr/lib/x86_64-linux-gnu/dri/" \
+    LIBVA_DRIVERS_PATH="/opt/intel/openvino/opt/intel/mediasdk/lib64/" \
     LIBVA_DRIVER_NAME="iHD" \
+    GST_VAAPI_ALL_DRIVERS="1" \
+    LIBRARY_PATH="/usr/lib:/opt/intel/openvino/opt/intel/mediasdk/lib64/" \
     LD_RUN_PATH="/usr/lib" \
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
+    LD_LIBRARY_PATH="/opt/intel/openvino/opt/intel/mediasdk/lib64/:/usr/local/lib" \
+    PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig" \
     TERM="xterm" \
     GST_DEBUG="1"
 
