@@ -39,7 +39,7 @@ COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_INSTALL_PREFIX}
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/bin ${CMAKE_INSTALL_PREFIX}/bin
 COPY --from=video_common /root/.local/bin/cythonize /root/.local/bin/cythonize
-COPY --from=video_common /root/.local/lib/python3.6/site-packages/ /root/.local/lib/python3.6/site-packages
+COPY --from=video_common /root/.local/lib/python3.8/site-packages/ /root/.local/lib/python3.8/site-packages
 COPY --from=video_common /eii/common/cmake ./common/cmake
 COPY --from=video_common /eii/common/libs ./common/libs
 COPY --from=video_common /eii/common/util ./common/util
@@ -50,6 +50,11 @@ ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTA
 # Copy VideoIngestion source code
 COPY . ./VideoIngestion
 ARG WITH_PROFILE
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Build VideoIngestion application
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
@@ -69,30 +74,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     automake \
     iproute2 \
     libtool \
+    make \
     net-tools \
     wget && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Build Intel(R) Media SDK
-ARG MSDK_REPO=https://github.com/Intel-Media-SDK/MediaSDK/releases/download/intel-mediasdk-19.1.0/MediaStack.tar.gz
-
-RUN wget -O - ${MSDK_REPO} | tar xz && \
-    cd MediaStack && \
-    cp -a opt/. /opt/ && \
-    cp -a etc/. /opt/ && \
-    ldconfig
-
 ENV DEBIAN_FRONTEND="noninteractive" \
-    MFX_HOME=$MFX_HOME:"/opt/intel/mediasdk/" \
-    PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/intel/mediasdk" \
-    GST_VAAPI_ALL_DRIVERS="1" \
-    LIBVA_DRIVERS_PATH=$LIBVA_DRIVERS_PATH:"/opt/intel/mediasdk/lib64:/usr/lib/x86_64-linux-gnu/dri/" \
+    LIBVA_DRIVERS_PATH="/opt/intel/openvino/opt/intel/mediasdk/lib64/" \
     LIBVA_DRIVER_NAME="iHD" \
+    GST_VAAPI_ALL_DRIVERS="1" \
     LD_RUN_PATH="/usr/lib" \
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"/opt/intel/mediasdk/lib64:/opt/intel/mediasdk/lib/:/opt/intel/mediasdk/share/mfx/samples:/usr/local/lib" \
-    LIBRARY_PATH="/usr/lib" \
+    LIBRARY_PATH=$LD_RUN_PATH:$LIBVA_DRIVERS_PATH \
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LIBVA_DRIVERS_PATH:"usr/local/lib" \
+    PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig" \
     TERM="xterm" \
     GST_DEBUG="1"
 
@@ -122,7 +118,7 @@ COPY --from=builder /app/VideoIngestion/schema.json ./VideoIngestion/
 COPY --from=builder /app/VideoIngestion/*.sh ./VideoIngestion/
 COPY --from=builder /app/VideoIngestion/models ./models
 COPY --from=builder /app/VideoIngestion/test_videos ./test_videos
-COPY --from=builder /root/.local/lib/python3.6/site-packages .local/lib/python3.6/site-packages
+COPY --from=builder /root/.local/lib/python3.8/site-packages .local/lib/python3.8/site-packages
 COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc ./VideoIngestion/src-gst-gencamsrc
 COPY --from=builder /app/VideoIngestion/install_gencamsrc_gstreamer_plugin.sh ./VideoIngestion/install_gencamsrc_gstreamer_plugin.sh
 
@@ -131,7 +127,7 @@ RUN cd VideoIngestion && \
      ./install_gencamsrc_gstreamer_plugin.sh
 
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
-ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.6/site-packages
+ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.8/site-packages
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 
 HEALTHCHECK NONE
