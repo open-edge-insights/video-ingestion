@@ -40,7 +40,6 @@ services:
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EII_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
-    network_mode: host
     restart: unless-stopped
     security_opt:
     - no-new-privileges
@@ -52,7 +51,7 @@ services:
       AppName: "VideoIngestion"
       DEV_MODE: ${DEV_MODE}
       PROFILING_MODE: ${PROFILING_MODE}
-      no_proxy: ${eii_no_proxy},${RTSP_CAMERA_IP},${ETCD_HOST}
+      no_proxy: ${RTSP_CAMERA_IP},${ETCD_HOST}
       ETCD_HOST: ${ETCD_HOST}
       ETCD_CLIENT_PORT: ${ETCD_CLIENT_PORT}
       ETCD_PREFIX: ${ETCD_PREFIX}
@@ -62,6 +61,10 @@ services:
       GST_DEBUG: "1,gencamsrc:2"
       # Provisioning related variable
       CertType: "zmq"
+    ports:
+      - 64013:64013
+    networks:
+      - eii
     volumes:
       - "vol_eii_socket:${SOCKET_DIR}"
       - "/dev:/dev"
