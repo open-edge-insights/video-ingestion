@@ -39,7 +39,7 @@ COPY --from=video_common /eii/common/libs ./common/libs
 COPY --from=video_common /eii/common/util ./common/util
 COPY --from=openvino_base /opt/intel /opt/intel
 
-ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 
 # Build Intel® RealSense™ SDK 2.0
 ARG LIBREALSENSE_VER=https://github.com/IntelRealSense/librealsense/archive/v2.41.0.tar.gz
@@ -148,7 +148,7 @@ RUN cd VideoIngestion && \
 
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
 ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.6/site-packages
-ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 
 HEALTHCHECK NONE
 ENTRYPOINT ["./VideoIngestion/vi_start.sh"]
