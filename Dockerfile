@@ -41,27 +41,10 @@ COPY --from=openvino_base /opt/intel /opt/intel
 
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 
-# Build Intel® RealSense™ SDK 2.0
-ARG LIBREALSENSE_VER=https://github.com/IntelRealSense/librealsense/archive/v2.41.0.tar.gz
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    libssl-dev \
-    libusb-1.0-0-dev \
-    libgtk-3-dev \
-    libglfw3-dev \
-    libgl1-mesa-dev \
-    libglu1-mesa-dev \
-    pkg-config && \
+    libglib2.0-dev \
+    libusb-1.0-0-dev && \
     rm -rf /var/lib/apt/lists/*
-
-RUN wget -O - ${LIBREALSENSE_VER} | tar xz && \
-    cd librealsense-2.41.0 && \
-    mkdir build && \
-    cd build && \
-    cmake ../ -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} && \
-    make && \
-    make install
 
 # Copy VideoIngestion source code
 COPY . ./VideoIngestion

@@ -289,84 +289,260 @@ void RealSenseIngestor::read(Frame*& frame) {
             (void*) color.get(), color_width , color_height,
             3, (void*)color.get_data(), free_rs2_frame);
 
-    // Base64 encoded data is about 4/3 times the original data size.
-    // Keeping some additional margin by mul by 5 and then div by 3
-    char* base64_encoded_depth = (char*)malloc((depth.get_data_size()*sizeof(char)*5) / 3);
-    if(base64_encoded_depth == NULL) {
-        const char* err = "Failed to allocate memory for base64_encode";
-        LOG_ERROR("%s", err);
-        throw err;
-    }
+    auto depth_profile = depth.get_profile().as<rs2::video_stream_profile>();
 
-    size_t base64_encoded_depth_len;
-
-    // Base64 enocde the depth frame data
-    LOG_DEBUG_0("Base64 encode the depth frame data");
-    base64_encode(reinterpret_cast<const char*>(depth.get_data()), depth.get_data_size(),
-                  base64_encoded_depth, &base64_encoded_depth_len, BASE64_FORCE_AVX2);
+    auto depth_intrinsics = depth_profile.get_intrinsics();
 
     msgbus_ret_t ret;
 
-    // Add Base64 encoded depth frame to frame metadata
-    msg_envelope_t* rs2_base64_encoded_depth = frame->get_meta_data();
+    msg_envelope_t* rs2_meta = frame->get_meta_data();
 
-    msg_envelope_elem_body_t* e_base64_depth = msgbus_msg_envelope_new_string(base64_encoded_depth);
-    if(e_base64_depth == NULL) {
+    msg_envelope_elem_body_t* e_di_width = msgbus_msg_envelope_new_integer(depth_intrinsics.width);
+    if(e_di_width == NULL) {
         delete frame;
-        const char* err = "Failed to initialize base64 encoded depth frame";
+        const char* err =  "Failed to initialize depth instrinsics width meta-data";
         LOG_ERROR("%s", err);
         throw err;
     }
 
-    ret = msgbus_msg_envelope_put(rs2_base64_encoded_depth, "rs_depth_b64", e_base64_depth);
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_depth_intrinsics_width", e_di_width);
     if(ret != MSG_SUCCESS) {
         delete frame;
-        const char* err = "Failed to put base64 encoded depth frame in meta-data";
+        msgbus_msg_envelope_elem_destroy(e_di_width);
+        const char* err = "Failed to put depth intrinsics width in meta-data";
         LOG_ERROR("%s", err);
         throw err;
     }
 
-    if(base64_encoded_depth != NULL) {
-         free(base64_encoded_depth);
-    }
-
-    msg_envelope_elem_body_t* e_depth_width = msgbus_msg_envelope_new_integer(depth_width);
-    if(e_depth_width == NULL) {
+    msg_envelope_elem_body_t* e_di_height = msgbus_msg_envelope_new_integer(depth_intrinsics.height);
+    if(e_di_height == NULL) {
         delete frame;
-        const char* err =  "Failed to initialize depth frame width meta-data";
+        const char* err =  "Failed to initialize depth instrinsics height meta-data";
         LOG_ERROR("%s", err);
         throw err;
     }
 
-    ret = msgbus_msg_envelope_put(rs2_base64_encoded_depth, "rs2_depth_width", e_depth_width);
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_depth_intrinsics_height", e_di_height);
     if(ret != MSG_SUCCESS) {
         delete frame;
-        msgbus_msg_envelope_elem_destroy(e_depth_width);
-        const char* err = "Failed to put depth frame width in meta-data";
+        msgbus_msg_envelope_elem_destroy(e_di_height);
+        const char* err = "Failed to put depth intrinsics height in meta-data";
         LOG_ERROR("%s", err);
         throw err;
     }
 
-    msg_envelope_elem_body_t* e_depth_height = msgbus_msg_envelope_new_integer(depth_height);
-    if(e_depth_height == NULL) {
+    msg_envelope_elem_body_t* e_di_ppx = msgbus_msg_envelope_new_floating(depth_intrinsics.ppx);
+    if(e_di_ppx == NULL) {
         delete frame;
-        const char* err =  "Failed to initialize depth frame height meta-data";
+        const char* err =  "Failed to initialize depth instrinsics x-principal-point meta-data";
         LOG_ERROR("%s", err);
         throw err;
     }
 
-    ret = msgbus_msg_envelope_put(rs2_base64_encoded_depth, "rs2_depth_height", e_depth_height);
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_depth_intrinsics_ppx", e_di_ppx);
     if(ret != MSG_SUCCESS) {
         delete frame;
-        msgbus_msg_envelope_elem_destroy(e_depth_width);
-        msgbus_msg_envelope_elem_destroy(e_depth_height);
-        const char* err = "Failed to put depth frame height in meta-data";
+        msgbus_msg_envelope_elem_destroy(e_di_ppx);
+        const char* err = "Failed to put depth intrinsics x-principal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_di_ppy = msgbus_msg_envelope_new_floating(depth_intrinsics.ppy);
+    if(e_di_ppy == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize depth instrinsics y-principal-point meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_depth_intrinsics_ppy", e_di_ppy);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_di_ppy);
+        const char* err = "Failed to put depth intrinsics y-principal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_di_fx = msgbus_msg_envelope_new_floating(depth_intrinsics.fx);
+    if(e_di_fx == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize depth instrinsics x-focal-point meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_depth_intrinsics_fx", e_di_fx);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_di_fx);
+        const char* err = "Failed to put depth intrinsics x-focal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_di_fy = msgbus_msg_envelope_new_floating(depth_intrinsics.fy);
+    if(e_di_fy == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize depth instrinsics y-focal-point meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_depth_intrinsics_fy", e_di_fy);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_di_fy);
+        const char* err = "Failed to put depth intrinsics y-focal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+
+    msg_envelope_elem_body_t* e_di_model = msgbus_msg_envelope_new_integer((int)depth_intrinsics.model);
+    if(e_di_model == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize depth instrinsics model meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_depth_intrinsics_model", e_di_model);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_di_model);
+        const char* err = "Failed to put depth intrinsics model in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    auto color_profile = color.get_profile().as<rs2::video_stream_profile>();
+
+    auto color_intrinsics = color_profile.get_intrinsics();
+
+    msg_envelope_elem_body_t* e_ci_width = msgbus_msg_envelope_new_integer(color_intrinsics.width);
+    if(e_ci_width == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize color instrinsics width meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_color_intrinsics_width", e_ci_width);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_ci_width);
+        const char* err = "Failed to put color intrinsics width in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_ci_height = msgbus_msg_envelope_new_integer(color_intrinsics.height);
+    if(e_ci_height == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize color instrinsics height meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_color_intrinsics_height", e_ci_height);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_ci_height);
+        const char* err = "Failed to put color intrinsics height in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_ci_ppx = msgbus_msg_envelope_new_floating(color_intrinsics.ppx);
+    if(e_ci_ppx == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize color instrinsics x-principal-point meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_color_intrinsics_ppx", e_ci_ppx);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_ci_ppx);
+        const char* err = "Failed to put color intrinsics x-principal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_ci_ppy = msgbus_msg_envelope_new_floating(color_intrinsics.ppy);
+    if(e_ci_ppy == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize color instrinsics y-principal-point meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_color_intrinsics_ppy", e_ci_ppy);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_ci_ppy);
+        const char* err = "Failed to put color intrinsics y-principal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_ci_fx = msgbus_msg_envelope_new_floating(color_intrinsics.fx);
+    if(e_ci_fx == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize color instrinsics x-focal-point meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_color_intrinsics_fx", e_ci_fx);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_ci_fx);
+        const char* err = "Failed to put color intrinsics x-focal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_ci_fy = msgbus_msg_envelope_new_floating(color_intrinsics.fy);
+    if(e_ci_fy == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize color instrinsics y-focal-point meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_color_intrinsics_fy", e_ci_fy);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_ci_fy);
+        const char* err = "Failed to put color intrinsics y-focal-point in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_ci_model = msgbus_msg_envelope_new_integer((int)color_intrinsics.model);
+    if(e_ci_model == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize color instrinsics model meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rs2_color_intrinsics_model", e_ci_model);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_ci_model);
+        const char* err = "Failed to put color intrinsics model in meta-data";
         LOG_ERROR("%s", err);
         throw err;
     }
 
     if (m_imu_support) {
         // Add IMU data to frame metadata
+
         msg_envelope_t* rs2_imu_meta_data = frame->get_meta_data();
 
         msg_envelope_elem_body_t* rs2_meta_arr = msgbus_msg_envelope_new_array();

@@ -30,7 +30,6 @@
 #include <eii/utils/thread_safe_queue.h>
 #include "eii/vi/ingestor.h"
 #include <librealsense2/rs.hpp>
-#include <eii/utils/libbase64.h>
 
 
 namespace eii {

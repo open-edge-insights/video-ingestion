@@ -64,6 +64,7 @@ find_package(UDFLoader REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(IntelSafeString REQUIRED)
 find_package(WJE REQUIRED)
+find_package(realsense2 REQUIRED)
 
 ## --- Picked required gRPC related CMake configuration taken from https://github.com/grpc/grpc/blob/master/examples/cpp/helloworld/CMakeLists.txt --- ##
 # Looks for protobuf-config.cmake file installed by Protobuf's cmake installation.
@@ -122,7 +123,7 @@ target_link_libraries(video-ingestion
         ${_REFLECTION}
         ${_GRPC_GRPCPP}
         ${_PROTOBUF_LIBPROTOBUF}
-        realsense2
+        ${realsense2_LIBRARY}
     PRIVATE
         ${ZMQ_LIBRARIES}
         wjelement
