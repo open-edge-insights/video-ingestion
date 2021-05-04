@@ -28,6 +28,12 @@ FROM ${DOCKER_REGISTRY}ia_eiibase:$EII_VERSION as builder
 LABEL description="VideoIngestion image"
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-dev \
+    libusb-1.0-0-dev && \
+    rm -rf /var/lib/apt/lists/*
+
 ARG CMAKE_INSTALL_PREFIX
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_INSTALL_PREFIX}/include
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
@@ -40,11 +46,6 @@ COPY --from=video_common /eii/common/util ./common/util
 COPY --from=openvino_base /opt/intel /opt/intel
 
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-dev \
-    libusb-1.0-0-dev && \
-    rm -rf /var/lib/apt/lists/*
 
 # Copy VideoIngestion source code
 COPY . ./VideoIngestion

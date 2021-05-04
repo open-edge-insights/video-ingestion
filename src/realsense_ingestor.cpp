@@ -540,6 +540,238 @@ void RealSenseIngestor::read(Frame*& frame) {
         throw err;
     }
 
+    auto depth_to_color_extrinsics = depth_profile.get_extrinsics_to(color_profile);
+
+    // Add rs2 extrinsics rotation
+    msg_envelope_elem_body_t* e_rotation_arr = msgbus_msg_envelope_new_array();
+    if (e_rotation_arr == NULL) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_rotation_arr);
+        const char* err = "Failed to allocate rotation array";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r0 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[0]);
+    if(e_r0 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r0);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r1 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[1]);
+    if(e_r1 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r1);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r2 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[2]);
+    if(e_r2 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r2);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r3 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[3]);
+    if(e_r3 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r3);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r4 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[4]);
+    if(e_r4 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r4);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r5 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[5]);
+    if(e_r5 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r5);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r6 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[6]);
+    if(e_r6 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r6);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r7 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[7]);
+    if(e_r7 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r7);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_r8 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.rotation[8]);
+    if(e_r8 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_rotation_arr, e_r8);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add rotation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "rotation_arr", e_rotation_arr);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_rotation_arr);
+        const char* err = "Failed to put rotation array in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    // Add rs2 extrinsics translation
+    msg_envelope_elem_body_t* e_translation_arr = msgbus_msg_envelope_new_array();
+    if (e_translation_arr == NULL) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_translation_arr);
+        const char* err = "Failed to allocate translation array";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_t0 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.translation[0]);
+    if(e_t0 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize translation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_translation_arr, e_t0);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add translation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_t1 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.translation[1]);
+    if(e_t1 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize translation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_translation_arr, e_t1);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add translation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    msg_envelope_elem_body_t* e_t2 = msgbus_msg_envelope_new_floating(depth_to_color_extrinsics.translation[2]);
+    if(e_t2 == NULL) {
+        delete frame;
+        const char* err =  "Failed to initialize translation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_elem_array_add(e_translation_arr, e_t2);
+    if (ret != MSG_SUCCESS) {
+        delete frame;
+        const char* err =  "Failed to add translation meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
+    ret = msgbus_msg_envelope_put(rs2_meta, "translation_arr", e_translation_arr);
+    if(ret != MSG_SUCCESS) {
+        delete frame;
+        msgbus_msg_envelope_elem_destroy(e_translation_arr);
+        const char* err = "Failed to put translation array in meta-data";
+        LOG_ERROR("%s", err);
+        throw err;
+    }
+
     if (m_imu_support) {
         // Add IMU data to frame metadata
 

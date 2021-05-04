@@ -59,7 +59,7 @@ services:
       # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
       GENICAM: "Matrix_Vision"
       # Setting the GST log levels
-      GST_DEBUG: "1,gencamsrc:1"
+      GST_DEBUG: "1,gencamsrc:2"
       # Provisioning related variable
       CertType: "zmq"
     volumes:
