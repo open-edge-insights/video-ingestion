@@ -1,0 +1,5 @@
+config:
+    video_ingestion:
+      name: videoingestion
+      publish_port: 65012
+      server_port: 66013
