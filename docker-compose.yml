@@ -36,6 +36,7 @@ services:
         CMAKE_BUILD_TYPE: "Release"
         CMAKE_INSTALL_PREFIX: ${EII_INSTALL_PATH}
         DOCKER_REGISTRY: ${DOCKER_REGISTRY}
+        OPENVINO_IMAGE_VERSION: ${OPENVINO_IMAGE_VERSION}
         RUN_TESTS: "OFF"
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EII_VERSION}
     container_name: ia_video_ingestion
