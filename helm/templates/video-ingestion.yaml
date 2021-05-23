@@ -70,7 +70,7 @@ spec:
         - name: DEV_MODE
           value: '{{ .Values.env.dev_mode }}'
         - name: PROFILING_MODE
-          value: 'false'
+          value: '{{ .Values.env.PROFILING_MODE }}'
         - name: ETCD_HOST
           value: {{ .Values.config.etcd.name }}
         - name: ETCD_CLIENT_PORT
