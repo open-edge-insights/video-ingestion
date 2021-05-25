@@ -403,6 +403,19 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       }
       ```
 
+    **Note**: Please make sure you are using appropriate UDF configuration. In case if you are not getting expected output
+    in the Visualizer/WebVisualizer screen (camera output always shows 'disconnected'), you may try using 'dummy' udf.
+    The 'dummy' udf won't do any analytics on the video and hence won't filter any of the video frames.
+    You will, therefore, see the video streamed by the camera as it is on the video output screen in Visualizer/WebVisualizer.
+    You may configure the 'dummy' UDF as below:
+
+      ```javascript
+        "udfs": [{
+            "name": "dummy",
+            "type": "python"
+        }]
+      ```
+    You will also need to make the same changes in VideoAnalytics configuration as well.
   **Refer [docs/usb_doc.md](docs/usb_doc.md) for more information/configurations on usb camera.**
 
   ----
