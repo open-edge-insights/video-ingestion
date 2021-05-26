@@ -28,7 +28,7 @@ fi
 case $genicam in
     # Matrix Vision camera GenTL producer
     "Matrix_Vision")
-        export GENICAM_GENTL64_PATH=/opt/mvIMPACT_Acquire/lib/x86_64/
+        export GENICAM_GENTL64_PATH=/opt/mvIMPACT_Acquire/lib/x86_64
         ;;
 
     # Add case statement for exporting newer GenTL producer

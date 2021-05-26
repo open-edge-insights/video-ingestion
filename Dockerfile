@@ -48,14 +48,17 @@ COPY --from=openvino_base /opt/intel /opt/intel
 
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    automake \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libtool \
+    make && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy VideoIngestion source code
 COPY . ./VideoIngestion
 ARG WITH_PROFILE
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev && \
-    rm -rf /var/lib/apt/lists/*
 
 # Build VideoIngestion application
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
@@ -66,18 +69,16 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
                   cmake -DCMAKE_INSTALL_INCLUDEDIR=${CMAKE_INSTALL_PREFIX}/include -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DWITH_PROFILE=${WITH_PROFILE} .. && \
                   make"
 
+# Installing Generic Plugin
+RUN cd VideoIngestion && \
+     ./install_gencamsrc_gstreamer_plugin.sh
+
 FROM openvino/ubuntu20_data_runtime:$OPENVINO_IMAGE_VERSION as runtime
 USER root
+
 ARG EII_UID
 ARG EII_USER_NAME
 RUN useradd -r -u ${EII_UID} -G video ${EII_USER_NAME}
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    automake \
-    iproute2 \
-    libtool \
-    wget && \
-    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -97,6 +98,12 @@ ENV DEBIAN_FRONTEND="noninteractive" \
 ### VideoIngestion directory and use the COPY instruction to use it in the build context.
 
 # Installing Matrix Vision Camera SDK
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    iproute2 \
+    net-tools \
+    wget && \
+    rm -rf /var/lib/apt/lists/*
+
 ARG MATRIX_VISION_SDK_VER=2.38.0
 
 RUN mkdir -p matrix_vision_downloads && \
@@ -107,7 +114,7 @@ RUN mkdir -p matrix_vision_downloads && \
     ./install_mvGenTL_Acquire.sh && \
     rm -rf matrix_vision_downloads
 
-## To install other/newer Genicam camera SDKs add the installation steps here
+### To install other/newer Genicam camera SDKs add the installation steps here
 
 ARG CMAKE_INSTALL_PREFIX
 COPY --from=builder ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
@@ -119,14 +126,10 @@ COPY --from=builder /app/VideoIngestion/*.sh ./VideoIngestion/
 COPY --from=builder /app/VideoIngestion/models ./models
 COPY --from=builder /app/VideoIngestion/test_videos ./test_videos
 COPY --from=builder /root/.local/lib/python3.8/site-packages .local/lib/python3.8/site-packages
-COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc ./VideoIngestion/src-gst-gencamsrc
-COPY --from=builder /app/VideoIngestion/install_gencamsrc_gstreamer_plugin.sh ./VideoIngestion/install_gencamsrc_gstreamer_plugin.sh
-
-# Installing Generic Plugin
-RUN cd VideoIngestion && \
-     ./install_gencamsrc_gstreamer_plugin.sh
-
+COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc/plugins/genicam-core/genicam/bin/*.so /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/local/lib/gstreamer-1.0 /usr/local/lib/gstreamer-1.0
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
+
 ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.8/site-packages
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 

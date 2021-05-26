@@ -301,23 +301,25 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
   **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
 
   ----
-* `Basler Camera`
-  Gige cameras need the ingestion code to be running in the same subnet as the camera. So the Video Ingestion container need to be run in network_mode host.
-  User needs to modify [docker-compose.yml](./docker-compose.yml) file as following:
+* `Generic Plugin`
+
+  **Pre-requisities for working with GenICam compliant GigE cameras:**
+
+  GigeE cameras need Video Ingestion service to be running in the same subnet as the camera. So Video Ingestion service need to be run in network_mode host and eii networks must be removed. Please follow the below steps to do the changes.
+
+  * Add network_mode host in [docker-compose.yml](./docker-compose.yml) file:
 
   ```yaml
     ia_video_ingestion:
     ...
       environment:
       ...
-        no_proxy: "${RTSP_CAMERA_IP},${HOST_IP}"
-        ETCD_HOST: "<Master node ip address>"
+        no_proxy: "${RTSP_CAMERA_IP},${ETCD_HOST}"
+      ...
       network_mode: host
   ```
-  **Note:**
-  In multi-node scenario, replace ${HOST_IP} in "no_proxy" with master node IP address.
 
-  Remove eii network section from [docker-compose.yml](./docker-compose.yml) file:
+  * Remove eii network section from [docker-compose.yml](./docker-compose.yml) file:
 
   ```yaml
     ia_video_ingestion:
@@ -326,7 +328,21 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
         - eii
   ```
 
-  In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
+  * Add HOST_IP to no_proxy and ETCD_HOST in [docker-compose.yml](./docker-compose.yml) file:
+
+  ```yaml
+    ia_video_ingestion:
+    ...
+      environment:
+      ...
+      no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
+      ETCD_HOST: "<HOST_IP>"
+      ...
+   ```
+
+  **Note:**
+  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with master node IP address.
+  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
   * `Gstreamer Ingestor`
 
