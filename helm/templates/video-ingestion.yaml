@@ -18,98 +18,116 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+{{- $global := . -}}
+{{- range $instance_idx := until (int .Values.num_of_instances) -}}
+{{- $instance := "" }}
+{{- $publish_port := "" }}
+{{- $server_port := "" }}
+{{- if eq (int $global.Values.num_of_instances) 1 }}
+{{- $publish_port = $global.Values.config.video_ingestion.publish_port }}
+{{- $server_port = $global.Values.config.video_ingestion.server_port }}
+{{- $instance = "" }}
+{{- end }}
+{{- if gt (int $global.Values.num_of_instances) 1 }}
+{{- $publish_port = add $global.Values.config.video_ingestion.publish_port $instance_idx }}
+{{- $server_port = add $global.Values.config.video_ingestion.server_port  $instance_idx }}
+{{- $instance = add 1 $instance_idx }}
+{{- end }}
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.config.video_ingestion.name }}
-  namespace: {{ .Values.namespace }}
+  name: {{ $global.Values.config.video_ingestion.name }}{{ $instance }}
+  namespace: {{ $global.Values.namespace }}
 spec:
   ports:
-  - port: {{ .Values.config.video_ingestion.publish_port }}
+  - port: {{ $publish_port }}
     name: tcp
   selector:
-    app: video
+    app: video{{ $instance }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: video
-  name: deployment-video-ingestion
-  namespace: {{ .Values.namespace }}
+    app: video{{ $instance }}
+  name: deployment-video-ingestion{{ $instance }}
+  namespace: {{ $global.Values.namespace }}
 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: video
+      app: video{{ $instance }}
   template:
     metadata:
       labels:
-        app: video
+        app: video{{ $instance }}
         
     spec:
       containers:
-      - name: ia-video-ingestion
-        image: {{ .Values.registry }}ia_video_ingestion:{{ .Values.eii_version }}
-        imagePullPolicy: {{ .Values.imagePullPolicy }}
+      - name: ia-video-ingestion{{ $instance }}
+        image: {{ $global.Values.registry }}ia_video_ingestion:{{ $global.Values.eii_version }}
+        imagePullPolicy: {{ $global.Values.imagePullPolicy }}
         securityContext:
           privileged: true
         volumeMounts:
         - name: eii-dev
           mountPath: /dev
-        - name: {{ .Values.volumes.eii_socket.name }}
-          mountPath: {{ .Values.volumes.eii_socket.location }}
-        {{ if eq .Values.env.dev_mode false}}
+        - name: {{ $global.Values.volumes.eii_socket.name }}
+          mountPath: {{ $global.Values.volumes.eii_socket.location }}
+        {{ if eq $global.Values.env.dev_mode false}}
         - name: etcd-certs
           mountPath: /run/secrets/etcd/
         {{ end }}
         env:
         - name: AppName
-          value: "VideoIngestion"
+          value: "VideoIngestion{{ $instance }}"
         - name: DEV_MODE
-          value: '{{ .Values.env.dev_mode }}'
+          value: '{{ $global.Values.env.dev_mode }}'
         - name: PROFILING_MODE
-          value: '{{ .Values.env.PROFILING_MODE }}'
+          value: '{{ $global.Values.env.PROFILING_MODE }}'
         - name: ETCD_HOST
-          value: {{ .Values.config.etcd.name }}
+          value: {{ $global.Values.config.etcd.name }}
         - name: ETCD_CLIENT_PORT
-          value: '{{ .Values.config.etcd.client_port }}'
+          value: '{{ $global.Values.config.etcd.client_port }}'
         - name:  ETCD_PREFIX
           value: ''
         - name:  GENICAM
           value: 'Matrix_Vision'
         - name: PUBLISHER_ENDPOINT
-          value: "0.0.0.0:{{ .Values.config.video_ingestion.publish_port }}"
+          value: "0.0.0.0:{{ $publish_port }}"
         - name: PUBLISHER_TYPE
           value: "zmq_tcp"
         - name: SERVER_ENDPOINT
-          value: "0.0.0.0:{{ .Values.config.video_ingestion.server_port }}"
-        {{ if eq .Values.env.dev_mode false}}
+          value: "0.0.0.0:{{ $server_port }}"
+        {{ if eq $global.Values.env.dev_mode false}}
         - name: CONFIGMGR_CACERT
           value: "/run/secrets/etcd/ca_certificate.pem"
         - name: CONFIGMGR_CERT
-          value: "/run/secrets/etcd/VideoIngestion_client_certificate.pem"
+          value: "/run/secrets/etcd/VideoIngestion{{ $instance }}_client_certificate.pem"
         - name: CONFIGMGR_KEY
-          value: "/run/secrets/etcd/VideoIngestion_client_key.pem"
+          value: "/run/secrets/etcd/VideoIngestion{{ $instance }}_client_key.pem"
         {{ end }}
 
       volumes:
       - name: eii-dev
         hostPath:
           path: /dev
-      - name: {{ .Values.volumes.eii_socket.name }}
+      - name: {{ $global.Values.volumes.eii_socket.name }}
         persistentVolumeClaim:
-          claimName: {{ .Values.volumes.eii_socket.name }}
-      {{ if eq .Values.env.dev_mode false}}
+          claimName: {{ $global.Values.volumes.eii_socket.name }}
+      {{ if eq $global.Values.env.dev_mode false}}
       - name: etcd-certs
         secret:
           secretName: eii-certs
           items:
           - key: ca_certificate.pem
             path: ca_certificate.pem
-          - key: VideoIngestion_client_certificate.pem
-            path: VideoIngestion_client_certificate.pem
-          - key: VideoIngestion_client_key.pem
-            path: VideoIngestion_client_key.pem
+          - key: VideoIngestion{{ $instance }}_client_certificate.pem
+            path: VideoIngestion{{ $instance }}_client_certificate.pem
+          - key: VideoIngestion{{ $instance }}_client_key.pem
+            path: VideoIngestion{{ $instance }}_client_key.pem
       {{ end }}
+---
+{{- end }}
