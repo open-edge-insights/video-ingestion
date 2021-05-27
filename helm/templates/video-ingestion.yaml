@@ -19,16 +19,16 @@
 # SOFTWARE.
 
 {{- $global := . -}}
-{{- range $instance_idx := until (int .Values.num_of_instances) -}}
+{{- range $instance_idx := until (int .Values.num_video_instances) -}}
 {{- $instance := "" }}
 {{- $publish_port := "" }}
 {{- $server_port := "" }}
-{{- if eq (int $global.Values.num_of_instances) 1 }}
+{{- if eq (int $global.Values.num_video_instances) 1 }}
 {{- $publish_port = $global.Values.config.video_ingestion.publish_port }}
 {{- $server_port = $global.Values.config.video_ingestion.server_port }}
 {{- $instance = "" }}
 {{- end }}
-{{- if gt (int $global.Values.num_of_instances) 1 }}
+{{- if gt (int $global.Values.num_video_instances) 1 }}
 {{- $publish_port = add $global.Values.config.video_ingestion.publish_port $instance_idx }}
 {{- $server_port = add $global.Values.config.video_ingestion.server_port  $instance_idx }}
 {{- $instance = add 1 $instance_idx }}
