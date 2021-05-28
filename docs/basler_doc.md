@@ -57,13 +57,17 @@
 
   * With respect to hardware triggering if the camera supports it then an electrical signal can be applied to one of the camera's input lines which can act as a trigger signal.
 
-  * In order to configure the camera for hardware triggering, trigger mode must be enabled and the right trigger source depending on the Hardware Setup must be specified.
+  * In order to configure the camera for hardware triggering, during our tests we set the following properties of Generic Plugin.
 
-  * Trigger mode is enabled by setting the `continuous` property to `false` and based on the h/w setup, the right trigger source needs to be set for `triggersource` property
+    * `trigger-selector=FrameStart` - the camera initializes the acquisition of only image
+    * `acquisition-mode=singleframe` - the camera will acquire exactly one image
+    * `trigger-source=Line1` - the appropriate H/W trigger source needs to be selected
+    * `trigger-activation=RisingEdge` - the approriate trigger activation parameter need to be selected
+    * `hw-trigger-timeout=100` - the H/W trigger timeout value in seconds in multiples of 5
+
+    For more information on the properties related to hardware triggering refer [Generic-Plugin-readme](../src-gst-gencamsrc/README)
 
   `Validated test setup for basler camera hardware triggering`
-
-  * In case of trigger mode the maximum time to wait for the hardware trigger to get generated can be set (in milliseconds) using the ` hwtriggertimeout` property.
 
   * In our test setup a python script was used to control a ModBus I/O module to generate a digital output to Opto-insulated input line(Line1) of the basler camera.
 
