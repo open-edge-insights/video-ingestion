@@ -269,9 +269,12 @@ GstreamerIngestor* ctx) {
                 GstreamerFrame* gst_frame = new GstreamerFrame(
                         sample, buf, info);
 
+                char** data = (char**)malloc(sizeof(char*));
+                data[0] = (char*)info->data;
+
                 Frame* frame = new Frame(
                         (void*) gst_frame, (int) width, (int) height, 3,
-                        info->data, free_gst_frame);
+                        (void**) data, free_gst_frame, 1);
 
                 //Get the GVA metadata from the GST buffer
                 GVA::RegionOfInterestList roi_list(buf);

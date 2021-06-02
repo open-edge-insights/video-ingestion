@@ -256,9 +256,12 @@ void OpenCvIngestor::read(Frame*& frame) {
 
     LOG_DEBUG_0("Frame read successfully");
 
+    char** data = (char**)malloc(sizeof(char*));
+    data[0] = (char*)cv_frame->data;
+
     frame = new Frame(
             (void*) cv_frame, cv_frame->cols, cv_frame->rows,
-            cv_frame->channels(), cv_frame->data, free_cv_frame);
+            cv_frame->channels(), (void**) data, free_cv_frame, 1);
 
     if(m_poll_interval > 0) {
         usleep(m_poll_interval * 1000 * 1000);

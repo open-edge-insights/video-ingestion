@@ -279,6 +279,10 @@ void RealSenseIngestor::read(Frame*& frame) {
     // Retrieve the first depth frame
     rs2::depth_frame depth = data.get_depth_frame();
 
+    char** rs_data = (char**)malloc(sizeof(char*));
+    rs_data[0] = (char*)color.get_data();
+    rs_data[1] = (char*)depth.get_data();
+
     // Query frame width and height
     const int color_width = color.get_width();
     const int color_height = color.get_height();
@@ -287,13 +291,19 @@ void RealSenseIngestor::read(Frame*& frame) {
 
     frame = new Frame(
             (void*) color.get(), color_width , color_height,
-            3, (void*)color.get_data(), free_rs2_frame);
+            3, (void**) rs_data, free_rs2_frame, 2);
 
     auto depth_profile = depth.get_profile().as<rs2::video_stream_profile>();
 
     auto depth_intrinsics = depth_profile.get_intrinsics();
 
     msgbus_ret_t ret;
+
+    // No encoding for depth frame
+    bool result = frame->set_multi_frame_parameters(1, depth_width, depth_height, 3, "none", 100);
+    if (result != true) {
+        throw "Failed to set multi frame parameters";
+    }
 
     msg_envelope_t* rs2_meta = frame->get_meta_data();
 
