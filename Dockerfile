@@ -129,6 +129,7 @@ COPY --from=builder /root/.local/lib/python3.8/site-packages .local/lib/python3.
 COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc/plugins/genicam-core/genicam/bin/*.so /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /usr/local/lib/gstreamer-1.0 /usr/local/lib/gstreamer-1.0
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
+COPY --from=video_common /root/.local/lib .local/lib
 
 ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.8/site-packages
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
