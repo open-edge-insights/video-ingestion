@@ -341,7 +341,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
    ```
 
   **Note:**
-  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with master node IP address.
+  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
   * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
   * `Gstreamer Ingestor`
