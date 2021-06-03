@@ -24,6 +24,7 @@ services:
 ## Define VideoIngestion service
   ia_video_ingestion:
     depends_on:
+      - ia_video_common
       - ia_openvino_base
     build:
       context: $PWD/../VideoIngestion
