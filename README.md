@@ -159,7 +159,8 @@ Below is the JSON schema for app's config:
               "type": "string",
               "enum": [
                 "native",
-                "python"
+                "python",
+                "raw_native"
               ]
             },
             "name": {
@@ -467,7 +468,18 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
        "ingestor": {
             "type": "realsense",
             "serial": "<DEVICE_SERIAL_NUMBER>",
+            "framerate": 30
             "imu_on": true
         },
      ```
-  **Note**: RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
+  **Note**
+
+  *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
+
+  *  RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
+
+  *  If `serial` config is not provided then the first realsense camera in the device list will be connected.
+
+  *  If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
+
+  * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.

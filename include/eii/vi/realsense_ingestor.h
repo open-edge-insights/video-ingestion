@@ -31,7 +31,6 @@
 #include "eii/vi/ingestor.h"
 #include <librealsense2/rs.hpp>
 
-
 namespace eii {
     namespace vi {
 
@@ -63,6 +62,9 @@ namespace eii {
 
             // Flag for IMU suppport
             bool m_imu_support;
+
+            // Framerate
+            int m_framerate;
 
         protected:
             /**

@@ -38,6 +38,7 @@ using namespace eii::udf;
 
 #define SERIAL "serial"
 #define IMU "imu_on"
+#define FRAMERATE "framerate"
 #define UUID_LENGTH 5
 
 RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl):
@@ -46,6 +47,7 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
     m_initialized.store(true);
     m_imu_on = false;
     m_imu_support = false;
+    m_framerate = 0;
 
     const auto dev_list = m_ctx.query_devices();
     if(dev_list.size() == 0) {
@@ -97,27 +99,42 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
             }
         }
     }
-
     LOG_INFO("Device Serial: %s", m_serial.c_str());
+
+    // Get framerate config value
+    config_value_t* cvt_framerate = config->get_config_value(config->cfg, FRAMERATE);
+    if(cvt_framerate != NULL) {
+        if(cvt_framerate->type != CVT_INTEGER) {
+            const char* err = "framerate must be an integer";
+            LOG_ERROR("%s", err);
+            config_value_destroy(cvt_framerate);
+            throw(err);
+        }
+        m_framerate = cvt_framerate->body.integer;
+        config_value_destroy(cvt_framerate);
+    } else if(cvt_framerate == NULL) {
+        m_framerate = 30;
+    }
+    LOG_INFO("Framerate: %d", m_framerate);
 
     // Enable streaming configuration
     m_cfg.enable_device(m_serial);
-    m_cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_RGB8);
-    m_cfg.enable_stream(RS2_STREAM_DEPTH, RS2_FORMAT_Z16);
+    m_cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_RGB8, m_framerate);
+    m_cfg.enable_stream(RS2_STREAM_DEPTH, RS2_FORMAT_Z16, m_framerate);
 
     //TODO: Verify pose stream from tracking camera
 
-    config_value_t* cvt_loop_video = config->get_config_value(
+    config_value_t* cvt_imu = config->get_config_value(
             config->cfg, IMU);
-    if(cvt_loop_video != NULL) {
-        if(cvt_loop_video->type != CVT_BOOLEAN) {
+    if(cvt_imu != NULL) {
+        if(cvt_imu->type != CVT_BOOLEAN) {
             LOG_ERROR_0("IMU must be a boolean");
-            config_value_destroy(cvt_loop_video);
+            config_value_destroy(cvt_imu);
         }
-        if(cvt_loop_video->body.boolean) {
+        if(cvt_imu->body.boolean) {
             m_imu_on = true;
         }
-        config_value_destroy(cvt_loop_video);
+        config_value_destroy(cvt_imu);
     }
 
     if(m_imu_on) {
@@ -935,7 +952,7 @@ void RealSenseIngestor::read(Frame*& frame) {
     }
 
     if(m_poll_interval > 0) {
-        usleep(m_poll_interval * 1000 * 1000);
+        LOG_WARN("poll_interval not supported in realsense ingestor please use framerate config");
     }
 }
 
