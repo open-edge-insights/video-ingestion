@@ -71,18 +71,34 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
         }
 
         m_serial = std::string(cvt_serial->body.string);
-        LOG_DEBUG("Device Serial: %s", m_serial.c_str());
         config_value_destroy(cvt_serial);
 
+        // Verify serial number when single device is connected
         if(dev_list.size() == 1 && m_serial != first_serial) {
             const char* err = "Input serial not matching with RealSence Device Serial";
             LOG_ERROR("%s", err);
             throw(err);
         }
 
-        // TODO: Verify with multi cam scenario
+        // Verify serial number when multiple devices are connected
+        if(dev_list.size() > 1) {
+            bool serial_found = false;
+            for(int i = 0; i <= dev_list.size(); i++) {
+                if (m_serial == std::string(dev_list[i].get_info(RS2_CAMERA_INFO_SERIAL_NUMBER))) {
+                    serial_found = true;
+                    break;
+                }
+            }
 
+            if(!serial_found) {
+                const char* err = "Input serial not matching with RealSence Device Serial";
+                LOG_ERROR("%s", err);
+                throw(err);
+            }
+        }
     }
+
+    LOG_INFO("Device Serial: %s", m_serial.c_str());
 
     // Enable streaming configuration
     m_cfg.enable_device(m_serial);
