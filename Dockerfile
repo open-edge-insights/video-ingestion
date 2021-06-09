@@ -133,6 +133,9 @@ COPY --from=video_common /root/.local/lib .local/lib
 
 ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.8/site-packages
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
+RUN chown ${EII_USER_NAME}:${EII_USER_NAME} /app /var/tmp
+RUN usermod -a -G users ${EII_USER_NAME}
+USER ${EII_USER_NAME}
 
 HEALTHCHECK NONE
 ENTRYPOINT ["./VideoIngestion/vi_start.sh"]
