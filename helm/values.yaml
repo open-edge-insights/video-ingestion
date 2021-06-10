@@ -4,3 +4,6 @@ config:
       publish_port: 65012
       server_port: 66013
       IPC: false
+      gige_camera: false
+      # set the accelerator as ncs2 or hddl
+      accelerator: ""
