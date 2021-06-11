@@ -37,7 +37,7 @@ services:
         CMAKE_BUILD_TYPE: "Release"
         CMAKE_INSTALL_PREFIX: ${EII_INSTALL_PATH}
         DOCKER_REGISTRY: ${DOCKER_REGISTRY}
-        OPENVINO_IMAGE_VERSION: ${OPENVINO_IMAGE_VERSION}
+        OPENVINO_IMAGE: ${OPENVINO_IMAGE}
         RUN_TESTS: "OFF"
     image: ${DOCKER_REGISTRY}ia_video_ingestion:${EII_VERSION}
     container_name: ia_video_ingestion
@@ -70,7 +70,6 @@ services:
       - eii
     volumes:
       - "vol_eii_socket:${SOCKET_DIR}"
-      - "/dev:/dev"
       - "/var/tmp:/var/tmp"
     privileged: true
 
@@ -82,7 +81,7 @@ services:
       # Selective mount can be done for deployment
       - "/dev/dri:/dev/dri"
       - "/dev/ion:/dev/ion"
-      - "/dev/bus/usb: /dev/bus/usb"  
+      - "/dev/bus/usb: /dev/bus/usb"
     secrets:
       - ca_etcd
       - etcd_VideoIngestion_cert

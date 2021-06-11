@@ -22,7 +22,7 @@
 
 ARG EII_VERSION
 ARG DOCKER_REGISTRY
-ARG OPENVINO_IMAGE_VERSION
+ARG OPENVINO_IMAGE
 FROM ${DOCKER_REGISTRY}ia_video_common:$EII_VERSION as video_common
 FROM ${DOCKER_REGISTRY}ia_openvino_base:$EII_VERSION as openvino_base
 FROM ${DOCKER_REGISTRY}ia_eiibase:$EII_VERSION as builder
@@ -31,8 +31,13 @@ LABEL description="VideoIngestion image"
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    automake \
     libglib2.0-dev \
-    libusb-1.0-0-dev && \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libusb-1.0-0-dev \
+    libtool \
+    make && \
     rm -rf /var/lib/apt/lists/*
 
 ARG CMAKE_INSTALL_PREFIX
@@ -47,14 +52,6 @@ COPY --from=video_common /eii/common/util ./common/util
 COPY --from=openvino_base /opt/intel /opt/intel
 
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    automake \
-    libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev \
-    libtool \
-    make && \
-    rm -rf /var/lib/apt/lists/*
 
 # Copy VideoIngestion source code
 COPY . ./VideoIngestion
@@ -73,7 +70,8 @@ RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
 RUN cd VideoIngestion && \
      ./install_gencamsrc_gstreamer_plugin.sh
 
-FROM openvino/ubuntu20_data_runtime:$OPENVINO_IMAGE_VERSION as runtime
+FROM ${OPENVINO_IMAGE} AS runtime
+
 USER root
 
 ARG EII_UID
