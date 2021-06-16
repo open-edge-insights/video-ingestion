@@ -180,8 +180,6 @@ void RealSenseIngestor::run(bool snapshot_mode) {
         while (!m_stop.load()) {
             this->read(frame);
 
-            // Adding image handle to frame
-            std::string randuuid = generate_image_handle(UUID_LENGTH);
             msg_envelope_t* meta_data = frame->get_meta_data();
             // Profiling start
             DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
@@ -212,22 +210,6 @@ void RealSenseIngestor::run(bool snapshot_mode) {
             }
             elem = NULL;
             LOG_DEBUG("Frame number: %ld", frame_count);
-
-            elem = msgbus_msg_envelope_new_string(randuuid.c_str());
-            if (elem == NULL) {
-                delete frame;
-                const char* err = "Failed to create image handle element";
-                LOG_ERROR("%s", err);
-                throw err;
-            }
-            ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
-            if(ret != MSG_SUCCESS) {
-                delete frame;
-                const char* err = "Failed to put image handle in meta-data";
-                LOG_ERROR("%s", err);
-                throw err;
-            }
-            elem = NULL;
 
             // Profiling start
             DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_entry")
@@ -312,10 +294,6 @@ void RealSenseIngestor::read(Frame*& frame) {
     // Retrieve the first depth frame
     rs2::depth_frame depth = data.get_depth_frame();
 
-    char** rs_data = (char**)malloc(sizeof(char*));
-    rs_data[0] = (char*)color.get_data();
-    rs_data[1] = (char*)depth.get_data();
-
     // Query frame width and height
     const int color_width = color.get_width();
     const int color_height = color.get_height();
@@ -323,20 +301,16 @@ void RealSenseIngestor::read(Frame*& frame) {
     const int depth_height = depth.get_height();
 
     frame = new Frame(
-            (void*) color.get(), color_width , color_height,
-            3, (void**) rs_data, free_rs2_frame, 2);
+            (void*) color.get(), free_rs2_frame, (void*) color.get_data(),
+            color_width , color_height, 3);
+    frame->add_frame((void*) depth.get(), free_rs2_frame, (void*) depth.get_data(),
+            depth_width, depth_height, 3, EncodeType::NONE, 0);
 
     auto depth_profile = depth.get_profile().as<rs2::video_stream_profile>();
 
     auto depth_intrinsics = depth_profile.get_intrinsics();
 
     msgbus_ret_t ret;
-
-    // No encoding for depth frame
-    bool result = frame->set_multi_frame_parameters(1, depth_width, depth_height, 3, "none", 100);
-    if (result != true) {
-        throw "Failed to set multi frame parameters";
-    }
 
     msg_envelope_t* rs2_meta = frame->get_meta_data();
 

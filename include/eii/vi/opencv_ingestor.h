@@ -55,6 +55,8 @@ namespace eii {
             // video loop option
             bool m_loop_video;
 
+            bool m_double_frames;
+
         protected:
             /**
              * Overridden run method.

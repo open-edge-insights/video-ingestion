@@ -49,7 +49,20 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
     m_cap = NULL;
     m_encoding = false;
     m_loop_video = false;
+    m_double_frames = false;
     m_initialized.store(true);
+
+    config_value_t* cvt_double = config_get(config, "double_frames");
+    if (cvt_double != NULL) {
+        LOG_DEBUG_0("DOUBLING FRAMES");
+        if (cvt_double->type != CVT_BOOLEAN) {
+            config_value_destroy(cvt_double);
+            LOG_ERROR_0("double_frames must be a boolean");
+            throw "ERROR";
+        }
+        m_double_frames = cvt_double->body.boolean;
+        config_value_destroy(cvt_double);
+    }
 
     config_value_t* cvt_pipeline = config->get_config_value(config->cfg, PIPELINE);
     LOG_INFO("cvt_pipeline initialized");
@@ -115,8 +128,6 @@ void OpenCvIngestor::run(bool snapshot_mode) {
         while (!m_stop.load()) {
             this->read(frame);
 
-            // Adding image handle to frame
-            std::string randuuid = generate_image_handle(UUID_LENGTH);
             msg_envelope_t* meta_data = frame->get_meta_data();
             // Profiling start
             DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
@@ -147,22 +158,6 @@ void OpenCvIngestor::run(bool snapshot_mode) {
             }
             elem = NULL;
             LOG_DEBUG("Frame number: %ld", frame_count);
-
-            elem = msgbus_msg_envelope_new_string(randuuid.c_str());
-            if (elem == NULL) {
-                delete frame;
-                const char* err = "Failed to create image handle element";
-                LOG_ERROR("%s", err);
-                throw err;
-            }
-            ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
-            if(ret != MSG_SUCCESS) {
-                delete frame;
-                const char* err = "Failed to put image handle in meta-data";
-                LOG_ERROR("%s", err);
-                throw err;
-            }
-            elem = NULL;
 
             // Profiling start
             DO_PROFILING(this->m_profile, meta_data, "ts_filterQ_entry")
@@ -221,6 +216,7 @@ void OpenCvIngestor::run(bool snapshot_mode) {
 void OpenCvIngestor::read(Frame*& frame) {
 
     cv::Mat* cv_frame = new cv::Mat();
+    cv::Mat* frame_copy = NULL;
 
     if (m_cap == NULL) {
         m_cap = new cv::VideoCapture(m_pipeline);
@@ -256,12 +252,18 @@ void OpenCvIngestor::read(Frame*& frame) {
 
     LOG_DEBUG_0("Frame read successfully");
 
-    char** data = (char**)malloc(sizeof(char*));
-    data[0] = (char*)cv_frame->data;
-
     frame = new Frame(
-            (void*) cv_frame, cv_frame->cols, cv_frame->rows,
-            cv_frame->channels(), (void**) data, free_cv_frame, 1);
+            (void*) cv_frame, free_cv_frame, (void*) cv_frame->data,
+            cv_frame->cols, cv_frame->rows, cv_frame->channels());
+
+    if (m_double_frames) {
+        frame_copy = new cv::Mat();
+        *frame_copy = cv_frame->clone();
+        frame->add_frame(
+            (void*) frame_copy, free_cv_frame, (void*) frame_copy->data,
+            frame_copy->cols, frame_copy->rows, frame_copy->channels(),
+            EncodeType::NONE, 0);
+    }
 
     if(m_poll_interval > 0) {
         usleep(m_poll_interval * 1000 * 1000);

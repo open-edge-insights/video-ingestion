@@ -158,12 +158,6 @@ namespace eii {
                  */
                 virtual void read(udf::Frame*& frame) = 0;
 
-                /**
-                 * Method to generate random uuid to set image handle
-                 * for every frame.
-                 */
-                std::string generate_image_handle(const int len);
-
             public:
                 /**
                  * Constructor

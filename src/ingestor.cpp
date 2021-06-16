@@ -107,18 +107,3 @@ Ingestor* eii::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const
     }
     return ingestor;
 }
-
-std::string Ingestor::generate_image_handle(const int len) {
-    std::stringstream ss;
-    for (auto i = 0; i < len; i++) {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, 255);
-        const auto rc = dis(gen);
-        std::stringstream hexstream;
-        hexstream << std::hex << rc;
-        auto hex = hexstream.str();
-        ss << (hex.length() < 2 ? '0' + hex : hex);
-    }
-    return ss.str();
-}
