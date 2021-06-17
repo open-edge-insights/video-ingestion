@@ -36,10 +36,9 @@ services:
         # set CMAKE_BUILD_TYPE value to "Debug" to generate debug symbols
         CMAKE_BUILD_TYPE: "Release"
         CMAKE_INSTALL_PREFIX: ${EII_INSTALL_PATH}
-        DOCKER_REGISTRY: ${DOCKER_REGISTRY}
         OPENVINO_IMAGE: ${OPENVINO_IMAGE}
         RUN_TESTS: "OFF"
-    image: ${DOCKER_REGISTRY}ia_video_ingestion:${EII_VERSION}
+    image: ${DOCKER_REGISTRY}openedgeinsights/ia_video_ingestion:${EII_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
     restart: unless-stopped
