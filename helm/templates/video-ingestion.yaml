@@ -79,7 +79,7 @@ spec:
       {{- end }}      
       containers:
       - name: ia-video-ingestion{{ $instance }}
-        image: {{ $global.Values.DOCKER_REGISTRY }}ia_video_ingestion:{{ $global.Values.EII_VERSION }}
+        image: {{ $global.Values.DOCKER_REGISTRY }}openedgeinsights/ia_video_ingestion:{{ $global.Values.EII_VERSION }}
         imagePullPolicy: {{ $global.Values.imagePullPolicy }}
         securityContext:
           privileged: true
