@@ -372,6 +372,19 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       }
     ```
   * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
+  * GigE camera runs fine only if the Ingestion container runs with root privilege, so to use GigE camera in addition to doing above config, please add user:root in the build/docker-compose.yml file.
+    Example: In case of VideoIngestion container
+    
+    ```yaml
+    ia_video_ingestion:
+     ...
+     user: root
+     ...
+    ```
+
+    > **NOTE**: Please ensure to do the same configuration as above for `ia_video_analytics` service as well if it is subscribing to
+    >           `ia_video_ingestion` container over IPC.          
+
   **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
   ----
