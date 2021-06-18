@@ -119,7 +119,7 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
 
     // Enable streaming configuration
     m_cfg.enable_device(m_serial);
-    m_cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_RGB8, m_framerate);
+    m_cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_BGR8, m_framerate);
     m_cfg.enable_stream(RS2_STREAM_DEPTH, RS2_FORMAT_Z16, m_framerate);
 
     //TODO: Verify pose stream from tracking camera
