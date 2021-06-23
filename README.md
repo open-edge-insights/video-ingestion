@@ -306,39 +306,28 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
 
   **Pre-requisities for working with GenICam compliant GigE cameras:**
 
-  GigeE cameras need Video Ingestion service to be running in the same subnet as the camera. So Video Ingestion service need to be run in network_mode host and eii networks must be removed. Please follow the below steps to do the changes.
+  GigeE cameras need Video Ingestion service to be running in the same subnet as the camera. So Video Ingestion service need to be run in network_mode host and eii networks must be removed. 
+  Please do the following changes to [docker-compose.yml](./docker-compose.yml) file. Make sure to undo these changes
+  when working with other cameras.
 
-  * Add network_mode host in [docker-compose.yml](./docker-compose.yml) file:
-
-  ```yaml
+    ```yaml
     ia_video_ingestion:
     ...
       environment:
       ...
-        no_proxy: "${RTSP_CAMERA_IP},${ETCD_HOST}"
+        # Add HOST_IP to no_proxy and ETCD_HOST
+        no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
+        ETCD_HOST: "<HOST_IP>"
       ...
+      # Adding network mode host as below
       network_mode: host
+      # Comment networks section as below
+      # networks:
+        # - eii
+      # Comment ports section as below
+      # ports:
+       # - 64013:64013
   ```
-
-  * Remove eii network section from [docker-compose.yml](./docker-compose.yml) file:
-
-  ```yaml
-    ia_video_ingestion:
-    ...
-      networks:
-        - eii
-  ```
-
-  * Add HOST_IP to no_proxy and ETCD_HOST in [docker-compose.yml](./docker-compose.yml) file:
-
-  ```yaml
-    ia_video_ingestion:
-    ...
-      environment:
-      ...
-      no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
-      ETCD_HOST: "<HOST_IP>"
-      ...
    ```
 
   **Note:**
