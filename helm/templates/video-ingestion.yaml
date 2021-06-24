@@ -76,6 +76,10 @@ spec:
       {{- else if eq $global.Values.config.video_ingestion.accelerator "ncs2" }}
       nodeSelector:
         ncs2: "true"  
+      {{- end }}
+      {{- if and $global.Values.DOCKER_USERNAME $global.Values.DOCKER_PASSWORD }}
+      imagePullSecrets:
+      - name: registryauth
       {{- end }}      
       containers:
       - name: ia-video-ingestion{{ $instance }}
