@@ -17,6 +17,8 @@
 
   $ source /opt/intel/openvino/bin/setupvars.sh
 
+  **Note**: For VAAPI elements few additional env variables need to be exported. Refer VideoIngestion/vi_start.sh for exporting those additional variables.
+
   # 3. Run the gstreamer command using the tool.
 
   # For e.g inorder to print info about a gstreamer element like `gvadetect` use the gst-inspect.1.0 tool
@@ -62,7 +64,7 @@
   ```javascript
     {
       "type": "gstreamer",
-      "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink max-buffers=10 drop=TRUE"
+      "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP_CAMERA_IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink max-buffers=10 drop=TRUE"
     }
   ```
 
@@ -76,7 +78,7 @@
   ```javascript
   {
     "type": "gstreamer",
-    "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP_CAMERA_IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! queue max-size-buffers=10 leaky=downstream ! gvadetect model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink",
+    "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP_CAMERA_IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! queue max-size-buffers=10 leaky=downstream ! gvadetect model=<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink",
   }
   ```
 

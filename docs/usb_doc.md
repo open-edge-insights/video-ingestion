@@ -16,3 +16,5 @@
 
     `"pipeline": "v4l2src device=/dev/video0 ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
+    **Note**: Typically a device node gets created when a USB device is connected to the system. When multiple USB cameras are connected then one needs to identify which device node is mapped to the camera and use that with the `device` property. Device nodes for the cameras usually gets created in sequence of video0, video1, video2 etc.
+

@@ -22,6 +22,11 @@
 
 source /opt/intel/openvino/bin/setupvars.sh
 
+# Adding path of vaapi elements
+export LIBVA_DRIVER_NAME=iHD
+export LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
+export GST_VAAPI_ALL_DRIVERS=1
+
 # Adding path of libcpu_extension.so to LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/app/common/video/udfs/native/build/ie_cpu_extension
 

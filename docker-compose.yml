@@ -78,9 +78,7 @@ services:
       # ion - VPU
       # USB camera devices
       # Selective mount can be done for deployment
-      - "/dev/dri:/dev/dri"
-      - "/dev/ion:/dev/ion"
-      - "/dev/bus/usb: /dev/bus/usb"
+      - "/dev:/dev"
     secrets:
       - ca_etcd
       - etcd_VideoIngestion_cert

@@ -80,9 +80,6 @@ RUN useradd -r -u ${EII_UID} -G video ${EII_USER_NAME}
 WORKDIR /app
 
 ENV DEBIAN_FRONTEND="noninteractive" \
-    LIBVA_DRIVERS_PATH="/opt/intel/openvino/opt/intel/mediasdk/lib64/" \
-    LIBVA_DRIVER_NAME="iHD" \
-    GST_VAAPI_ALL_DRIVERS="1" \
     LD_RUN_PATH="/usr/lib" \
     LIBRARY_PATH=$LD_RUN_PATH:$LIBVA_DRIVERS_PATH \
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LIBVA_DRIVERS_PATH:"usr/local/lib" \
@@ -127,6 +124,11 @@ COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc/plugins/genicam-core/g
 COPY --from=builder /usr/local/lib/gstreamer-1.0 /usr/local/lib/gstreamer-1.0
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
 COPY --from=video_common /root/.local/lib .local/lib
+
+# Installing Intel® Graphics Compute Runtime for OpenCL™
+RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
+                 cd /opt/intel/openvino/install_dependencies && \
+                 yes | ./install_NEO_OCL_driver.sh --auto || true"
 
 ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.8/site-packages
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
