@@ -306,7 +306,20 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
 
   **Pre-requisities for working with GenICam compliant GigE cameras:**
 
-  GigeE cameras need Video Ingestion service to be running in the same subnet as the camera. So Video Ingestion service need to be run in network_mode host and eii networks must be removed. 
+  * GigE camera runs fine only if the Ingestion container runs with root privilege, so to use GigE camera in addition to doing above config, please add user:root in the [docker-compose.yml](./docker-compose.yml) file.
+    Example: In case of VideoIngestion container
+
+    ```yaml
+    ia_video_ingestion:
+     ...
+     user: root
+     ...
+    ```
+
+    > **NOTE**: Please ensure to do the same configuration as above for `ia_video_analytics` and `ia_visualizer` service as well if it is subscribing to
+    >           `ia_video_ingestion` container over IPC.
+
+  * GigE cameras need Video Ingestion service to be running in the same subnet as the camera. So Video Ingestion service need to be run in network_mode host and eii networks must be removed.
   Please do the following changes to [docker-compose.yml](./docker-compose.yml) file. Make sure to undo these changes
   when working with other cameras.
 
@@ -320,6 +333,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
         ETCD_HOST: "<HOST_IP>"
       ...
       # Adding network mode host as below
+      # Please note that network_mode is not part of environment section
       network_mode: host
       # Comment networks section as below
       # networks:
@@ -327,14 +341,13 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       # Comment ports section as below
       # ports:
        # - 64013:64013
-  ```
-   ```
+    ```
 
-  **Note:**
-  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
-  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
+    > **Note:**
+    >  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
+    >  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
-  * `Gstreamer Ingestor`
+ * `Gstreamer Ingestor`
 
       ```javascript
       {
@@ -342,7 +355,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-   **Note:** Generic Plugin can work with GenICam compliant cameras. The above gstreamer pipeline was tested with Basler and IDS GigE cameras. The appropriate `serial` and the supported `pixel-format` needs to be provided. If `serial` is not provided then the first connected camera in the device list will be used. If `pixel-format` is not provided then the default `mono8` pixel format will be used.
+   > **Note:** Generic Plugin can work with GenICam compliant cameras. The above gstreamer pipeline was tested with Basler and IDS GigE cameras. The appropriate `serial` and the supported `pixel-format` needs to be provided. If `serial` is not provided then the first connected camera in the device list will be used. If `pixel-format` is not provided then the default `mono8` pixel format will be used.
 
    * `Hardware trigger based ingestion with gstreamer ingestor`
 
@@ -352,27 +365,16 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
      }
      ```
-  **Note:**
-  * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200`. One can refer the below example pipeline:
+
+  > **Note:**
+  > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200`. One can refer the below example pipeline:
     ```javascript
       {
         "type": "gstreamer",
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
     ```
-  * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
-  * GigE camera runs fine only if the Ingestion container runs with root privilege, so to use GigE camera in addition to doing above config, please add user:root in the build/docker-compose.yml file.
-    Example: In case of VideoIngestion container
-
-    ```yaml
-    ia_video_ingestion:
-     ...
-     user: root
-     ...
-    ```
-
-    > **NOTE**: Please ensure to do the same configuration as above for `ia_video_analytics` service as well if it is subscribing to
-    >           `ia_video_ingestion` container over IPC.
+  > * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
 
   **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
@@ -446,7 +448,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       }
       ```
 
-    **Note**: Please make sure you are using appropriate UDF configuration. In case if you are not getting expected output
+    > **Note**: Please make sure you are using appropriate UDF configuration. In case if you are not getting expected output
     in the Visualizer/WebVisualizer screen (camera output always shows 'disconnected'), you may try using 'dummy' udf.
     The 'dummy' udf won't do any analytics on the video and hence won't filter any of the video frames.
     You will, therefore, see the video streamed by the camera as it is on the video output screen in Visualizer/WebVisualizer.
@@ -471,18 +473,16 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
        "ingestor": {
             "type": "realsense",
             "serial": "<DEVICE_SERIAL_NUMBER>",
-            "framerate": 30
+            "framerate": <FRAMERATE>,
             "imu_on": true
         },
      ```
-  **Note**
+  > **Note**
+  > *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
+  > *  RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
 
-  *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
+  > *  If `serial` config is not provided then the first realsense camera in the device list will be connected.
 
-  *  RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
+  > *  If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
 
-  *  If `serial` config is not provided then the first realsense camera in the device list will be connected.
-
-  *  If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
-
-  * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
+  > * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
