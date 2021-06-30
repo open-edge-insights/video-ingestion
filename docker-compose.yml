@@ -23,6 +23,7 @@ version: '3.6'
 services:
 ## Define VideoIngestion service
   ia_video_ingestion:
+    read_only: true
     depends_on:
       - ia_video_common
       - ia_openvino_base
@@ -70,8 +71,13 @@ services:
     volumes:
       - "vol_eii_socket:${SOCKET_DIR}"
       - "/var/tmp:/var/tmp"
-    privileged: true
-
+      - "/dev:/dev"
+    device_cgroup_rules:
+      # Default run - device-cgroup-rule='c 189:* rmw'
+      # NCS2 run - device-cgroup-rule='c 209:* rmw'
+      # Selective rules can be applied for deployment
+      - 'c 189:* rmw'
+      - 'c 209:* rmw'
     devices:
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU

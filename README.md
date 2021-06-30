@@ -306,36 +306,31 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
 
   **Pre-requisities for working with GenICam compliant GigE cameras:**
 
-  * GigE camera runs fine only if the Ingestion container runs with root privilege, so to use GigE camera in addition to doing above config, please add user:root in the [docker-compose.yml](./docker-compose.yml) file.
-    Example: In case of VideoIngestion container
+  The following are the pre-requisites for working with GeniCam compliant GigE cameras. Please note that these changes need to be reverted while working with other cameras such as realsense, rtsp and usb(v4l2 driver compliant).
+
+  1. GigE cameras requires Ingestion container to run with `root` privilege during runtime.
+  2. GigE cameras requires Ingestion container to disable `read_only` mode.
+  3. GigE cameras requires Ingestion container to run in `host` network as th Ingestion service and camera need to be in the same subnet.
+
+  Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file of the respective Ingestion service(including custom udf services). Once the changes are made make sure [builder.py](../builder.py) is executed before building and running the services.
 
     ```yaml
     ia_video_ingestion:
-     ...
-     user: root
-     ...
-    ```
-
-    > **NOTE**: Please ensure to do the same configuration as above for `ia_video_analytics` and `ia_visualizer` service as well if it is subscribing to
-    >           `ia_video_ingestion` container over IPC.
-
-  * GigE cameras need Video Ingestion service to be running in the same subnet as the camera. So Video Ingestion service need to be run in network_mode host and eii networks must be removed.
-  Please do the following changes to [docker-compose.yml](./docker-compose.yml) file. Make sure to undo these changes
-  when working with other cameras.
-
-    ```yaml
-    ia_video_ingestion:
-    ...
+      # Add root user
+      user: root
+      # Disable read_only mode
+      read_only: false
+      # Add network mode host
+      network_mode: host
+      # Please make sure that the above commands are not added under environment section and also take care about the indentations in the compose file.
+      ...
       environment:
       ...
         # Add HOST_IP to no_proxy and ETCD_HOST
         no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
         ETCD_HOST: "<HOST_IP>"
       ...
-      # Adding network mode host as below
-      # Please note that network_mode is not part of environment section
-      network_mode: host
-      # Comment networks section as below
+      # Comment networks section as below as it will throw an error when network mode host is used.
       # networks:
         # - eii
       # Comment ports section as below
@@ -344,6 +339,8 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
     ```
 
     > **Note:**
+    >  * In case one notices Generic Plugin not getting initialized during runtime then try executing `docker system prune` command on the host system. This command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent Generic Plugin from accessing the device.
+    >  * In `IPC` mode if Ingestion service is running with `root` privilige then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
     >  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
     >  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
