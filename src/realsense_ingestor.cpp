@@ -249,8 +249,9 @@ void RealSenseIngestor::run(bool snapshot_mode) {
             delete frame;
         throw e;
     } catch (const rs2::error & e) {
-        LOG_ERROR("RealSense error calling %s( %s ):'\n%s",
-                  e.get_failed_function(), e.get_failed_args(), e.what());
+        LOG_ERROR("RealSense error calling %s( %s ): %s",
+                  e.get_failed_function().c_str(),
+                  e.get_failed_args().c_str(), e.what());
         if (elem != NULL)
             msgbus_msg_envelope_elem_destroy(elem);
         if(frame != NULL)
