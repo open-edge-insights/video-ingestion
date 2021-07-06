@@ -309,8 +309,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
   The following are the pre-requisites for working with GeniCam compliant GigE cameras. Please note that these changes need to be reverted while working with other cameras such as realsense, rtsp and usb(v4l2 driver compliant).
 
   1. GigE cameras requires Ingestion container to run with `root` privilege during runtime.
-  2. GigE cameras requires Ingestion container to disable `read_only` mode.
-  3. GigE cameras requires Ingestion container to run in `host` network as th Ingestion service and camera need to be in the same subnet.
+  2. GigE cameras requires Ingestion container to run in `host` network as both Ingestion service and camera need to be in the same subnet.
 
   Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file of the respective Ingestion service(including custom udf services). Once the changes are made make sure [builder.py](../builder.py) is executed before building and running the services.
 
@@ -318,8 +317,6 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
     ia_video_ingestion:
       # Add root user
       user: root
-      # Disable read_only mode
-      read_only: false
       # Add network mode host
       network_mode: host
       # Please make sure that the above commands are not added under environment section and also take care about the indentations in the compose file.
@@ -339,7 +336,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
     ```
 
     > **Note:**
-    >  * In case one notices Generic Plugin not getting initialized during runtime then try executing `docker system prune` command on the host system. This command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent Generic Plugin from accessing the device.
+    >  * In case one notices Generic Plugin not getting initialized during runtime then try executing `docker system prune` command on the host system and then removing the GenICam specific semaphore files under `/dev/shm/` path of the host system. `docker system prune` command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent Generic Plugin from accessing the device.
     >  * In `IPC` mode if Ingestion service is running with `root` privilige then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
     >  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
     >  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
