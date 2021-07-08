@@ -75,12 +75,12 @@ spec:
         hddl: "true"
       {{- else if eq $global.Values.config.video_ingestion.accelerator "ncs2" }}
       nodeSelector:
-        ncs2: "true"  
+        ncs2: "true"
       {{- end }}
       {{- if and $global.Values.DOCKER_USERNAME $global.Values.DOCKER_PASSWORD }}
       imagePullSecrets:
       - name: registryauth
-      {{- end }}      
+      {{- end }}
       containers:
       - name: ia-video-ingestion{{ $instance }}
         image: {{ $global.Values.DOCKER_REGISTRY }}openedgeinsights/ia_video_ingestion:{{ $global.Values.EII_VERSION }}
@@ -90,6 +90,10 @@ spec:
         volumeMounts:
         - name: eii-dev
           mountPath: /dev
+        - name: tmp
+          mountPath: /tmp
+        - name: var-tmp
+          mountPath: /var/tmp
         {{- if eq $global.Values.config.video_ingestion.IPC true}}
         - name: {{ $global.Values.volumes.eii_socket.name }}
           mountPath: {{ $global.Values.volumes.eii_socket.location }}
@@ -145,6 +149,13 @@ spec:
       - name: eii-dev
         hostPath:
           path: /dev
+      - name: tmp
+        hostPath:
+          path: /tmp
+      - name: var-tmp
+        hostPath:
+          path: /var/tmp
+
       {{- if eq $global.Values.config.video_ingestion.IPC true}}
       - name: {{ $global.Values.volumes.eii_socket.name }}
         persistentVolumeClaim:
