@@ -64,7 +64,7 @@
   ```javascript
     {
       "type": "gstreamer",
-      "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP_CAMERA_IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink max-buffers=10 drop=TRUE"
+      "pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink max-buffers=10 drop=TRUE"
     }
   ```
 
@@ -78,7 +78,7 @@
   ```javascript
   {
     "type": "gstreamer",
-    "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP_CAMERA_IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! queue max-size-buffers=10 leaky=downstream ! gvadetect model=<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink",
+    "pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! queue max-size-buffers=10 leaky=downstream ! gvadetect model=<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink",
   }
   ```
 

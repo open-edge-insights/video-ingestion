@@ -8,7 +8,7 @@
 
     **Example pipeline to enable resizing with RTSP camera:**
     ```javascript
-    `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+    `"pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
     ```
 
 * If working behind a proxy, RTSP_CAMERA_IP/simulated SOURCE_IP need to be updated to RTSP_CAMERA_IP in [../../build/.env](../../build/.env) and [../../build/builder.py](../../build/builder.py) needs to be executed.
@@ -30,7 +30,7 @@
 
     * If a physical RTSP camera is used use the below config:
         ```javascript
-        `"pipeline": "rtsp://admin:intel123@<RTSP_CAMERA_IP>:554"`
+        "pipeline": "rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>"
         ```
 
     * If a simulated RTSP stream needs to be used:
@@ -74,7 +74,7 @@
     * In order to use the RTSP stream from cvlc, the RTSP server
         must be started using VLC with the following command:
 
-        `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://<SOURCE_IP>:8554/}' --loop --sout-keep`
+        `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://<SOURCE_IP>:<PORT>/<FEED>}' --loop --sout-keep`
 
   * RTSP cvlc based camera simulation
 
@@ -84,5 +84,5 @@
 
         **Example pipeline to enable resizing with RTSP camera:**
 
-        `"pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+        `"pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
