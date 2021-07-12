@@ -24,15 +24,15 @@ The high level logical flow of VideoIngestion pipeline is as below:
    on EII MessageBus.
 
 ---
-**NOTE**:
+> **NOTE**:
 Below usecases are suitable for single node deployment where one can avoid the
 overhead of VA(VideoAnalytics) service.
 
-1. If VI(VideoIngestion) service is configured with an UDF that does the
+> 1. If VI(VideoIngestion) service is configured with an UDF that does the
    classification, then one may choose to not to have VA service as all
    pre-processing, classification and any post-processing can be handled in VI
    itself with the usage of multiple UDFs.
-2. If VI(VideoIngestion) service is using GVA(Gstreamer Video Analytics)
+> 2. If VI(VideoIngestion) service is using GVA(Gstreamer Video Analytics)
    elements also, then one may choose to not to have VA service as all
    pre-processing, classification and any post-processing(using vappi gstreamer
    elements) can be done in gstreamer pipeline itself. Also, the post-processing
@@ -42,238 +42,49 @@ overhead of VA(VideoAnalytics) service.
 
 ## `Configuration`
 
----
-**NOTE**:
-
-* The `max_workers` and `udfs` are configuration keys related to udfs.
-  For more details on udf configuration, please visit
-  [../common/video/udfs/README.md](../common/video/udfs/README.md)
-* For more details on Etcd secrets and messagebus endpoint configuration, visit
-  [Etcd_Secrets_Configuration.md](../Etcd_Secrets_Configuration.md) and
-  [MessageBus Configuration](../common/libs/ConfigMgr/README.md#interfaces) respectively.
-
-
+1. [Udfs Configuration](../common/video/udfs/README.md)
+2. [Etcd Secrets Configuration](../Etcd_Secrets_Configuration.md) and
+3. [MessageBus Configuration](../common/libs/ConfigMgr/README.md#interfaces) respectively.
+4. [JSON schema](schema.json)
 ---
 
-All the app module configuration are added into distributed key-value store
-under `AppName` env, as mentioned in the environment section of this app's service
-definition in docker-compose.
-
-Developer mode related overrides go into docker-compose-dev.override.yml
-
-If `AppName` is `VideoIngestion`, then the app's config would be fetched from
+All the app module configuration are added into distributed key-value store under `AppName` env, as mentioned in the environment section of this app's service definition in docker-compose. If `AppName` is `VideoIngestion`, then the app's config would be fetched from
 `/VideoIngestion/config` key via EII Configuration Manager.
-Below is the JSON schema for app's config:
 
-```javascript
-{
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "ingestor"
-  ],
-  "properties": {
-    "encoding": {
-      "description": "Encoding object",
-      "type": "object",
-      "required": [
-        "type",
-        "level"
-      ],
-      "properties": {
-        "type": {
-          "description": "Encoding type",
-          "type": "string",
-          "enum": [
-              "jpeg",
-              "png"
-            ]
-        },
-        "level": {
-          "description": "Encoding value",
-          "type": "integer",
-          "default": 0
-        }
-      }
-    },
-    "ingestor": {
-      "description": "Ingestor object",
-      "type": "object",
-      "required": [
-        "type"
-      ],
-      "properties": {
-        "type": {
-          "description": "Ingestor type",
-          "type": "string",
-          "enum": [
-              "opencv",
-              "gstreamer",
-              "realsense"
-            ]
-        },
-        "pipeline": {
-          "description": "gstreamer pipeline",
-          "type": "string"
-        },
-        "loop_video": {
-          "description": "whether to loop video or not",
-          "type": "boolean",
-          "default": false
-        },
-        "queue_size": {
-          "description": "ingestor queue size for frames",
-          "type": "integer"
-        },
-        "poll_interval": {
-          "description": "polling interval for reading ingested frames",
-          "type": "number",
-          "default": 0.0
-        },
-        "serial": {
-         "description": "serial number of realsense device",
-         "type": "string"
-        },
-        "imu_on" : {
-         "description": "flag to enable/disable IMU data. Inertial Measurement Units (IMU) are sensors which allow measurement of both directional movement and rotation",
-         "type": "boolean",
-         "default": false
-        }
-      }
-    },
-    "max_workers": {
-      "description": "Number of threads acting on queued jobs",
-      "type": "integer",
-      "default": 4
-    },
-    "udfs": {
-      "description": "Array of UDF config objects",
-      "type": "array",
-      "items": [
-        {
-          "description": "UDF config object",
-          "type": "object",
-          "properties": {
-            "type": {
-              "description": "UDF type",
-              "type": "string",
-              "enum": [
-                "native",
-                "python",
-                "raw_native"
-              ]
-            },
-            "name": {
-              "description": "Unique UDF name",
-              "type": "string"
-            },
-            "device": {
-              "description": "Device on which inference occurs",
-              "type": "string",
-              "enum": [
-                "CPU",
-                "GPU",
-                "HDDL",
-                "MYRIAD"
-              ]
-            }
-          },
-          "additionalProperties": true,
-          "required": [
-            "type",
-            "name"
-          ]
-        }
-      ]
-    }
-  }
-}
-```
 
-**Note**:
+>**Note**:
 
-    * For `jpeg` encoding type, `level` is the quality from `0 to 100` (the higher is the better)
+> * Developer mode related overrides go into docker-compose-dev.override.yml
 
-    * For `png` encoding type, `level` is the compression level from `0 to 9`. A higher value means a smaller size and longer compression time.
+> * For `jpeg` encoding type, `level` is the quality from `0 to 100` (the higher is the better)
 
-One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration against the above schema.
+> * For `png` encoding type, `level` is the compression level from `0 to 9`. A higher value means a smaller size and longer compression time.
+
+> * One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration against the above schema.
+
+----
 
 ### `Ingestor config`
 
 The following are the type of ingestors supported:
 
-1. OpenCV
-2. GStreamer
-3. RealSense
-
-**Refer [docs/gstreamer_ingestor_doc.md](docs/gstreamer_ingestor_doc.md) for more information/configuration on gstreamer ingestor.**
-
-**For more information on Intel RealSense refer [Intel-RealSense](https://www.intelrealsense.com/)**
-**For more information on Intel RealSense SDK refer [librealsense](https://github.com/IntelRealSense/librealsense)**
+1. [OpenCV](https://opencv.org/)
+2. [GStreamer](docs/gstreamer_ingestor_doc.md)
+3. [RealSense](https://www.intelrealsense.com/)
+  
+   **For more information on Intel RealSense SDK refer [librealsense](https://github.com/IntelRealSense/librealsense)**
 
   ----
-#### `Camera independent Software Trigger way of video ingestion`
 
-  * Software triggering way of video ingestion is a solution which enables to control video ingestion from all types of cameras, any configuration (Gstreamer & Opencv) / video files.
+### `Video Ingestion Contents`
 
-  * The regular way of video ingestion is autonomous i.e. as soon as the Video Ingestion micro-service is started the ingestion starts automatically using the video source (file/camera). There is no way to control the ingestion without stopping the ingestion micro-service itself. Software trigger feature provides a mechanism to start & stop video ingestion using software triggers sent by the client application.
+1. [Generic Server](docs/generic_server_doc.md)
+2. [Gstreamer Video Analytics](docs/gva_doc.md)
+3. [RUN GVA elements in VI or VA](models/README.md)
+4. [GenICam GigE/USB3.0 Camera Support](#genicam-gige-or-usb3-camera)
+5. [RTSP Camera Support](#rtsp-camera)
+6. [USB Camera Support](#usb-camera)
 
-  ----
-#### `Generic Server in VideoIngestion`
-
-  * VI generic server responds back to the client with the return values specific to the command. There is a total flexibility in sending the number & type of arguments back to client which is totally dependent on the command.
-
-
-  * Example JSON format for incoming payload from client to server to initialize software trigger:
-  ```javascript
-  {
-   "init_state" : "running"
-  }
-  ```
-
-**Refer [docs/gerneric_server_doc.md](docs/generic_server_doc.md) for more information/configuration on software trigger and generic server.**
-
-  ----
-#### `Gstreamer Video Analytics`
-VI module supports the usage of GVA (Gstreamer Video Analytics) plugins with `gstreamer` ingestor. [GVA](https://github.com/openvinotoolkit/dlstreamer_gst) is
-a collection of GStreamer elements to enable CNN model based video analytics capabilities (such as object detection, classification, recognition) in GStreamer framework.
-
-**Refer [docs/gva_doc.md](docs/gva_doc.md) for more information on GVA elements.**
-
-**Refer [CustomUdfs-GVASafetyGearIngestion](../CustomUdfs/GVASafetyGearIngestion/README.md) to refer GVA based CustomUdf container added for SafetyGear sample.**
-
-**Refer [models-readme](models/README.md) to run GVA usecase inside VI container.**
-
-  ----
-#### `Generic Plugin`
-Generic Plugin is a gstreamer generic source plugin that communicates and streams from a GenICam based camera which provides a GenTL producer. In order to use
-the generic plugin with VI one must install the respective GenICam camera SDK and make sure the compatible GenTL producer for the camera is installed.
-
-**Refer [src-gst-gencamsrc/README](src-gst-gencamsrc/README) for Element Properties of Generic Plugin**.
-
-**Refer [src-gst-gencamsrc/README.md](src-gst-gencamsrc/README.md) for more information on Generic Plugin**.
-
-**Note:** For working with Genicam USB3 Vision camera please install the respective camera SDK by referring the below section.
-  ----
-
-#### `Adding new GigE camera support to VideoIngestion`
-In order to use the generic plugin with newer Genicam camera SDK follow the below steps:
-
-1. Install the respective GenICam camera SDK by adding the camera SDK installation steps in [VI-Dockerfile](Dockerfile). The camera SDK will be installed during docker build and one can install multiple camera SDKs in [VI-Dockerfile](Dockerfile). Refer Dokerfile reference documentation (https://docs.docker.com/engine/reference/builder/) for Dockerfile Instructions. Typically one would need to use `RUN <command>` instrcution to execute shell commands for installing newer camera sdk. In case the camera SDK cannot be downloaded in a non-interactive manner then one would need to place the camera SDK under `[WORKDIR]/IEdgeInsights/VideoIngestion/` directory, use the `COPY` instruction in [VI-Dockerfile](Dockerfile) to use the camera SDK in the build context and then use the `RUN` instruction for installing the camera SDK during docker build.
-
-2. After making sure the compatible GenTL producer is successfully installed one must add a case statement in [gentl_producer_env.sh](gentl_producer_env.sh) scipt to export the GenTL producer path to `GENICAM_GENTL64_PATH` env variable. In order to verify the GenTL producer path one can search for the `.cti` file under the installation path. Typically GenTL provider is characterized by a file with `.cti` extension. Path to cti library containing folder must be exported to env variable named `GENICAM_GENTL64_PATH` (`GENICAM_GENTL32_PATH` for 32 bit providers).
-
-3. Set `GENICAM` env variable in [../build/docker-compose.yml](../build/docker-compose.yml) to execute the corresponding case statement in [gentl_producer_env.sh](gentl_producer_env.sh) and export the GenTL producer path accordingly. GenTL producer path will be exported during docker runtime. Hence one can choose to add install multiple Genicam camera SDK during docker build and then switch between GenTL providers during docker runtime by modifying the `GENICAM` env variable in [../build/docker-compose.yml](../build/docker-compose.yml).
-
-**Refer the below snippet example to select `Basler` camera and export its GenTL producer path in [../build/docker-compose.yml](../build/docker-compose.yml)** assuming the corresponding Basler Camera SDK and GenTL producer is installed.
-```bash
- ia_video_ingestion:
- ...
-   environment:
-   ...
-   # Setting GENICAM value to the respective camera which needs to be used
-   GENICAM: "Basler"
-```
   ----
 
 #### `Camera Configuration`
@@ -299,49 +110,67 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
           "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-  **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
+    **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
 
-  ----
-* `Generic Plugin`
+ ----
+#### GenICam GigE or USB3 Camera
 
-  **Pre-requisities for working with GenICam compliant GigE cameras:**
+  **Refer [GenICam GigE/USB3.0 Camera Support](docs/generic_plugin_doc.md) for information/configuration on GenICam GigE/USB3 camera support.**
 
-  The following are the pre-requisites for working with GeniCam compliant GigE cameras. Please note that these changes need to be reverted while working with other cameras such as realsense, rtsp and usb(v4l2 driver compliant).
+  **Pre-requisities for working with GenICam compliant cameras:**
 
-  1. GigE cameras requires Ingestion container to run with `root` privilege during runtime.
-  2. GigE cameras requires Ingestion container to run in `host` network as both Ingestion service and camera need to be in the same subnet.
+  The following are the pre-requisites for working with GeniCam compliant cameras. Please note that these changes need to be reverted while working with other cameras such as realsense, rtsp and usb(v4l2 driver compliant).
 
   Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file of the respective Ingestion service(including custom udf services). Once the changes are made make sure [builder.py](../builder.py) is executed before building and running the services.
 
-    ```yaml
-    ia_video_ingestion:
-      # Add root user
-      user: root
-      # Add network mode host
-      network_mode: host
-      # Please make sure that the above commands are not added under environment section and also take care about the indentations in the compose file.
-      ...
-      environment:
-      ...
-        # Add HOST_IP to no_proxy and ETCD_HOST
-        no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
-        ETCD_HOST: "<HOST_IP>"
-      ...
-      # Comment networks section as below as it will throw an error when network mode host is used.
-      # networks:
-        # - eii
-      # Comment ports section as below
-      # ports:
-       # - 64013:64013
-    ```
+
+  **For GenICam GigE Camera:**
+
+      ```yaml
+      ia_video_ingestion:
+        # Add root user
+        user: root
+        # Add network mode host
+        network_mode: host
+        # Please make sure that the above commands are not added under environment section and also take care about the indentations in the compose file.
+        ...
+        environment:
+        ...
+          # Add HOST_IP to no_proxy and ETCD_HOST
+          no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
+          ETCD_HOST: "<HOST_IP>"
+        ...
+        # Comment networks section as below as it will throw an error when network mode host is used.
+        # networks:
+          # - eii
+        # Comment ports section as below
+        # ports:
+        # - 64013:64013
+      ```
+  **For GenIcam USB3.0 Camera:**
+
+      ```yaml
+      ia_video_ingestion:
+        # Add root user
+        user: root
+        ...
+        environment:
+          # refer [GenICam GigE/USB3.0 Camera Support](docs/generic_plugin_doc.md) to install the respective camera SDK
+          # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
+          GENICAM: "<CAMERA/GenTL>"
+        ...
+      ```
 
     > **Note:**
-    >  * In case one notices Generic Plugin not getting initialized during runtime then try executing `docker system prune` command on the host system and then removing the GenICam specific semaphore files under `/dev/shm/` path of the host system. `docker system prune` command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent Generic Plugin from accessing the device.
+    >  * In case one notices GenICam cameras not getting initialized during runtime then try executing `docker system prune` command on the host system and then removing the GenICam specific semaphore files under `/dev/shm/` path of the host system. `docker system prune` command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent the plugin from accessing the device.
+    >  * In case one notices `Feature not writable` while working with GenICam cameras please reset the device using camera software or using the reset property of [Generic Plugin README](src-gst-gencamsrc/README).
     >  * In `IPC` mode if Ingestion service is running with `root` privilige then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
     >  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
     >  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
  * `Gstreamer Ingestor`
+    
+    * `GenICam GigE/USB3.0 cameras`
 
       ```javascript
       {
@@ -349,7 +178,13 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-   > **Note:** Generic Plugin can work with GenICam compliant cameras. The above gstreamer pipeline was tested with Basler and IDS GigE cameras. The appropriate `serial` and the supported `pixel-format` needs to be provided. If `serial` is not provided then the first connected camera in the device list will be used. If `pixel-format` is not provided then the default `mono8` pixel format will be used.
+      > **Note:** 
+      
+      > * Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
+      > * The above gstreamer pipeline was tested with Basler and IDS GigE cameras. 
+      > * If `serial` is not provided then the first connected camera in the device list will be used. 
+      > * If `pixel-format` is not provided then the default `mono8` pixel format will be used.
+      > * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
 
    * `Hardware trigger based ingestion with gstreamer ingestor`
 
@@ -360,20 +195,25 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
      }
      ```
 
-  > **Note:**
-  > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200`. One can refer the below example pipeline:
-    ```javascript
+    > **Note:**
+    > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work. 
+    
+    One can refer the below example pipeline:
+      
+      ```javascript
       {
         "type": "gstreamer",
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
-    ```
-  > * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
+      ```
+    
+    **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
-  **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
+ ----
 
-  ----
-* `RTSP Camera`
+#### RTSP Camera
+
+  **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for information/configuration on rtsp camera.**
 
   * `OpenCV Ingestor`
 
@@ -395,11 +235,9 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       }
       ```
 
-  **Note:** The RTSP URI of the physical camera depends on how it is configured using the camera software. One can use VLC Network Stream to verify the RTSP URI to confirm the RTSP source.
+    > **Note:** The RTSP URI of the physical camera depends on how it is configured using the camera software. One can use VLC Network Stream to verify the RTSP URI to confirm the RTSP source.
 
-  **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for more information/configuration on rtsp camera.**
-
-  ----
+ ----
 * `RTSP simulated camera using cvlc`
 
   * `OpenCV Ingestor`
@@ -420,11 +258,13 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       }
       ```
 
-  **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for more information/configuration on rtsp simulated camera.**
+    **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for more information/configuration on rtsp simulated camera.**
 
-  ----
+ ----
 
-* `USB Camera`
+#### USB Camera
+
+**Refer [docs/usb_doc.md](docs/usb_doc.md) for information/configurations on usb camera.**
 
   * `OpenCV Ingestor`
 
@@ -443,25 +283,9 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
         "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-
-    > **Note**: Please make sure you are using appropriate UDF configuration. In case if you are not getting expected output
-    in the Visualizer/WebVisualizer screen (camera output always shows 'disconnected'), you may try using 'dummy' udf.
-    The 'dummy' udf won't do any analytics on the video and hence won't filter any of the video frames.
-    You will, therefore, see the video streamed by the camera as it is on the video output screen in Visualizer/WebVisualizer.
-    You may configure the 'dummy' UDF as below:
-
-      ```javascript
-        "udfs": [{
-            "name": "dummy",
-            "type": "python"
-        }]
-      ```
-    You will also need to make the same changes in VideoAnalytics configuration as well.
-  **Refer [docs/usb_doc.md](docs/usb_doc.md) for more information/configurations on usb camera.**
-
  ----
 
-* `RealSense Depth Camera`
+#### RealSense Depth Camera
 
   * `RealSense Ingestor`
 
@@ -473,12 +297,30 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
             "imu_on": true
         },
      ```
-  > **Note**
-  > *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
-  > *  RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
+    > **Note**
+    > *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
+    > *  RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
 
-  > *  If `serial` config is not provided then the first realsense camera in the device list will be connected.
+    > *  If `serial` config is not provided then the first realsense camera in the device list will be connected.
 
-  > *  If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
+    > *  If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
 
-  > * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
+    > * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
+
+ ----
+
+> **Note**: 
+
+> For all video and camera streams please make sure you are using appropriate UDF configuration. One may not get the expected output in the Visualizer/WebVisualizer screen if the udf is not compatible with the video source.
+
+> If one is not sure about the compatibility of the udf and video source then 'dummy' udf can be used. It won't do any analytics on the video and hence won't filter any of the video frames. You will, therefore, see the video streamed by the camera as it is on the video output screen in Visualizer/WebVisualizer.
+
+> Refer below configuration for 'dummy' UDF:
+
+  ```javascript
+    "udfs": [{
+        "name": "dummy",
+        "type": "python"
+    }]
+  ```
+> Same changes need to be applied in VideoAnalytics configuration if it is subscribing to VideoIngestion.

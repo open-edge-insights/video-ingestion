@@ -2,6 +2,8 @@
 
 **NOTE**:
 
+* For more information on the RTSP URI please refer the website/tool of the camera software which is used to configure the RTSP camera. For information on RTSP protocol refer https://en.wikipedia.org/wiki/Real_Time_Streaming_Protocol
+
 * In case you want to enable resizing with RTSP camera use the
   `vaapipostproc` element and specifiy the `height` and `width`
   parameter in the          gstreamer pipeline.
@@ -75,6 +77,9 @@
         must be started using VLC with the following command:
 
         `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://<SOURCE_IP>:<PORT>/<FEED>}' --loop --sout-keep`
+
+        **Note:** `<FEED>` in the cvlc command can be `live.sdp` or it can also be avoided. But make sure the same RTSP URI given here is
+        used in the ingestor pipeline config.
 
   * RTSP cvlc based camera simulation
 

@@ -1,5 +1,10 @@
 ### GVA (GStreamer Video Analytics)
 
+VI module supports the usage of GVA (Gstreamer Video Analytics) plugins with `gstreamer` ingestor. [GVA](https://github.com/openvinotoolkit/dlstreamer_gst) is
+a collection of GStreamer elements to enable CNN model based video analytics capabilities (such as object detection, classification, recognition) in GStreamer framework.
+
+**Refer [CustomUdfs-GVASafetyGearIngestion](../CustomUdfs/GVASafetyGearIngestion/README.md) to refer GVA based CustomUdf container added for SafetyGear sample.**
+
 GVA use case configurations with different cameras:
 
 * `Video File - Gstreamer ingestor with GVA elements`
