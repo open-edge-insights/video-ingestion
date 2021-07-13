@@ -69,6 +69,10 @@ Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string servic
         this->m_profile = new Profiling();
 }
 
+Ingestor& Ingestor::operator=(const Ingestor& src) {
+    return *this;
+}
+
 Ingestor::~Ingestor() {
     LOG_DEBUG_0("Ingestor destructor");
     if(m_initialized.load()) {

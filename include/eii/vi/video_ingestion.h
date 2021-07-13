@@ -124,6 +124,12 @@ namespace eii {
                  */
                 msg_envelope_elem_body_t* process_snapshot(msg_envelope_elem_body_t *arg_payload);
 
+                /**
+                 * Private @c VideoIngestion assignment operator.
+                 *
+                 */
+                VideoIngestion& operator=(const VideoIngestion& src);
+
             public:
 
                 /**

@@ -158,6 +158,11 @@ namespace eii {
                  */
                 virtual void read(udf::Frame*& frame) = 0;
 
+                /**
+                 * Private @c Ingestor assignment operator.
+                 */
+                Ingestor& operator=(const Ingestor& src);
+
             public:
                 /**
                  * Constructor

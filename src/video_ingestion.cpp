@@ -335,6 +335,10 @@ msg_envelope_elem_body_t* VideoIngestion::process_snapshot(msg_envelope_elem_bod
     }
 }
 
+VideoIngestion& VideoIngestion::operator=(const VideoIngestion& src) {
+    return *this;
+}
+
 void VideoIngestion::start() {
     if (m_publisher) {
         m_publisher->start();

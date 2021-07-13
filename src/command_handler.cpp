@@ -61,6 +61,14 @@ CommandHandler::CommandHandler(ConfigMgr* ctx) {
     }
 }
 
+CommandHandler::CommandHandler(const CommandHandler& src) {
+    throw "This object should not be copied";
+}
+
+CommandHandler& CommandHandler::operator=(const CommandHandler& src) {
+    return *this;
+}
+
 int CommandHandler::service_init(ConfigMgr* ctx) {
     // Server related env_config msgbus initializations
     ServerCfg* server_ctx = ctx->getServerByIndex(0);
