@@ -1,3 +1,8 @@
+**Contents**
+
+- [`Generic Plugin`](#generic-plugin)
+- [`Adding new GigE camera support to VideoIngestion`](#adding-new-gige-camera-support-to-videoingestion)
+
 #### `Generic Plugin`
 Generic Plugin is a gstreamer generic source plugin that communicates and streams from a GenICam based camera which provides a GenTL producer. In order to use
 the generic plugin with VI one must install the respective GenICam camera SDK and make sure the compatible GenTL producer for the camera is installed.

@@ -1,3 +1,7 @@
+**Contents**
+
+- [GVA (GStreamer Video Analytics)](#gva-gstreamer-video-analytics)
+
 ### GVA (GStreamer Video Analytics)
 
 VI module supports the usage of GVA (Gstreamer Video Analytics) plugins with `gstreamer` ingestor. [GVA](https://github.com/openvinotoolkit/dlstreamer_gst) is

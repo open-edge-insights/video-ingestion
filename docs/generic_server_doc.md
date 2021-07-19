@@ -1,3 +1,8 @@
+**Contents**
+
+- [`Camera independent Software Trigger way of video ingestion`](#camera-independent-software-trigger-way-of-video-ingestion)
+- [`Generic Server in VideoIngestion`](#generic-server-in-videoingestion)
+
 #### `Camera independent Software Trigger way of video ingestion`
 
   * Software triggering way of video ingestion is a solution which enables to control video ingestion from all the supported ingestors and camera configurations.
