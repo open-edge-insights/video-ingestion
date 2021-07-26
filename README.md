@@ -1,22 +1,24 @@
 **Contents**
 
-- [`VideoIngestion Module`](#videoingestion-module)
-  - [`Configuration`](#configuration)
-    - [`Ingestor config`](#ingestor-config)
-    - [`Video Ingestion Contents`](#video-ingestion-contents)
-      - [`Camera Configuration`](#camera-configuration)
+- [VideoIngestion Module](#videoingestion-module)
+  - [Configuration](#configuration)
+    - [Ingestor config](#ingestor-config)
+    - [Video Ingestion Contents](#video-ingestion-contents)
+      - [Camera Configuration](#camera-configuration)
       - [GenICam GigE or USB3 Camera](#genicam-gige-or-usb3-camera)
       - [RTSP Camera](#rtsp-camera)
       - [USB Camera](#usb-camera)
       - [RealSense Depth Camera](#realsense-depth-camera)
 
-# `VideoIngestion Module`
+# VideoIngestion Module
 
 The VideoIngestion(VI) module is mainly responsibly for ingesting the video frames
 coming from a video source like video file or basler/RTSP/USB camera
 into the EII stack for further processing. Additionally, by having VI run with
 classifier and post-processing UDFs, VI can perform the job of VA(VideoAnalytics)
 service also.
+
+![Video Ingestion Diagram](img/fig_9_1.png)
 
 The high level logical flow of VideoIngestion pipeline is as below:
 
@@ -52,7 +54,7 @@ overhead of VA(VideoAnalytics) service.
 
 ---
 
-## `Configuration`
+## Configuration
 
 1. [Udfs Configuration](../common/video/udfs/README.md)
 2. [Etcd Secrets Configuration](../Etcd_Secrets_Configuration.md) and
@@ -76,7 +78,7 @@ All the app module configuration are added into distributed key-value store unde
 
 ----
 
-### `Ingestor config`
+### Ingestor config
 
 The following are the type of ingestors supported:
 
@@ -88,7 +90,7 @@ The following are the type of ingestors supported:
 
   ----
 
-### `Video Ingestion Contents`
+### Video Ingestion Contents
 
 1. [Generic Server](docs/generic_server_doc.md)
 2. [Gstreamer Video Analytics](docs/gva_doc.md)
@@ -99,7 +101,7 @@ The following are the type of ingestors supported:
 
   ----
 
-#### `Camera Configuration`
+#### Camera Configuration
 
 * `Video file`
 
