@@ -32,7 +32,7 @@ The high level logical flow of VideoIngestion pipeline is as below:
    ingested frames). With chaining of UDFs supported, one can also have
    classifier UDFs and any post-processing UDFs like resize etc., configured in
    `udfs` key to get the classified results. One can refer
-   [../common/video/udfs/README.md](../common/video/udfs/README.md) for more details.
+   [../common/video/udfs/README.md](https://github.com/open-edge-insights/video-common/blob/master/udfs/README.md) for more details.
 4. App gets the msgbus endpoint configuration from system environment and
    based on the configuration, app publishes the data on the mentioned topic
    on EII MessageBus.
@@ -56,9 +56,9 @@ overhead of VA(VideoAnalytics) service.
 
 ## Configuration
 
-1. [Udfs Configuration](../common/video/udfs/README.md)
-2. [Etcd Secrets Configuration](../Etcd_Secrets_Configuration.md) and
-3. [MessageBus Configuration](../common/libs/ConfigMgr/README.md#interfaces) respectively.
+1. [Udfs Configuration](https://github.com/open-edge-insights/video-common/blob/master/udfs/README.md)
+2. [Etcd Secrets Configuration](https://github.com/open-edge-insights/eii-core/blob/master/Etcd_Secrets_Configuration.md) and
+3. [MessageBus Configuration](https://github.com/open-edge-insights/eii-core/blob/master/common/libs/ConfigMgr/README.md#interfaces) respectively.
 4. [JSON schema](schema.json)
 ---
 
@@ -135,7 +135,7 @@ The following are the type of ingestors supported:
 
   The following are the pre-requisites for working with GeniCam compliant cameras. Please note that these changes need to be reverted while working with other cameras such as realsense, rtsp and usb(v4l2 driver compliant).
 
-  Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file of the respective Ingestion service(including custom udf services). Once the changes are made make sure [builder.py](../builder.py) is executed before building and running the services.
+  Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file of the respective Ingestion service(including custom udf services). Once the changes are made make sure [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) is executed before building and running the services.
 
 
   **For GenICam GigE Camera:**

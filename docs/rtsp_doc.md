@@ -18,7 +18,7 @@
     `"pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
     ```
 
-* If working behind a proxy, RTSP_CAMERA_IP/simulated SOURCE_IP need to be updated to RTSP_CAMERA_IP in [../../build/.env](../../build/.env) and [../../build/builder.py](../../build/builder.py) needs to be executed.
+* If working behind a proxy, RTSP_CAMERA_IP/simulated SOURCE_IP need to be updated to RTSP_CAMERA_IP in [../../build/.env](https://github.com/open-edge-insights/eii-core/blob/master/build/.env) and [../../build/builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) needs to be executed.
 
 * For working both with simulated RTSP server via cvlc or
   direct streaming from RTSP camera, we can use the below Gstreamer
