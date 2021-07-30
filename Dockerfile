@@ -134,7 +134,11 @@ ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/ap
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 RUN chown ${EII_USER_NAME}:${EII_USER_NAME} /app /var/tmp
 RUN usermod -a -G users ${EII_USER_NAME}
-USER ${EII_USER_NAME}
 
+# Needed to not show the warnings while executing sample_onnx UDF
+RUN mkdir -p /home/${EII_USER_NAME} && \
+    chown -R ${EII_USER_NAME}:${EII_USER_NAME} /home/${EII_USER_NAME}/
+
+USER ${EII_USER_NAME}
 HEALTHCHECK NONE
 ENTRYPOINT ["./VideoIngestion/vi_start.sh"]
