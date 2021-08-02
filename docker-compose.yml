@@ -71,6 +71,11 @@ services:
     volumes:
       - "vol_eii_socket:${SOCKET_DIR}"
       - "/var/tmp:/var/tmp"
+      # Following devices under /dev filesystem will be needed based on usecase
+      # dri - GPU
+      # ion - VPU
+      # USB camera devices
+      # Selective mount can be done for deployment as mounting whole /dev is not recommended
       - "/dev:/dev"
       - "/tmp:/tmp"
     device_cgroup_rules:
@@ -84,7 +89,7 @@ services:
       # dri - GPU
       # ion - VPU
       # USB camera devices
-      # Selective mount can be done for deployment
+      # Selective mount can be done for deployment as mounting whole /dev is not recommended
       - "/dev:/dev"
     secrets:
       - ca_etcd
