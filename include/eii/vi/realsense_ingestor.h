@@ -66,6 +66,15 @@ namespace eii {
             // Framerate
             int m_framerate;
 
+            // Flag for depth product line
+            bool m_depth;
+
+            // Flag for tracking product line
+            bool m_tracking;
+
+            // RealSense Pipeline Profile
+            rs2::pipeline_profile m_pipe_profile;
+
         protected:
             /**
              * Overridden run method.

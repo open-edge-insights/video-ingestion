@@ -85,7 +85,7 @@ The following are the type of ingestors supported:
 1. [OpenCV](https://opencv.org/)
 2. [GStreamer](docs/gstreamer_ingestor_doc.md)
 3. [RealSense](https://www.intelrealsense.com/)
-  
+
    **For more information on Intel RealSense SDK refer [librealsense](https://github.com/IntelRealSense/librealsense)**
 
   ----
@@ -183,7 +183,7 @@ The following are the type of ingestors supported:
     >  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
  * `Gstreamer Ingestor`
-    
+
     * `GenICam GigE/USB3.0 cameras`
 
       ```javascript
@@ -192,11 +192,11 @@ The following are the type of ingestors supported:
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-      > **Note:** 
-      
+      > **Note:**
+
       > * Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
-      > * The above gstreamer pipeline was tested with Basler and IDS GigE cameras. 
-      > * If `serial` is not provided then the first connected camera in the device list will be used. 
+      > * The above gstreamer pipeline was tested with Basler and IDS GigE cameras.
+      > * If `serial` is not provided then the first connected camera in the device list will be used.
       > * If `pixel-format` is not provided then the default `mono8` pixel format will be used.
       > * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
 
@@ -210,17 +210,17 @@ The following are the type of ingestors supported:
      ```
 
     > **Note:**
-    > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work. 
-    
+    > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work.
+
     One can refer the below example pipeline:
-      
+
       ```javascript
       {
         "type": "gstreamer",
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-    
+
     **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
  ----
@@ -312,18 +312,16 @@ The following are the type of ingestors supported:
         },
      ```
     > **Note**
-    > *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
+    > *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i and T265 camera.
     > *  RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
-
+    > *  Encoding is not supported with T265 camera. Please remove encoding key in [config.json](./config.json) and run [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py)
     > *  If `serial` config is not provided then the first realsense camera in the device list will be connected.
-
     > *  If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
-
-    > * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
+    > * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false. In case one notices `Failed to open scan_element(HID-SENSOR)` exception in VideoIngestion logs when enabling IMU stream, please add `privileged: true` parameter in [docker-compose.yml](./docker-compose.yml) and run [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py)
 
  ----
 
-> **Note**: 
+> **Note**:
 
 > For all video and camera streams please make sure you are using appropriate UDF configuration. One may not get the expected output in the Visualizer/WebVisualizer screen if the udf is not compatible with the video source.
 
