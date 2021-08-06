@@ -159,10 +159,9 @@ namespace eii {
                 virtual void read(udf::Frame*& frame) = 0;
 
                 /**
-                 * Method to generate random uuid to set image handle
-                 * for every frame.
+                 * Private @c Ingestor assignment operator.
                  */
-                std::string generate_image_handle(const int len);
+                Ingestor& operator=(const Ingestor& src);
 
             public:
                 /**

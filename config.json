@@ -30,7 +30,7 @@
             {
                 "Name": "default",
                 "Type": "zmq_tcp",
-                "EndPoint": "127.0.0.1:66013",
+                "EndPoint": "0.0.0.0:64013",
                 "AllowedClients": [
                     "*"
                 ]

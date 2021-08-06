@@ -1,4 +1,13 @@
+**Contents**
+
+- [GVA (GStreamer Video Analytics)](#gva-gstreamer-video-analytics)
+
 ### GVA (GStreamer Video Analytics)
+
+VI module supports the usage of GVA (Gstreamer Video Analytics) plugins with `gstreamer` ingestor. [GVA](https://github.com/openvinotoolkit/dlstreamer_gst) is
+a collection of GStreamer elements to enable CNN model based video analytics capabilities (such as object detection, classification, recognition) in GStreamer framework.
+
+**Refer [CustomUdfs-GVASafetyGearIngestion](../CustomUdfs/GVASafetyGearIngestion/README.md) to refer GVA based CustomUdf container added for SafetyGear sample.**
 
 GVA use case configurations with different cameras:
 
@@ -19,7 +28,7 @@ GVA use case configurations with different cameras:
     ```javascript
      {
        "type": "gstreamer",
-       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1080 exposure-time=3250 ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert !  video/x-raw,format=BGR ! appsink"
+       "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert !  video/x-raw,format=BGR ! appsink"
      }
     ```
 
@@ -28,7 +37,7 @@ GVA use case configurations with different cameras:
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
@@ -45,7 +54,7 @@ GVA use case configurations with different cameras:
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
  * For generic full frame inference one can use the `gvainference` element. For more information refer [gvainference](https://github.com/openvinotoolkit/dlstreamer_gst/wiki/gvainference).
@@ -55,7 +64,7 @@ GVA use case configurations with different cameras:
   ```javascript
   {
    "type": "gstreamer",
-   "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! gvainference device=CPU model=common/video/udfs/python/pcb/ref/model_2.xml ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink",
+   "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! gvainference device=CPU model=common/video/udfs/python/pcb/ref/model_2.xml ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink",
   }
   ```
 
@@ -75,6 +84,6 @@ GVA use case configurations with different cameras:
     ```javascript
     {
       "type": "gstreamer",
-      "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect device=HDDL  model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect device=HDDL  model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
     }
     ```

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation.
+// Copyright (c) 2021 Intel Corporation.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -20,42 +20,51 @@
 
 /**
  * @file
- * @brief OpenCV Ingestor interface
+ * @brief RealSense Ingestor interface
  */
 
-#ifndef _EII_VI_OPENCV_H
-#define _EII_VI_OPENCV_H
+#ifndef _EII_VI_REALSENSE_H
+#define _EII_VI_REALSENSE_H
 
 #include <opencv2/opencv.hpp>
 #include <eii/utils/thread_safe_queue.h>
 #include "eii/vi/ingestor.h"
-
+#include <librealsense2/rs.hpp>
 
 namespace eii {
     namespace vi {
 
         /**
-         * OpenCV ingestor
+         * RealSense ingestor
          */
-        class OpenCvIngestor : public Ingestor {
+        class RealSenseIngestor : public Ingestor {
         private:
-            // OpenCV video capture object
-            cv::VideoCapture* m_cap;
+            // RealSense pipeline
+            rs2::pipeline m_pipe;
 
-            // Resize parameters
-            int m_width;
-            int m_height;
+            // RealSense config
+            rs2::config m_cfg;
+
+            // RealSense context
+            rs2::context m_ctx;
+
+            // RealSense frameset
+            rs2::frameset m_frameset;
 
             // Flag for if encoding/compression is needed
             bool m_encoding;
 
-            // video source
-            std::string m_pipeline;
+            // Device Serial Number
+            std::string m_serial;
 
-            // video loop option
-            bool m_loop_video;
+            // Flag for IMU data. IMU will be enabled by default
+            bool m_imu_on;
 
-            bool m_double_frames;
+            // Flag for IMU suppport
+            bool m_imu_support;
+
+            // Framerate
+            int m_framerate;
 
         protected:
             /**
@@ -78,21 +87,25 @@ namespace eii {
              * @param enc_type      - Frame encoding type(Optional)
              * @param enc_lvl       - Frame encoding level(Optional)
              */
-            OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl);
+            RealSenseIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl);
 
             /**
              * Destructor
              */
-            ~OpenCvIngestor();
+            ~RealSenseIngestor();
 
            /**
             * Overridden stop method.
             */
            void stop() override;
 
+           /**
+            * Checking imu support
+            */
+           bool check_imu_is_supported();
         };
 
     } // vi
 } // eii
 
-#endif // _EII_VI_OPENCV_H
+#endif // _EII_VI_REALSENSE_H

@@ -144,7 +144,7 @@ void on_change_config_callback(const char* key, config_t* value, void* user_data
 bool validate_config(char config_key[]) {
     // Writing to external file
     std::ofstream out;
-    out.open("./config.json", std::ios::binary);
+    out.open("/var/tmp/config.json", std::ios::binary);
     out << config_key;
     out.close();
 
@@ -154,7 +154,7 @@ bool validate_config(char config_key[]) {
     WJElement schema = NULL;
 
     // Fetch config file
-    FILE* config_fp = fopen("./config.json", "r");
+    FILE* config_fp = fopen("/var/tmp/config.json", "r");
     if(config_fp == NULL) {
         return false;
     }
@@ -291,6 +291,7 @@ int main(int argc, char** argv) {
 
         // Validating config against schema
         if (!validate_config(g_vi_config)) {
+            LOG_ERROR_0("Schema validation failed");
             return -1;
         }
 

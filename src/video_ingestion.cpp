@@ -149,7 +149,7 @@ VideoIngestion::VideoIngestion(
     m_udf_input_queue = new FrameQueue(queue_size);
 
     config_value_object_t* ingestor_cvt = ingestor_value->body.object;
-    m_ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value);
+    m_ingestor_cfg = config_new(ingestor_cvt->object, free, get_config_value, NULL);
     if (m_ingestor_cfg == NULL) {
         const char* err = "Unable to get ingestor config";
         LOG_ERROR("%s", err);
@@ -333,6 +333,10 @@ msg_envelope_elem_body_t* VideoIngestion::process_snapshot(msg_envelope_elem_bod
         LOG_ERROR("%s %s", ex.what(), err.c_str());
         return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
     }
+}
+
+VideoIngestion& VideoIngestion::operator=(const VideoIngestion& src) {
+    return *this;
 }
 
 void VideoIngestion::start() {

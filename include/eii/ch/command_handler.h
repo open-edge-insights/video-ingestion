@@ -89,6 +89,16 @@ namespace eii {
                  */
                 int service_init(eii::config_manager::ConfigMgr* ctx);
 
+                /**
+                 * Private @c CommandHandler copy constructor.
+                 */
+                CommandHandler(const CommandHandler& src);
+
+                /**
+                 * Private @c CommandHandler assignment operator.
+                 */
+                CommandHandler& operator=(const CommandHandler& src);
+
             public:
             
                 /**

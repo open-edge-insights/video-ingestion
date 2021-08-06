@@ -23,7 +23,9 @@ version: '3.6'
 services:
 ## Define VideoIngestion service
   ia_video_ingestion:
+    read_only: true
     depends_on:
+      - ia_video_common
       - ia_openvino_base
     build:
       context: $PWD/../VideoIngestion
@@ -34,50 +36,61 @@ services:
         EII_USER_NAME: ${EII_USER_NAME}
         # set CMAKE_BUILD_TYPE value to "Debug" to generate debug symbols
         CMAKE_BUILD_TYPE: "Release"
-        DOCKER_REGISTRY: ${DOCKER_REGISTRY}
+        CMAKE_INSTALL_PREFIX: ${EII_INSTALL_PATH}
+        OPENVINO_IMAGE: ${OPENVINO_IMAGE}
         RUN_TESTS: "OFF"
-    image: ${DOCKER_REGISTRY}ia_video_ingestion:${EII_VERSION}
+    image: ${DOCKER_REGISTRY}openedgeinsights/ia_video_ingestion:${EII_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
-    network_mode: host
     restart: unless-stopped
     security_opt:
     - no-new-privileges
     healthcheck:
       test: ["CMD-SHELL", "exit", "0"]
       interval: 5m
-
     ipc: "none"
     environment:
       AppName: "VideoIngestion"
       DEV_MODE: ${DEV_MODE}
       PROFILING_MODE: ${PROFILING_MODE}
-      no_proxy: ${eii_no_proxy},${RTSP_CAMERA_IP},${ETCD_HOST}
+      no_proxy: ${RTSP_CAMERA_IP},${ETCD_HOST}
       ETCD_HOST: ${ETCD_HOST}
       ETCD_CLIENT_PORT: ${ETCD_CLIENT_PORT}
       ETCD_PREFIX: ${ETCD_PREFIX}
-
       # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
       GENICAM: "Matrix_Vision"
-
       # Setting the GST log levels
-      GST_DEBUG: "1,gencamsrc:1"
-
+      # The env variable will set WARNING level 2 for gencamsrc plugin and none for other plugins
+      GST_DEBUG: "0,gencamsrc:2"
       # Provisioning related variable
       CertType: "zmq"
+    ports:
+      - 64013:64013
+    networks:
+      - eii
     volumes:
       - "vol_eii_socket:${SOCKET_DIR}"
-      - "/dev:/dev"
       - "/var/tmp:/var/tmp"
-    privileged: true
-
+      # Following devices under /dev filesystem will be needed based on usecase
+      # dri - GPU
+      # ion - VPU
+      # USB camera devices
+      # Selective mount can be done for deployment as mounting whole /dev is not recommended
+      - "/dev:/dev"
+      - "/tmp:/tmp"
+    device_cgroup_rules:
+      # Default run - device-cgroup-rule='c 189:* rmw'
+      # NCS2 run - device-cgroup-rule='c 209:* rmw'
+      # Selective rules can be applied for deployment
+      - 'c 189:* rmw'
+      - 'c 209:* rmw'
     devices:
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
       # ion - VPU
       # USB camera devices
-      # Selective mount can be done for deployment
-      - "/dev/:/dev/"
+      # Selective mount can be done for deployment as mounting whole /dev is not recommended
+      - "/dev:/dev"
     secrets:
       - ca_etcd
       - etcd_VideoIngestion_cert

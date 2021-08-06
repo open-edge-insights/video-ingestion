@@ -21,131 +21,120 @@
 # Dockerfile for VideoIngestion
 
 ARG EII_VERSION
-ARG DOCKER_REGISTRY
-FROM ${DOCKER_REGISTRY}ia_openvino_base:$EII_VERSION as openvino
+ARG OPENVINO_IMAGE
+FROM ia_video_common:$EII_VERSION as video_common
+FROM ia_openvino_base:$EII_VERSION as openvino_base
+FROM ia_eiibase:$EII_VERSION as builder
 LABEL description="VideoIngestion image"
 
-WORKDIR ${PY_WORK_DIR}
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    automake \
+    libglib2.0-dev \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libusb-1.0-0-dev \
+    libtool \
+    make && \
+    rm -rf /var/lib/apt/lists/*
+
+ARG CMAKE_INSTALL_PREFIX
+COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_INSTALL_PREFIX}/include
+COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
+COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/bin ${CMAKE_INSTALL_PREFIX}/bin
+COPY --from=video_common /root/.local/bin/cythonize /root/.local/bin/cythonize
+COPY --from=video_common /root/.local/lib/python3.8/site-packages/ /root/.local/lib/python3.8/site-packages
+COPY --from=video_common /eii/common/cmake ./common/cmake
+COPY --from=video_common /eii/common/libs ./common/libs
+COPY --from=video_common /eii/common/util ./common/util
+COPY --from=openvino_base /opt/intel /opt/intel
+
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
+
+# Copy VideoIngestion source code
+COPY . ./VideoIngestion
+ARG WITH_PROFILE
+
+# Build VideoIngestion application
+RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
+                  cd VideoIngestion && \
+                  rm -rf build && \
+                  mkdir build && \
+                  cd build && \
+                  cmake -DCMAKE_INSTALL_INCLUDEDIR=${CMAKE_INSTALL_PREFIX}/include -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DWITH_PROFILE=${WITH_PROFILE} .. && \
+                  make"
+
+# Installing Generic Plugin
+RUN cd VideoIngestion && \
+     ./install_gencamsrc_gstreamer_plugin.sh
+
+FROM ${OPENVINO_IMAGE} AS runtime
+
+USER root
+
 ARG EII_UID
 ARG EII_USER_NAME
 RUN useradd -r -u ${EII_UID} -G video ${EII_USER_NAME}
 
-### Note: In case one cannot non-interactively download the camera SDK from the web then first download the camera SDK onto to the system, place it under VideoIngestion directory and use the COPY instruction to use it in the build context.
+WORKDIR /app
 
-# Adding dependency needed for Matrix Vision SDK
-RUN apt-get update && \
-    apt-get install -y net-tools iproute2
+ENV DEBIAN_FRONTEND="noninteractive" \
+    LD_RUN_PATH="/usr/lib" \
+    LIBRARY_PATH=$LD_RUN_PATH:$LIBVA_DRIVERS_PATH \
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$LIBVA_DRIVERS_PATH:"usr/local/lib" \
+    PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig" \
+    TERM="xterm" \
+    GST_DEBUG="1"
+
+### Note: In case one cannot non-interactively download the camera SDK from the
+### web then first download the camera SDK onto to the system, place it under
+### VideoIngestion directory and use the COPY instruction to use it in the build context.
 
 # Installing Matrix Vision Camera SDK
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    iproute2 \
+    net-tools \
+    wget && \
+    rm -rf /var/lib/apt/lists/*
+
 ARG MATRIX_VISION_SDK_VER=2.38.0
 
 RUN mkdir -p matrix_vision_downloads && \
     cd matrix_vision_downloads && \
-    wget http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
-    wget http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
+    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
+    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
     chmod +x install_mvGenTL_Acquire.sh && \
     ./install_mvGenTL_Acquire.sh && \
     rm -rf matrix_vision_downloads
 
 ### To install other/newer Genicam camera SDKs add the installation steps here
 
-# Build Generic Plugin
-COPY src-gst-gencamsrc ./src-gst-gencamsrc
-COPY install_gencamsrc_gstreamer_plugin.sh .
-RUN ./install_gencamsrc_gstreamer_plugin.sh
+ARG CMAKE_INSTALL_PREFIX
+COPY --from=builder ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
+COPY --from=builder /app/common/util/__init__.py common/util/
+COPY --from=builder /app/common/util/*.py common/util/
+COPY --from=builder /app/VideoIngestion/build/video-ingestion ./VideoIngestion/build/
+COPY --from=builder /app/VideoIngestion/schema.json ./VideoIngestion/
+COPY --from=builder /app/VideoIngestion/*.sh ./VideoIngestion/
+COPY --from=builder /app/VideoIngestion/models ./models
+COPY --from=builder /app/VideoIngestion/test_videos ./test_videos
+COPY --from=builder /root/.local/lib/python3.8/site-packages .local/lib/python3.8/site-packages
+COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc/plugins/genicam-core/genicam/bin/*.so /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/local/lib/gstreamer-1.0 /usr/local/lib/gstreamer-1.0
+COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
+COPY --from=video_common /root/.local/lib .local/lib
 
-ENV InferenceEngine_DIR=/opt/intel/dldt/inference-engine/share
-
-ENV PYTHONPATH ${PYTHONPATH}:.
-
-ENV DEBIAN_FRONTEND="noninteractive" \
-    LIBVA_DRIVERS_PATH="/opt/intel/openvino/opt/intel/mediasdk/lib64/" \
-    LIBVA_DRIVER_NAME="iHD" \
-    GST_VAAPI_ALL_DRIVERS="1" \
-    LIBRARY_PATH="/usr/lib:/opt/intel/openvino/opt/intel/mediasdk/lib64/" \
-    LD_RUN_PATH="/usr/lib" \
-    LD_LIBRARY_PATH="/opt/intel/openvino/opt/intel/mediasdk/lib64/:/usr/local/lib" \
-    PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig" \
-    TERM="xterm" \
-    GST_DEBUG="1"
-
-# Installing dependent python modules - needed by opencv
-COPY vi_requirements.txt .
-RUN pip3.6 install -r vi_requirements.txt && \
-    rm -rf vi_requirements.txt
-
-FROM ${DOCKER_REGISTRY}ia_common:$EII_VERSION as common
-FROM ${DOCKER_REGISTRY}ia_video_common:$EII_VERSION as video_common
-
-FROM openvino
-
-WORKDIR ${GO_WORK_DIR}
-
-COPY --from=common /usr/local/include /usr/local/include
-COPY --from=common /usr/local/lib /usr/local/lib
-COPY --from=common /usr/local/bin/proto* /usr/local/bin/grpc* /usr/local/bin/
-COPY --from=common ${GO_WORK_DIR}/common/cmake ./common/cmake
-COPY --from=common ${GO_WORK_DIR}/common/libs ./common/libs
-COPY --from=common ${GO_WORK_DIR}/common/util ${GO_WORK_DIR}/common/util
-COPY --from=common /usr/local/lib/python3.6/dist-packages/ /usr/local/lib/python3.6/dist-packages
-
-ARG CMAKE_BUILD_TYPE
-ARG RUN_TESTS
-
-COPY --from=video_common ${GO_WORK_DIR}/common/UDFLoader ./common/libs/UDFLoader
-
-# Build UDF loader lib
+# Installing Intel® Graphics Compute Runtime for OpenCL™
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
-    cd ./common/libs/UDFLoader && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    cmake -DWITH_TESTS=${RUN_TESTS} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
-    make && \
-    if [ "${RUN_TESTS}" = "ON" ] ; then cd ./tests && \
-    source ./source.sh && \
-    ./frame-tests && \
-    ./udfloader-tests && \
-    cd .. ; fi && \
-    make install"
+                 cd /opt/intel/openvino/install_dependencies && \
+                 yes | ./install_NEO_OCL_driver.sh --auto || true"
 
-COPY --from=video_common ${GO_WORK_DIR}/common/video/udfs/native ./common/video/udfs/native
-
-# Build native UDF samples
-RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
-    cd ./common/video/udfs/native && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} .. && \
-    make && \
-    make install"
-
-ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/usr/local/lib/udfs/
-
-# Adding project depedency modules
-COPY . ./VideoIngestion/
-RUN mv VideoIngestion/models . && mv VideoIngestion/test_videos .
-
-ARG WITH_PROFILE
-RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
-    cd ./VideoIngestion && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DWITH_PROFILE=${WITH_PROFILE} .. && \
-    make"
-
-# Removing build dependencies
-RUN apt-get remove -y wget && \
-    apt-get remove -y git && \
-    apt-get remove -y curl && \
-    apt-get remove -y cmake && \
-    apt-get autoremove -y
-
-COPY --from=video_common ${GO_WORK_DIR}/common/video/udfs/python ./common/video/udfs/python
-
-ENV PYTHONPATH ${PYTHONPATH}:${GO_WORK_DIR}/common/video/udfs/python:${GO_WORK_DIR}/common/
+ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/app/.local/lib/python3.8/site-packages
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
+RUN chown ${EII_USER_NAME}:${EII_USER_NAME} /app /var/tmp
+RUN usermod -a -G users ${EII_USER_NAME}
+USER ${EII_USER_NAME}
 
 HEALTHCHECK NONE
 ENTRYPOINT ["./VideoIngestion/vi_start.sh"]

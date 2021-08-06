@@ -33,6 +33,7 @@
 #include "eii/vi/ingestor.h"
 #include "eii/vi/opencv_ingestor.h"
 #include "eii/vi/gstreamer_ingestor.h"
+#include "eii/vi/realsense_ingestor.h"
 
 using namespace eii::vi;
 using namespace eii::utils;
@@ -68,6 +69,10 @@ Ingestor::Ingestor(config_t* config, FrameQueue* frame_queue, std::string servic
         this->m_profile = new Profiling();
 }
 
+Ingestor& Ingestor::operator=(const Ingestor& src) {
+    return *this;
+}
+
 Ingestor::~Ingestor() {
     LOG_DEBUG_0("Ingestor destructor");
     if(m_initialized.load()) {
@@ -99,23 +104,10 @@ Ingestor* eii::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const
         ingestor = new OpenCvIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
     } else if(!strcmp(type, "gstreamer")) {
         ingestor = new GstreamerIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
+    } else if(!strcmp(type, "realsense")) {
+        ingestor = new RealSenseIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);
     } else {
         throw("Unknown ingestor");
     }
     return ingestor;
-}
-
-std::string Ingestor::generate_image_handle(const int len) {
-    std::stringstream ss;
-    for (auto i = 0; i < len; i++) {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, 255);
-        const auto rc = dis(gen);
-        std::stringstream hexstream;
-        hexstream << std::hex << rc;
-        auto hex = hexstream.str();
-        ss << (hex.length() < 2 ? '0' + hex : hex);
-    }
-    return ss.str();
 }

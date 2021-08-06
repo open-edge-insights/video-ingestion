@@ -32,8 +32,7 @@
       "description": "Ingestor object",
       "type": "object",
       "required": [
-        "type",
-        "pipeline"
+        "type"
       ],
       "properties": {
         "type": {
@@ -41,7 +40,8 @@
           "type": "string",
           "enum": [
               "opencv",
-              "gstreamer"
+              "gstreamer",
+              "realsense"
             ]
         },
         "pipeline": {
@@ -58,9 +58,23 @@
           "type": "integer"
         },
         "poll_interval": {
-          "description": "polling interval for reading ingested frames",
+          "description": "polling interval for reading ingested frames for opencv ingestor",
           "type": "number",
           "default": 0.0
+        },
+        "serial": {
+          "description": "serial number of realsense device",
+          "type": "string"
+        },
+        "imu_on": {
+          "description": "flag to enable/disable IMU data for realsense device. Inertial Measurement Units (IMU) are sensors which allow measurement of both directional movement and rotation",
+          "type": "boolean",
+          "default": false
+        },
+        "framerate": {
+          "description": "framerate for setting the realsense ingestor fps",
+          "type": "integer",
+          "default": 30
         }
       }
     },
@@ -106,7 +120,8 @@
             "type": "string",
             "enum": [
               "native",
-              "python"
+              "python",
+              "raw_native"
             ]
           },
 	  "device": {

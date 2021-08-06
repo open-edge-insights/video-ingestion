@@ -22,8 +22,13 @@
 
 source /opt/intel/openvino/bin/setupvars.sh
 
+# Adding path of vaapi elements
+export LIBVA_DRIVER_NAME=iHD
+export LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
+export GST_VAAPI_ALL_DRIVERS=1
+
 # Adding path of libcpu_extension.so to LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GO_WORK_DIR/common/video/udfs/native/build/ie_cpu_extension
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/app/common/video/udfs/native/build/ie_cpu_extension
 
 # Adding path of Generic Plugin
 export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"

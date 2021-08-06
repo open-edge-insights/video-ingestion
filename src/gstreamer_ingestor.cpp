@@ -270,8 +270,8 @@ GstreamerIngestor* ctx) {
                         sample, buf, info);
 
                 Frame* frame = new Frame(
-                        (void*) gst_frame, (int) width, (int) height, 3,
-                        info->data, free_gst_frame);
+                        (void*) gst_frame, free_gst_frame, (void*) info->data,
+                        (int) width, (int) height, 3);
 
                 //Get the GVA metadata from the GST buffer
                 GVA::RegionOfInterestList roi_list(buf);
@@ -498,21 +498,9 @@ GstreamerIngestor* ctx) {
                 LOG_DEBUG("Frame number: %ld", ctx->m_frame_count);
 
                 // Adding image handle to frame
-                std::string randuuid = ctx->generate_image_handle(UUID_LENGTH);
                 msg_envelope_t* meta_data = frame->get_meta_data();
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_Ingestor_entry");
-                // Profiling end
-                elem = msgbus_msg_envelope_new_string(randuuid.c_str());
-                if (elem == NULL) {
-                    delete frame;
-                    throw "Failed to create image handle element";
-                }
-                ret = msgbus_msg_envelope_put(meta_data, "img_handle", elem);
-                if(ret != MSG_SUCCESS) {
-                    delete frame;
-                    throw "Failed to put image handle meta-data";
-                }
 
                 // Profiling start
                 DO_PROFILING(ctx->m_profile, meta_data, "ts_filterQ_entry");
