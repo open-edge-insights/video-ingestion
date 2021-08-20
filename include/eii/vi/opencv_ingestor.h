@@ -29,7 +29,7 @@
 #include <opencv2/opencv.hpp>
 #include <eii/utils/thread_safe_queue.h>
 #include "eii/vi/ingestor.h"
-
+#include <string>
 
 namespace eii {
     namespace vi {
@@ -56,6 +56,9 @@ namespace eii {
             bool m_loop_video;
 
             bool m_double_frames;
+            
+            // Flag for enabling the Image ingestion
+            bool m_img_flag;
 
         protected:
             /**
@@ -67,6 +70,11 @@ namespace eii {
              * Overridden read method.
              */
             void read(udf::Frame*& frame) override;
+
+            /**
+            imread method implemented to read the image for image ingestion feature
+            **/
+            void imread(udf::Frame*& frame);
 
         public:
             /**

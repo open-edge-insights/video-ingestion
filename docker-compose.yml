@@ -71,6 +71,10 @@ services:
     volumes:
       - "vol_eii_socket:${SOCKET_DIR}"
       - "/var/tmp:/var/tmp"
+      # Add volume for image ingestion feature
+      # Please provide the absolute path to the images directory present in the host system for volume mounting the directory. 
+      # Eg: -"home/directory_1/images_directory:/app/img_dir" 
+      #- "<path_to_images_directory>:/app/img_dir" 
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
       # ion - VPU

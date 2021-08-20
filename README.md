@@ -338,3 +338,49 @@ The following are the type of ingestors supported:
     }]
   ```
 > Same changes need to be applied in VideoAnalytics configuration if it is subscribing to VideoIngestion.
+
+
+----
+
+# Image Ingestion
+
+The Image ingestion feature is mainly responsible for ingesting the images coming from a directory into the EII stack for further processing.  OpenCV ingestor is used for supporting image ingestion. 
+The image formats supported by this module are jpg, jpeg, bmp, png, ppm, dib, hdr, ras, pic, sr, pnm, pfm and jpe.
+Please refer the below snip for configuring the [config.json](./congig.json) file for enabling the image ingestion feature.
+
+* `OpenCV Ingestor`
+
+      ```javascript
+      {
+        "type": "opencv",
+        "pipeline": "/app/img_dir/",
+        "poll_interval": 0.2
+        "loop_video": true,
+        "image_ingestion": true
+      }
+      ```
+  The description of the keys being used in config.json is as given below:
+  * pipeline - Provides the path to the images directory that is volume mounted.
+  * poll_interval : Refers to the pull rate of frame in second.
+  * loop_video : Would loop through the images directory.
+  * image_ingestion : Optional boolean key. It is required for enabling the image ingestion feature.
+
+  > **NOTE**: The image_ingestion key in the config.json needs to be set true for enabling the image ingestion feature.
+
+The images directory present on the host system needs to be volume mounted. This can be done by providing the absolute path of the images directory in the docker-compose file.
+Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file. Once the changes are made make sure [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) is executed before building and running the services.
+
+```yaml
+ia_video_ingestion:
+  ...
+  volume:
+    - "vol_eii_socket:${SOCKET_DIR}"
+    - "/var/tmp:/var/tmp"
+    # Add volume
+    # Please provide the absolute path to the images directory present in the host system for volume mounting the directory. Eg: -"home/directory_1/images_directory:/app/img_dir" 
+    - "<path_to_images_directory>:/app/img_dir"
+    ...
+```
+
+----    
+    

@@ -33,6 +33,10 @@
 #include <eii/utils/json_config.h>
 #include "eii/vi/opencv_ingestor.h"
 
+#include <glob.h>
+#include <sys/stat.h>
+
+using namespace std;
 
 using namespace eii::vi;
 using namespace eii::utils;
@@ -41,6 +45,7 @@ using namespace eii::udf;
 #define PIPELINE "pipeline"
 #define LOOP_VIDEO "loop_video"
 #define UUID_LENGTH 5
+
 
 OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl):
     Ingestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl) {
@@ -51,6 +56,8 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
     m_loop_video = false;
     m_double_frames = false;
     m_initialized.store(true);
+    m_img_flag = false;
+
 
     config_value_t* cvt_double = config_get(config, "double_frames");
     if (cvt_double != NULL) {
@@ -64,13 +71,25 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
         config_value_destroy(cvt_double);
     }
 
+    if (config_value_t* cvt_image = config_get(config, "image_ingestion")) {
+        if (cvt_image->type == CVT_BOOLEAN) {
+            m_img_flag = cvt_image->body.boolean;
+            config_value_destroy(cvt_image);
+        } else {
+            config_value_destroy(cvt_image);
+            const char* err = "JSON value must be a boolean";
+            LOG_ERROR("%s for \'%s\'", err, "IMAGE_INGESTION");
+            throw(err);
+        } 
+    }    
+        
     config_value_t* cvt_pipeline = config->get_config_value(config->cfg, PIPELINE);
     LOG_INFO("cvt_pipeline initialized");
-    if(cvt_pipeline == NULL) {
+    if (cvt_pipeline == NULL) {
         const char* err = "JSON missing key";
         LOG_ERROR("%s \'%s\'", err, PIPELINE);
         throw(err);
-    } else if(cvt_pipeline->type != CVT_STRING) {
+    } else if (cvt_pipeline->type != CVT_STRING) {
         config_value_destroy(cvt_pipeline);
         const char* err = "JSON value must be a string";
         LOG_ERROR("%s for \'%s\'", err, PIPELINE);
@@ -82,26 +101,28 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
 
     config_value_t* cvt_loop_video = config->get_config_value(
             config->cfg, LOOP_VIDEO);
-    if(cvt_loop_video != NULL) {
-        if(cvt_loop_video->type != CVT_BOOLEAN) {
+    if (cvt_loop_video != NULL) {
+        if (cvt_loop_video->type != CVT_BOOLEAN) {
             LOG_ERROR_0("Loop video must be a boolean");
             config_value_destroy(cvt_loop_video);
         }
-        if(cvt_loop_video->body.boolean) {
+        if (cvt_loop_video->body.boolean) {
             m_loop_video = true;
         }
         config_value_destroy(cvt_loop_video);
     }
 
-    m_cap = new cv::VideoCapture(m_pipeline);
-    if(!m_cap->isOpened()) {
-        LOG_ERROR("Failed to open gstreamer pipeline: %s", m_pipeline.c_str());
-    }
+    if (!m_img_flag) {
+        m_cap = new cv::VideoCapture(m_pipeline);
+        if (!m_cap->isOpened()) {
+        LOG_ERROR("Failed to open opencv pipeline: %s", m_pipeline.c_str());
+        }
+    }     
 }
 
 OpenCvIngestor::~OpenCvIngestor() {
     LOG_DEBUG_0("OpenCV ingestor destructor");
-    if(m_cap != NULL) {
+    if (m_cap != NULL) {
         m_cap->release();
         LOG_DEBUG_0("Cap deleted");
     }
@@ -126,8 +147,12 @@ void OpenCvIngestor::run(bool snapshot_mode) {
 
     try {
         while (!m_stop.load()) {
-            this->read(frame);
 
+            if (m_img_flag) {
+                this->imread(frame);
+            } else {
+                this->read(frame);
+            }            
             msg_envelope_t* meta_data = frame->get_meta_data();
             // Profiling start
             DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
@@ -135,7 +160,7 @@ void OpenCvIngestor::run(bool snapshot_mode) {
             // Profiling end
 
             msgbus_ret_t ret;
-            if(frame_count == INT64_MAX) {
+            if (frame_count == INT64_MAX) {
                 LOG_WARN_0("frame count has reached INT64_MAX, so resetting \
                             it back to zero");
                 frame_count = 0;
@@ -150,7 +175,7 @@ void OpenCvIngestor::run(bool snapshot_mode) {
                 throw err;
             }
             ret = msgbus_msg_envelope_put(meta_data, "frame_number", elem);
-            if(ret != MSG_SUCCESS) {
+            if (ret != MSG_SUCCESS) {
                 delete frame;
                 const char* err = "Failed to put frame_number in meta-data";
                 LOG_ERROR("%s", err);
@@ -173,8 +198,8 @@ void OpenCvIngestor::run(bool snapshot_mode) {
             }
 
             QueueRetCode ret_queue = m_udf_input_queue->push(frame);
-            if(ret_queue == QueueRetCode::QUEUE_FULL) {
-                if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
+            if (ret_queue == QueueRetCode::QUEUE_FULL) {
+                if (m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
                     LOG_ERROR_0("Failed to enqueue message, "
                                 "message dropped");
                 }
@@ -184,7 +209,7 @@ void OpenCvIngestor::run(bool snapshot_mode) {
 
             frame = NULL;
 
-            if(snapshot_mode) {
+            if (snapshot_mode) {
                 m_stop.store(true);
                 m_snapshot_cv.notify_all();
             }
@@ -193,23 +218,23 @@ void OpenCvIngestor::run(bool snapshot_mode) {
         LOG_ERROR("Exception: %s", err);
         if (elem != NULL)
             msgbus_msg_envelope_elem_destroy(elem);
-        if(frame != NULL)
+        if (frame != NULL)
             delete frame;
         throw err;
     } catch(...) {
         LOG_ERROR("Exception occured in opencv ingestor run()");
         if (elem != NULL)
             msgbus_msg_envelope_elem_destroy(elem);
-        if(frame != NULL)
+        if (frame != NULL)
             delete frame;
         throw;
     }
     if (elem != NULL)
         msgbus_msg_envelope_elem_destroy(elem);
-    if(frame != NULL)
+    if (frame != NULL)
         delete frame;
     LOG_INFO_0("Ingestor thread stopped");
-    if(snapshot_mode)
+    if (snapshot_mode)
         m_running.store(false);
 }
 
@@ -217,18 +242,18 @@ void OpenCvIngestor::read(Frame*& frame) {
 
     cv::Mat* cv_frame = new cv::Mat();
     cv::Mat* frame_copy = NULL;
-
+ 
     if (m_cap == NULL) {
         m_cap = new cv::VideoCapture(m_pipeline);
-        if(!m_cap->isOpened()) {
-            LOG_ERROR("Failed to open gstreamer pipeline: %s", m_pipeline.c_str());
+        if (!m_cap->isOpened()) {
+            LOG_ERROR("Failed to open opencv pipeline: %s", m_pipeline.c_str());
         }
     }
 
-    if(!m_cap->read(*cv_frame)) {
-        if(cv_frame->empty()) {
+    if (!m_cap->read(*cv_frame)) {
+        if (cv_frame->empty()) {
             // cv_frame->empty signifies video has ended
-            if(m_loop_video == true) {
+            if (m_loop_video == true) {
                 // Re-opening the video capture
                 LOG_WARN_0("Video ended. Looping...");
                 m_cap->release();
@@ -238,7 +263,7 @@ void OpenCvIngestor::read(Frame*& frame) {
                 const char* err = "Video ended...";
                 LOG_WARN("%s", err);
                 // Sleeping indefinitely to avoid restart
-                while(true) {
+                while (true) {
                     std::this_thread::sleep_for(std::chrono::seconds(5));
                 }
             }
@@ -249,7 +274,7 @@ void OpenCvIngestor::read(Frame*& frame) {
             LOG_ERROR("%s", err);
         }
     }
-
+      
     LOG_DEBUG_0("Frame read successfully");
 
     frame = new Frame(
@@ -265,17 +290,97 @@ void OpenCvIngestor::read(Frame*& frame) {
             EncodeType::NONE, 0);
     }
 
-    if(m_poll_interval > 0) {
+    if (m_poll_interval > 0) {
         usleep(m_poll_interval * 1000 * 1000);
     }
 }
 
+void OpenCvIngestor::imread(Frame*& frame) {
+    cv::Mat* cv_frame = new cv::Mat();
+    // save the path to the images present in directory /app/img_dir/  
+    static vector<cv::String> filenames;
+    // current image format
+    static int image_format_index;
+    // for indexing filename
+    static size_t k;
+    const string image_formats[] = {"jpg" , "jpeg" , "bmp" , "png" , "ppm" , "dib" , "hdr" , "ras" , "pic" , "sr" , "pnm" , "pfm" , "jpe"};       
+    // length of the array image_format
+    const int len_image_format = sizeof(image_formats) / sizeof(image_formats[0]);
+    // pattern for reading images
+    string img_path;
+    // counter to count the total number of image formats read for verifying empty image directory
+    int count = 0;
+
+    if (image_format_index == 0 && k == 0) {
+        img_path = m_pipeline + "*." + image_formats[image_format_index];
+	cv::glob(img_path , filenames , true);
+        count++;
+    } 
+    // filename.size() gives the total number of images within the directory having image format specified in the image_formats[type]
+    if (k < filenames.size()) {
+	*cv_frame = cv::imread(filenames[k]);
+	if (cv_frame->empty()) {
+	    LOG_ERROR("Could not read image : %s", filenames[k].c_str());
+	}	
+        k++;
+    } else {
+        k = 0;
+        do {
+            count++;
+            if (count == len_image_format+1) {
+		// Exit loop if no images are present within the directory    
+                LOG_ERROR("No images present within directory. Failed to open opencv pipeline %s", m_pipeline.c_str());
+		image_format_index = 0;
+	        break;
+            }         
+	    // If type has reached last image format value, then all image formats are processed
+	    if (image_format_index == len_image_format - 1) {
+                if (m_loop_video == true) {
+                    // Start reading images from begining
+                    LOG_WARN_0("Images ended. Looping...");
+                    image_format_index = 0;
+                } else {
+                    const char* err = "Images ended...";
+                    LOG_WARN("%s", err);
+                    // Sleeping indefinitely to avoid restart
+                    while (true) {
+                        std::this_thread::sleep_for(std::chrono::seconds(5));
+                    }
+	        }
+            } else {
+		// proceed to the next image format    
+		image_format_index++;
+	    } 
+	    img_path = m_pipeline + "*." + image_formats[image_format_index];
+            cv::glob(img_path , filenames , true);
+	} while (filenames.size() == 0);
+        
+	if (count != len_image_format+1) {
+            *cv_frame = cv::imread(filenames[k]);
+	    if (cv_frame->empty()) {
+		LOG_ERROR("Could not read image : %s", filenames[k].c_str());
+	    }
+	}    
+        k++;
+    }
+    
+    LOG_DEBUG_0("Image read successfully");
+
+    frame = new Frame(
+            (void*) cv_frame, free_cv_frame, (void*) cv_frame->data,
+            cv_frame->cols, cv_frame->rows, cv_frame->channels());
+
+    if (m_poll_interval > 0) {
+        usleep(m_poll_interval * 1000 * 1000);
+    }
+} 
+
 void OpenCvIngestor::stop() {
-    if(m_initialized.load()) {
-        if(!m_stop.load()) {
+    if (m_initialized.load()) {
+        if (!m_stop.load()) {
             m_stop.store(true);
             // wait for the ingestor thread function run() to finish its execution.
-            if(m_th != NULL) {
+            if (m_th != NULL) {
                 m_th->join();
             }
         }
@@ -284,7 +389,7 @@ void OpenCvIngestor::stop() {
     m_running.store(false);
     m_stop.store(false);
     LOG_INFO_0("Releasing video capture object");
-    if(m_cap != NULL) {
+    if (m_cap != NULL) {
         m_cap->release();
         delete m_cap;
         m_cap = NULL;
