@@ -93,20 +93,11 @@ ENV DEBIAN_FRONTEND="noninteractive" \
 
 # Installing Matrix Vision Camera SDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     iproute2 \
     net-tools \
     wget && \
     rm -rf /var/lib/apt/lists/*
-
-ARG MATRIX_VISION_SDK_VER=2.38.0
-
-RUN mkdir -p matrix_vision_downloads && \
-    cd matrix_vision_downloads && \
-    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
-    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
-    chmod +x install_mvGenTL_Acquire.sh && \
-    ./install_mvGenTL_Acquire.sh && \
-    rm -rf matrix_vision_downloads
 
 ### To install other/newer Genicam camera SDKs add the installation steps here
 
@@ -124,6 +115,14 @@ COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc/plugins/genicam-core/g
 COPY --from=builder /usr/local/lib/gstreamer-1.0 /usr/local/lib/gstreamer-1.0
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
 COPY --from=video_common /root/.local/lib .local/lib
+COPY --from=builder /app/VideoIngestion/mvGenTL_Acquire-x86_64_ABI2-2.44.1.tgz ./VideoIngestion/
+
+
+# Installing New Matrix Vision SDK
+RUN cd ./VideoIngestion && \
+    ./install_mvGenTL_Acquire.sh && \
+    rm -rf matrix_vision_downloads
+
 
 # Installing Intel® Graphics Compute Runtime for OpenCL™
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
