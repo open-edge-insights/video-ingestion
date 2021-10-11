@@ -37,6 +37,7 @@
 #include <eii/utils/thread_safe_queue.h>
 #include <eii/utils/json_config.h>
 #include <eii/msgbus/msgbus.h>
+#include <eii/msgbus/msgbus.hpp>
 #include <eii/msgbus/msg_envelope.h>
 #include <eii/udf/udf_manager.h>
 #include "eii/vi/ingestor.h"
@@ -70,7 +71,7 @@ namespace eii {
                 CommandHandler* m_commandhandler;
 
                 // EII MsgBus Publisher
-                msgbus::Publisher* m_publisher;
+                msgbus::PublisherThread* m_publisher;
 
                 // EII UDFManager
                 UdfManager* m_udf_manager;

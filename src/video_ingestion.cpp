@@ -239,7 +239,7 @@ VideoIngestion::VideoIngestion(
     }
     LOG_DEBUG_0("Publisher Config received...");
 
-    m_publisher = new Publisher(
+    m_publisher = new PublisherThread(
             pub_config, m_err_cv, topics[0], (MessageQueue*) m_udf_output_queue, m_app_name);
 
     config_destroy(config);
