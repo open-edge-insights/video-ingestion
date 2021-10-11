@@ -112,7 +112,13 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
         config_value_destroy(cvt_loop_video);
     }
 
-    if (!m_img_flag) {
+    if (m_img_flag) {
+	// Verify if image directory is volume mounted    
+	struct stat buffer;
+        if (stat(m_pipeline.c_str(), &buffer) != 0) {
+            LOG_ERROR("%s directory is empty. Failed to open opencv pipeline", m_pipeline.c_str());
+        }
+    } else {
         m_cap = new cv::VideoCapture(m_pipeline);
         if (!m_cap->isOpened()) {
         LOG_ERROR("Failed to open opencv pipeline: %s", m_pipeline.c_str());
@@ -303,7 +309,7 @@ void OpenCvIngestor::imread(Frame*& frame) {
     static int image_format_index;
     // for indexing filename
     static size_t k;
-    const string image_formats[] = {"jpg" , "jpeg" , "bmp" , "png" , "ppm" , "dib" , "hdr" , "ras" , "pic" , "sr" , "pnm" , "pfm" , "jpe"};       
+    const string image_formats[] = {"jpg" , "JPG" , "jpeg" , "JPEG" ,  "jpe", "JPE" ,  "bmp" , "BMP" , "png" , "PNG"};       
     // length of the array image_format
     const int len_image_format = sizeof(image_formats) / sizeof(image_formats[0]);
     // pattern for reading images
@@ -321,7 +327,7 @@ void OpenCvIngestor::imread(Frame*& frame) {
 	*cv_frame = cv::imread(filenames[k]);
 	if (cv_frame->empty()) {
 	    LOG_ERROR("Could not read image : %s", filenames[k].c_str());
-	}	
+	}
         k++;
     } else {
         k = 0;
@@ -356,8 +362,8 @@ void OpenCvIngestor::imread(Frame*& frame) {
 	} while (filenames.size() == 0);
         
 	if (count != len_image_format+1) {
-            *cv_frame = cv::imread(filenames[k]);
-	    if (cv_frame->empty()) {
+	    *cv_frame = cv::imread(filenames[k]);
+            if (cv_frame->empty()) {
 		LOG_ERROR("Could not read image : %s", filenames[k].c_str());
 	    }
 	}    

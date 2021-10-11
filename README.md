@@ -345,8 +345,8 @@ The following are the type of ingestors supported:
 # Image Ingestion
 
 The Image ingestion feature is mainly responsible for ingesting the images coming from a directory into the EII stack for further processing.  OpenCV ingestor is used for supporting image ingestion. 
-The image formats supported by this module are jpg, jpeg, bmp, png, ppm, dib, hdr, ras, pic, sr, pnm, pfm and jpe.
-Please refer the below snip for configuring the [config.json](./congig.json) file for enabling the image ingestion feature.
+The image formats supported by this module are jpg, jpeg, jpe, bmp and png.
+Please refer the below snip for configuring the [config.json](./config.json) file for enabling the image ingestion feature.
 
 * `OpenCV Ingestor`
 
@@ -354,14 +354,14 @@ Please refer the below snip for configuring the [config.json](./congig.json) fil
       {
         "type": "opencv",
         "pipeline": "/app/img_dir/",
-        "poll_interval": 0.2
+        "poll_interval": 2,
         "loop_video": true,
         "image_ingestion": true
       }
       ```
   The description of the keys being used in config.json is as given below:
   * pipeline - Provides the path to the images directory that is volume mounted.
-  * poll_interval : Refers to the pull rate of frame in second.
+  * poll_interval : Refers to the pull rate of image in second.Configure `poll_interval` value as per the need.
   * loop_video : Would loop through the images directory.
   * image_ingestion : Optional boolean key. It is required for enabling the image ingestion feature.
 
