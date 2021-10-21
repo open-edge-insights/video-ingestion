@@ -377,6 +377,7 @@ Please refer the below snip for configuring the [config.json](./config.json) fil
   > **NOTE** 
   > * The image_ingestion key in the config.json needs to be set true for enabling the image ingestion feature.
   > * Set the max_workers value to 1 `"max_workers":1` in config.json files for [VideoIngestion/config.json](./config.json) and [VideoAnalytics/config.json](https://github.com/open-edge-insights/video-analytics/blob/master/config.json). This is needed to ensure that the images sequence is maintained. If `max_workers` is set more than 1, then more likely the images would be out of order due to those many multiple threads operating asynchronously.
+  > * If the resolution of the image is greater than `1920×1200`, then the image will be resized to `width = 1920` and `height = 1200`. The image is resized to reduce the loading time of the image in WebVisualier and Native Visualizer.  
 
 The images directory present on the host system needs to be volume mounted. This can be done by providing the absolute path of the images directory in the docker-compose file.
 Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file. Once the changes are made make sure [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) is executed before building and running the services.

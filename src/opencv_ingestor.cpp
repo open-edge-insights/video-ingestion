@@ -316,6 +316,11 @@ void OpenCvIngestor::imread(Frame*& frame) {
     string img_path;
     // counter to count the total number of image formats read for verifying empty image directory
     int count = 0;
+    // store the resolution of the image
+    cv::Size size;
+    // maximum height and width of the image
+    const int MAX_IMAGE_WIDTH = 1920;
+    const int MAX_IMAGE_HEIGHT = 1200;
 
     if (image_format_index == 0 && k == 0) {
         img_path = m_pipeline + "*." + image_formats[image_format_index];
@@ -324,9 +329,18 @@ void OpenCvIngestor::imread(Frame*& frame) {
     } 
     // filename.size() gives the total number of images within the directory having image format specified in the image_formats[type]
     if (k < filenames.size()) {
-	*cv_frame = cv::imread(filenames[k]);
-	if (cv_frame->empty()) {
+	cv::Mat image  = cv::imread(filenames[k]);
+	if (image.empty()) {
 	    LOG_ERROR("Could not read image : %s", filenames[k].c_str());
+	} else {
+	    // find the resolution of the image
+	    size = image.size();
+	    if (size.width > MAX_IMAGE_WIDTH || size.height > MAX_IMAGE_HEIGHT) {
+		// resize the image to width = 1920 and height = 1200
+		cv::resize(image, *cv_frame, cv::Size(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT));
+	    } else {
+                *cv_frame = image;
+	    }
 	}
         k++;
     } else {
@@ -362,11 +376,20 @@ void OpenCvIngestor::imread(Frame*& frame) {
 	} while (filenames.size() == 0);
         
 	if (count != len_image_format+1) {
-	    *cv_frame = cv::imread(filenames[k]);
-            if (cv_frame->empty()) {
-		LOG_ERROR("Could not read image : %s", filenames[k].c_str());
+	    cv::Mat image  = cv::imread(filenames[k]);
+            if (image.empty()) {
+                LOG_ERROR("Could not read image : %s", filenames[k].c_str());
+            } else {
+		// find the resolution of the image 
+                size = image.size();
+                if (size.width > MAX_IMAGE_WIDTH || size.height > MAX_IMAGE_HEIGHT) {
+		    // resize the image to resolution width = 1920 and height = 1200
+		    cv::resize(image, *cv_frame, cv::Size(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT));
+                } else {
+                    *cv_frame = image;
+                }
 	    }
-	}    
+	}
         k++;
     }
     
