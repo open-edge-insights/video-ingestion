@@ -350,22 +350,33 @@ Please refer the below snip for configuring the [config.json](./config.json) fil
 
 * `OpenCV Ingestor`
 
-      ```javascript
-      {
+     ```javascript
+     {
+      //
+      "ingestor": {
         "type": "opencv",
         "pipeline": "/app/img_dir/",
         "poll_interval": 2,
         "loop_video": true,
         "image_ingestion": true
-      }
-      ```
+      },
+      "sw_trigger": {
+            "init_state": "running"
+      },
+      "max_workers":1,
+      //
+     }
+     ```
+
   The description of the keys being used in config.json is as given below:
   * pipeline - Provides the path to the images directory that is volume mounted.
   * poll_interval : Refers to the pull rate of image in second.Configure `poll_interval` value as per the need.
   * loop_video : Would loop through the images directory.
   * image_ingestion : Optional boolean key. It is required for enabling the image ingestion feature.
 
-  > **NOTE**: The image_ingestion key in the config.json needs to be set true for enabling the image ingestion feature.
+  > **NOTE** 
+  > * The image_ingestion key in the config.json needs to be set true for enabling the image ingestion feature.
+  > * Set the max_workers value to 1 `"max_workers":1` in config.json files for [VideoIngestion/config.json](./config.json) and [VideoAnalytics/config.json](https://github.com/open-edge-insights/video-analytics/blob/master/config.json). This is needed to ensure that the images sequence is maintained. If `max_workers` is set more than 1, then more likely the images would be out of order due to those many multiple threads operating asynchronously.
 
 The images directory present on the host system needs to be volume mounted. This can be done by providing the absolute path of the images directory in the docker-compose file.
 Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file. Once the changes are made make sure [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) is executed before building and running the services.
