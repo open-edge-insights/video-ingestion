@@ -360,7 +360,7 @@ void RealSenseIngestor::read(Frame*& frame) {
             MsgEnvelope* msgEnvImu = new MsgEnvelope(rs2_meta);
 
             // Add IMU data to frame metadata
-            MsgEnvelopeArray* rs2_meta_arr = new MsgEnvelopeArray();
+            MsgEnvelopeList* rs2_meta_arr = new MsgEnvelopeList();
 
             // Find and retrieve IMU and/or tracking data
             if (rs2::motion_frame accel_frame = data.first_or_default(RS2_STREAM_ACCEL)) {
