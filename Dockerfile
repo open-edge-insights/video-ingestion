@@ -87,19 +87,13 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     TERM="xterm" \
     GST_DEBUG="1"
 
-### Note: In case one cannot non-interactively download the camera SDK from the
-### web then first download the camera SDK onto to the system, place it under
-### VideoIngestion directory and use the COPY instruction to use it in the build context.
-
-# Installing Matrix Vision Camera SDK
+# Installing apt packages for Matrix Vision Camera SDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     iproute2 \
     net-tools \
     wget && \
     rm -rf /var/lib/apt/lists/*
-
-### To install other/newer Genicam camera SDKs add the installation steps here
 
 ARG CMAKE_INSTALL_PREFIX
 COPY --from=builder ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
@@ -117,12 +111,16 @@ COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/pytho
 COPY --from=video_common /root/.local/lib .local/lib
 COPY --from=builder /app/VideoIngestion/mvGenTL_Acquire-x86_64_ABI2-2.44.1.tgz ./VideoIngestion/
 
+### Note: In case one cannot non-interactively download the camera SDK from the
+### web then first download the camera SDK onto to the system, place it under
+### VideoIngestion directory and use the COPY instruction to use it in the build context.
 
 # Installing New Matrix Vision SDK
 RUN cd ./VideoIngestion && \
     ./install_mvGenTL_Acquire.sh && \
     rm -rf matrix_vision_downloads
 
+### To install other/newer Genicam camera SDKs add the installation steps here
 
 # Installing Intel® Graphics Compute Runtime for OpenCL™
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
