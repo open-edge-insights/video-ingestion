@@ -327,7 +327,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       ```javascript
       {
         "type": "opencv",
-        "pipeline": "rtsp://admin:intel123@<RTSP CAMERA IP>:554"
+        "pipeline": "rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>"
       }
       ```
 
@@ -338,11 +338,13 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 
   **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for more information/configuration on rtsp camera.**
+
+  > **NOTE**: The RTSP URI of the physical camera depends on how it is configured using the camera software. One can use VLC Network Stream to verify the RTSP URI to confirm the RTSP source.
 
   ----
 * `USB Camera`
@@ -375,7 +377,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       ```javascript
       {
         "type": "opencv",
-        "pipeline": "rtsp://localhost:8554/"
+        "pipeline": "rtsp://<SOURCE_IP>:<PORT>/<FEED>"
       }
       ```
 
@@ -384,7 +386,7 @@ In order to use the generic plugin with newer Genicam camera SDK follow the belo
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
 

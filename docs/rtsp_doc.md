@@ -8,7 +8,7 @@
 
     **Example pipeline to enable resizing with RTSP camera:**
     ```javascript
-    `"pipeline": "rtspsrc location=\"rtsp://admin:intel123@<RTSP CAMERA IP>:554/\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+    `"pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100  ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
     ```
 
 * If working behind a proxy, RTSP camera IP need to be updated to RTSP_CAMERA_IP in [../../build/.env](../../build/.env)
@@ -30,7 +30,7 @@
 
     * If a physical RTSP camera is used use the below config:
         ```javascript
-        `"pipeline": "rtsp://admin:intel123@<RTSP CAMERA_IP>:554"`
+        `"pipeline": "rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>"`
         ```
 
     * If a simulated RTSP stream needs to be used:
@@ -49,7 +49,7 @@
       * Use the following config to read from the RTSP stream generated
         from the above command"
           ```javascript
-          "pipeline": "rtsp://localhost:8554/live.sdp"
+          "pipeline": "rtsp://<SOURCE_IP>:8554/live.sdp"
           ```
 
     >**NOTE** : Some issues are observed with cvlc based camera simulation
@@ -74,7 +74,10 @@
     * In order to use the RTSP stream from cvlc, the RTSP server
         must be started using VLC with the following command:
 
-        `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://localhost:8554/}' --loop --sout-keep`
+        `cvlc -vvv file://<absolute_path_to_video_file> --sout '#gather:rtp{sdp=rtsp://<SOURCE_IP>:<PORT>/<FEED>}' --loop --sout-keep`
+
+        > **Note**: <FEED> in the cvlc command can be live.sdp or it can also be avoided. But make sure the same RTSP URI given here is
+used in the ingestor pipeline config.
 
   * RTSP cvlc based camera simulation
 
@@ -84,5 +87,5 @@
 
         **Example pipeline to enable resizing with RTSP camera:**
 
-        `"pipeline": "rtspsrc location=\"rtsp://localhost:8554/\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
+        `"pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink"`
 
