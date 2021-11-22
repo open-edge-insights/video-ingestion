@@ -168,11 +168,6 @@ The following are the type of ingestors supported:
         # Add root user
         user: root
         ...
-        environment:
-          # refer [GenICam GigE/USB3.0 Camera Support](docs/generic_plugin_doc.md) to install the respective camera SDK
-          # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
-          GENICAM: "<CAMERA/GenTL>"
-        ...
       ```
 
     > **Note:**

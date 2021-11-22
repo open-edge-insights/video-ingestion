@@ -72,9 +72,9 @@ services:
       - "vol_eii_socket:${SOCKET_DIR}"
       - "/var/tmp:/var/tmp"
       # Add volume for image ingestion feature
-      # Please provide the absolute path to the images directory present in the host system for volume mounting the directory. 
-      # Eg: -"home/directory_1/images_directory:/app/img_dir" 
-      #- "<path_to_images_directory>:/app/img_dir" 
+      # Please provide the absolute path to the images directory present in the host system for volume mounting the directory.
+      # Eg: -"home/directory_1/images_directory:/app/img_dir"
+      #- "<path_to_images_directory>:/app/img_dir"
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
       # ion - VPU
@@ -82,12 +82,16 @@ services:
       # Selective mount can be done for deployment as mounting whole /dev is not recommended
       - "/dev:/dev"
       - "/tmp:/tmp"
+      # volume mount the udev database with read-only permission,so the USB3 Vision interfaces can be enumerated correctly in the container
+      - "/run/udev:/run/udev:ro"
     device_cgroup_rules:
       # Default run - device-cgroup-rule='c 189:* rmw'
       # NCS2 run - device-cgroup-rule='c 209:* rmw'
       # Selective rules can be applied for deployment
       - 'c 189:* rmw'
       - 'c 209:* rmw'
+      # permission for GenICam USB3 vision cameras
+      - 'a 189:* rwm'
     devices:
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU

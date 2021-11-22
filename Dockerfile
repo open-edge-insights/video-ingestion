@@ -120,6 +120,12 @@ RUN cd ./VideoIngestion && \
     ./install_mvGenTL_Acquire.sh && \
     rm -rf matrix_vision_downloads
 
+# Set environment variables required for Matrix Vision SDK
+ENV MVIMPACT_ACQUIRE_DIR="/opt/mvIMPACT_Acquire" \
+    MVIMPACT_ACQUIRE_DATA_DIR="/opt/mvIMPACT_Acquire/data" \
+    GENICAM_ROOT="/opt/mvIMPACT_Acquire/runtime" \
+    MVIMPACT_ACQUIRE_FAVOUR_SYSTEMS_LIBUSB="1"
+
 ### To install other/newer Genicam camera SDKs add the installation steps here
 
 # Installing Intel® Graphics Compute Runtime for OpenCL™
