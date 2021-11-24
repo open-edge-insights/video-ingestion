@@ -60,21 +60,21 @@ overhead of VA(VideoAnalytics) service.
 2. [Etcd Secrets Configuration](https://github.com/open-edge-insights/eii-core/blob/master/Etcd_Secrets_Configuration.md) and
 3. [MessageBus Configuration](https://github.com/open-edge-insights/eii-core/blob/master/common/libs/ConfigMgr/README.md#interfaces) respectively.
 4. [JSON schema](schema.json)
+
 ---
 
 All the app module configuration are added into distributed key-value store under `AppName` env, as mentioned in the environment section of this app's service definition in docker-compose. If `AppName` is `VideoIngestion`, then the app's config would be fetched from
 `/VideoIngestion/config` key via EII Configuration Manager.
 
-
 >**Note**:
 
-> * Developer mode related overrides go into docker-compose-dev.override.yml
+> - Developer mode related overrides go into docker-compose-dev.override.yml
 
-> * For `jpeg` encoding type, `level` is the quality from `0 to 100` (the higher is the better)
+> - For `jpeg` encoding type, `level` is the quality from `0 to 100` (the higher is the better)
 
-> * For `png` encoding type, `level` is the compression level from `0 to 9`. A higher value means a smaller size and longer compression time.
+> - For `png` encoding type, `level` is the compression level from `0 to 9`. A higher value means a smaller size and longer compression time.
 
-> * One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration against the above schema.
+> - One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration against the above schema.
 
 ----
 
@@ -103,9 +103,9 @@ The following are the type of ingestors supported:
 
 #### Camera Configuration
 
-* `Video file`
+- `Video file`
 
-  * `OpenCV Ingestor`
+  - `OpenCV Ingestor`
 
       ```javascript
       {
@@ -116,7 +116,7 @@ The following are the type of ingestors supported:
       }
       ```
 
-  * `Gstreamer Ingestor`
+  - `Gstreamer Ingestor`
 
       ```javascript
       {
@@ -124,9 +124,11 @@ The following are the type of ingestors supported:
           "pipeline": "multifilesrc loop=TRUE stop-index=0 location=./test_videos/pcb_d2000.avi ! h264parse ! decodebin ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+
     **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
 
  ----
+
 #### GenICam GigE or USB3 Camera
 
   **Refer [GenICam GigE/USB3.0 Camera Support](docs/generic_plugin_doc.md) for information/configuration on GenICam GigE/USB3 camera support.**
@@ -136,7 +138,6 @@ The following are the type of ingestors supported:
   The following are the pre-requisites for working with GeniCam compliant cameras. Please note that these changes need to be reverted while working with other cameras such as realsense, rtsp and usb(v4l2 driver compliant).
 
   Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file of the respective Ingestion service(including custom udf services). Once the changes are made make sure [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) is executed before building and running the services.
-
 
   **For GenICam GigE Camera:**
 
@@ -177,9 +178,9 @@ The following are the type of ingestors supported:
     >  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
     >  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
- * `Gstreamer Ingestor`
-    
-    * `GenICam GigE/USB3.0 cameras`
+- `Gstreamer Ingestor`
+
+  - `GenICam GigE/USB3.0 cameras`
 
       ```javascript
       {
@@ -187,15 +188,16 @@ The following are the type of ingestors supported:
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-      > **Note:** 
-      
-      > * Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
-      > * The above gstreamer pipeline was tested with Basler and IDS GigE cameras. 
-      > * If `serial` is not provided then the first connected camera in the device list will be used. 
-      > * If `pixel-format` is not provided then the default `mono8` pixel format will be used.
-      > * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
 
-   * `Hardware trigger based ingestion with gstreamer ingestor`
+      > **Note:**
+
+      > - Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
+      > - The above gstreamer pipeline was tested with Basler and IDS GigE cameras.
+      > - If `serial` is not provided then the first connected camera in the device list will be used.
+      > - If `pixel-format` is not provided then the default `mono8` pixel format will be used.
+      > - If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
+
+  - `Hardware trigger based ingestion with gstreamer ingestor`
 
      ```javascript
      {
@@ -205,17 +207,18 @@ The following are the type of ingestors supported:
      ```
 
     > **Note:**
-    > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work. 
-    
+    >
+    > - For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work.
+
     One can refer the below example pipeline:
-      
+
       ```javascript
       {
         "type": "gstreamer",
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-    
+
     **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
  ----
@@ -224,7 +227,7 @@ The following are the type of ingestors supported:
 
   **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for information/configuration on rtsp camera.**
 
-  * `OpenCV Ingestor`
+- `OpenCV Ingestor`
 
       ```javascript
       {
@@ -235,7 +238,7 @@ The following are the type of ingestors supported:
 
     > **NOTE**: Opencv for rtsp will use software decoders
 
-  * `Gstreamer Ingestor`
+- `Gstreamer Ingestor`
 
       ```javascript
       {
@@ -247,9 +250,10 @@ The following are the type of ingestors supported:
     > **Note:** The RTSP URI of the physical camera depends on how it is configured using the camera software. One can use VLC Network Stream to verify the RTSP URI to confirm the RTSP source.
 
  ----
+
 * `RTSP simulated camera using cvlc`
 
-  * `OpenCV Ingestor`
+  - `OpenCV Ingestor`
 
       ```javascript
       {
@@ -258,7 +262,7 @@ The following are the type of ingestors supported:
       }
       ```
 
-  * `Gstreamer Ingestor`
+  - `Gstreamer Ingestor`
 
       ```javascript
       {
@@ -275,7 +279,7 @@ The following are the type of ingestors supported:
 
 **Refer [docs/usb_doc.md](docs/usb_doc.md) for information/configurations on usb camera.**
 
-  * `OpenCV Ingestor`
+- `OpenCV Ingestor`
 
       ```javascript
       {
@@ -284,7 +288,7 @@ The following are the type of ingestors supported:
       }
       ```
 
-  * `Gstreamer Ingestor`
+- `Gstreamer Ingestor`
 
       ```javascript
       {
@@ -292,11 +296,12 @@ The following are the type of ingestors supported:
         "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+
  ----
 
 #### RealSense Depth Camera
 
-  * `RealSense Ingestor`
+- `RealSense Ingestor`
 
     ```javascript
        "ingestor": {
@@ -306,19 +311,21 @@ The following are the type of ingestors supported:
             "imu_on": true
         },
      ```
+
     > **Note**
-    > *  RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
-    > *  RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
+    >
+    > - RealSense Ingestor was tested with Intel RealSense Depth Camera D435i
+    > - RealSense Ingestor does not support poll_interval. Please use framerate to reduce the ingestion fps if required.
 
-    > *  If `serial` config is not provided then the first realsense camera in the device list will be connected.
+    > - If `serial` config is not provided then the first realsense camera in the device list will be connected.
 
-    > *  If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
+    > - If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
 
-    > * IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
+    > - IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
 
  ----
 
-> **Note**: 
+> **Note**:
 
 > For all video and camera streams please make sure you are using appropriate UDF configuration. One may not get the expected output in the Visualizer/WebVisualizer screen if the udf is not compatible with the video source.
 
@@ -332,18 +339,18 @@ The following are the type of ingestors supported:
         "type": "python"
     }]
   ```
-> Same changes need to be applied in VideoAnalytics configuration if it is subscribing to VideoIngestion.
 
+> Same changes need to be applied in VideoAnalytics configuration if it is subscribing to VideoIngestion.
 
 ----
 
 # Image Ingestion
 
-The Image ingestion feature is mainly responsible for ingesting the images coming from a directory into the EII stack for further processing.  OpenCV ingestor is used for supporting image ingestion. 
+The Image ingestion feature is mainly responsible for ingesting the images coming from a directory into the EII stack for further processing.  OpenCV ingestor is used for supporting image ingestion.
 The image formats supported by this module are jpg, jpeg, jpe, bmp and png.
 Please refer the below snip for configuring the [config.json](./config.json) file for enabling the image ingestion feature.
 
-* `OpenCV Ingestor`
+- `OpenCV Ingestor`
 
      ```javascript
      {
@@ -364,15 +371,16 @@ Please refer the below snip for configuring the [config.json](./config.json) fil
      ```
 
   The description of the keys being used in config.json is as given below:
-  * pipeline - Provides the path to the images directory that is volume mounted.
-  * poll_interval : Refers to the pull rate of image in second.Configure `poll_interval` value as per the need.
-  * loop_video : Would loop through the images directory.
-  * image_ingestion : Optional boolean key. It is required for enabling the image ingestion feature.
+  - pipeline - Provides the path to the images directory that is volume mounted.
+  - poll_interval : Refers to the pull rate of image in second.Configure `poll_interval` value as per the need.
+  - loop_video : Would loop through the images directory.
+  - image_ingestion : Optional boolean key. It is required for enabling the image ingestion feature.
 
-  > **NOTE** 
-  > * The image_ingestion key in the config.json needs to be set true for enabling the image ingestion feature.
-  > * Set the max_workers value to 1 `"max_workers":1` in config.json files for [VideoIngestion/config.json](./config.json) and [VideoAnalytics/config.json](https://github.com/open-edge-insights/video-analytics/blob/master/config.json). This is needed to ensure that the images sequence is maintained. If `max_workers` is set more than 1, then more likely the images would be out of order due to those many multiple threads operating asynchronously.
-  > * If the resolution of the image is greater than `1920×1200`, then the image will be resized to `width = 1920` and `height = 1200`. The image is resized to reduce the loading time of the image in WebVisualier and Native Visualizer.  
+  > **NOTE**
+  >
+  > - The image_ingestion key in the config.json needs to be set true for enabling the image ingestion feature.
+  > - Set the max_workers value to 1 `"max_workers":1` in config.json files for [VideoIngestion/config.json](./config.json) and [VideoAnalytics/config.json](https://github.com/open-edge-insights/video-analytics/blob/master/config.json). This is needed to ensure that the images sequence is maintained. If `max_workers` is set more than 1, then more likely the images would be out of order due to those many multiple threads operating asynchronously.
+  > - If the resolution of the image is greater than `1920×1200`, then the image will be resized to `width = 1920` and `height = 1200`. The image is resized to reduce the loading time of the image in WebVisualier and Native Visualizer.  
 
 The images directory present on the host system needs to be volume mounted. This can be done by providing the absolute path of the images directory in the docker-compose file.
 Refer the below snip of `ia_video_ingestion` service to add the required changes in [docker-compose.yml](./docker-compose.yml) file. Once the changes are made make sure [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) is executed before building and running the services.
@@ -389,5 +397,4 @@ ia_video_ingestion:
     ...
 ```
 
-----    
-    
+----

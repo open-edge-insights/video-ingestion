@@ -1,21 +1,22 @@
 **Contents**
 
-- [`Camera independent Software Trigger way of video ingestion`](#camera-independent-software-trigger-way-of-video-ingestion)
-- [`Generic Server in VideoIngestion`](#generic-server-in-videoingestion)
+- [Camera independent Software Trigger way of video ingestion](#camera-independent-software-trigger-way-of-video-ingestion)
+- [Generic Server in VideoIngestion](#generic-server-in-videoingestion)
 
 #### `Camera independent Software Trigger way of video ingestion`
 
-  * Software triggering way of video ingestion is a solution which enables to control video ingestion from all the supported ingestors and camera configurations.
+- Software triggering way of video ingestion is a solution which enables to control video ingestion from all the supported ingestors and camera configurations.
 
-  * The regular way of video ingestion is autonomous i.e. as soon as the Video Ingestion micro-service is started the ingestion starts automatically using the video source (file/camera). There is no way to control the ingestion without stopping the ingestion micro-service itself. Software trigger feature provides a mechanism to start & stop video ingestion using software triggers sent by the client application.
+- The regular way of video ingestion is autonomous i.e. as soon as the Video Ingestion micro-service is started the ingestion starts automatically using the video source (file/camera). There is no way to control the ingestion without stopping the ingestion micro-service itself. Software trigger feature provides a mechanism to start & stop video ingestion using software triggers sent by the client application.
 
   ----
+
 #### `Generic Server in VideoIngestion`
 
-  * VI generic server responds back to the client with the return values specific to the command. There is a total flexibility in sending the number & type of arguments back to client which is totally dependent on the command.
+- VI generic server responds back to the client with the return values specific to the command. There is a total flexibility in sending the number & type of arguments back to client which is totally dependent on the command.
 
+- Example JSON format for incoming payload from client to server to initialize software trigger:
 
-  * Example JSON format for incoming payload from client to server to initialize software trigger:
   ```javascript
   {
    "init_state" : "running"
@@ -55,6 +56,7 @@
 3. SNAPSHOT: to get the frame snapshot and feed in one frame into the video data pipeline
 
     Payload format:
+
     ```javascript
       {
         "command" : "SNAPSHOT"
@@ -62,5 +64,3 @@
     ```
 
   >**Note**: In order to use `SNAPSHOT` functionality one needs to enable the sw trigger mode and make sure ingestion should be stopped before getting the frame snapshot capture.
-
-

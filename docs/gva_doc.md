@@ -11,7 +11,7 @@ a collection of GStreamer elements to enable CNN model based video analytics cap
 
 GVA use case configurations with different cameras:
 
-* `Video File - Gstreamer ingestor with GVA elements`
+- `Video File - Gstreamer ingestor with GVA elements`
 
       ```javascript
       {
@@ -22,8 +22,7 @@ GVA use case configurations with different cameras:
 
       **Note:** In case one needs to use GVA with a video file using multifilesrc element then copy the video file to [WORKDIR]/IEdgeInsights/VideoIngestion/test_videos and provide the location of the video file accordingly in the gstreamer pipeline.
 
-
- * `Generic Plugin - Gstreamer ingestor with GVA elements`
+- `Generic Plugin - Gstreamer ingestor with GVA elements`
 
     ```javascript
      {
@@ -32,7 +31,7 @@ GVA use case configurations with different cameras:
      }
     ```
 
- * `RTSP camera - Gstreamer ingestor with GVA elements`
+- `RTSP camera - Gstreamer ingestor with GVA elements`
 
       ```javascript
       {
@@ -41,7 +40,7 @@ GVA use case configurations with different cameras:
       }
       ```
 
- * `USB camera - Gstreamer ingestor with GVA elements`
+- `USB camera - Gstreamer ingestor with GVA elements`
 
       ```javascript
       {
@@ -49,7 +48,8 @@ GVA use case configurations with different cameras:
         "pipeline": "v4l2src ! decodebin ! videoconvert ! video/x-raw,format=BGR ! gvadetect model=models/<DETECTION_MODEL> ! appsink"
       }
       ```
- * `RTSP simulated - Gstreamer ingestor with GVA elements`
+
+- `RTSP simulated - Gstreamer ingestor with GVA elements`
 
       ```javascript
       {
@@ -57,7 +57,8 @@ GVA use case configurations with different cameras:
         "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
- * For generic full frame inference one can use the `gvainference` element. For more information refer [gvainference](https://github.com/openvinotoolkit/dlstreamer_gst/wiki/gvainference).
+
+- For generic full frame inference one can use the `gvainference` element. For more information refer [gvainference](https://github.com/openvinotoolkit/dlstreamer_gst/wiki/gvainference).
 
   **Example pipeline to run the PCB classification using gvainference element**:
 
@@ -72,12 +73,12 @@ GVA use case configurations with different cameras:
 
 **Note**:
 
-* GVA elements can only be used with `gstreamer` ingestor
-* In case one needs to use CPU/GPU/HDDL device with GVA elements it
+- GVA elements can only be used with `gstreamer` ingestor
+- In case one needs to use CPU/GPU/HDDL device with GVA elements it
   can be set using the device property of gvadetect and gvaclassify elements.
   By default the device property is set to CPU.
 
-* HDDL daemon needs to be started on the host m/c by following the steps in #Using video accelerators section in [../../README.md](../../README.md).
+- HDDL daemon needs to be started on the host m/c by following the steps in #Using video accelerators section in [../../README.md](https://github.com/open-edge-insights/eii-core/blob/master/README.md#using-video-accelerators-in-ingestionanalytics-containers).
 
     **Example pipeline to run the Safety Gear Detection Sample using GVA plugins on HDDL device**:
 
