@@ -99,6 +99,23 @@ IngestRetCode Ingestor::start(bool snapshot_mode) {
 
 Ingestor* eii::vi::get_ingestor(config_t* config, FrameQueue* frame_queue, const char* type, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl) {
     Ingestor* ingestor = NULL;
+
+    // Get pipleine environment variable if it exists
+    const char* pipeline_env_var = getenv("PIPELINE");
+
+    if (pipeline_env_var != NULL && strlen(pipeline_env_var) > 0) {
+        LOG_DEBUG("PIPELINE environment variable = %s", pipeline_env_var);
+        // Set config pipeline with the value set in the environment variable
+        bool set_config_ret = set_config_value(config, "pipeline", config_value_new_string(pipeline_env_var));
+        if (set_config_ret) {
+            LOG_INFO_0("pipeline key in config object set with the PIPELINE environment varible");
+        } else {
+            LOG_INFO_0("pipeline key in config object not set with the PIPELINE environment varible");
+        }
+    } else {
+        LOG_INFO_0("PIPELINE environment variable not set");
+    }
+
     // Create the ingestor object based on the type specified in the config
     if(!strcmp(type, "opencv")) {
         ingestor = new OpenCvIngestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl);

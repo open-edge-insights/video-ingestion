@@ -57,6 +57,7 @@ services:
       ETCD_HOST: ${ETCD_HOST}
       ETCD_CLIENT_PORT: ${ETCD_CLIENT_PORT}
       ETCD_PREFIX: ${ETCD_PREFIX}
+      PIPELINE: ${PIPELINE}
       # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
       GENICAM: "Matrix_Vision"
       # Setting the GST log levels

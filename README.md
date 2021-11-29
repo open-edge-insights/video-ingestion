@@ -76,6 +76,8 @@ All the app module configuration are added into distributed key-value store unde
 
 > - One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration against the above schema.
 
+> * To change the pipeline config from [environment file](https://github.com/open-edge-insights/eii-core/blob/master/build/.env) set the required pipeline value to the `PIPELINE` key and run [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) to set the environment variable. Please make sure the `PIPELINE` value is compatible with the type of ingestor used. In order to use dynamic config through ETCD UI please remove the value of the `PIPELINE` key and leave it blank. For working with RTSP cameras one has to add the RTSP CAMERA IP to `RTSP_CAMERA_IP` in [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) if working behind a proxy network.
+
 ----
 
 ### Ingestor config
@@ -85,7 +87,7 @@ The following are the type of ingestors supported:
 1. [OpenCV](https://opencv.org/)
 2. [GStreamer](docs/gstreamer_ingestor_doc.md)
 3. [RealSense](https://www.intelrealsense.com/)
-  
+
    **For more information on Intel RealSense SDK refer [librealsense](https://github.com/IntelRealSense/librealsense)**
 
   ----
@@ -392,7 +394,7 @@ ia_video_ingestion:
     - "vol_eii_socket:${SOCKET_DIR}"
     - "/var/tmp:/var/tmp"
     # Add volume
-    # Please provide the absolute path to the images directory present in the host system for volume mounting the directory. Eg: -"home/directory_1/images_directory:/app/img_dir" 
+    # Please provide the absolute path to the images directory present in the host system for volume mounting the directory. Eg: -"home/directory_1/images_directory:/app/img_dir"
     - "<path_to_images_directory>:/app/img_dir"
     ...
 ```
