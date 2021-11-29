@@ -141,125 +141,6 @@ void on_change_config_callback(const char* key, config_t* value, void* user_data
     }
 }
 
-bool validate_config(char config_key[]) {
-    // Writing to external file
-    std::ofstream out;
-    out.open("/var/tmp/config.json", std::ios::binary);
-    out << config_key;
-    out.close();
-
-    WJReader readjson = NULL;
-    WJReader readschema = NULL;
-    WJElement json = NULL;
-    WJElement schema = NULL;
-
-    // Fetch config file
-    FILE* config_fp = fopen("/var/tmp/config.json", "r");
-    if(config_fp == NULL) {
-        return false;
-    }
-    readjson = WJROpenFILEDocument(config_fp, NULL, 0);
-    if(readjson == NULL) {
-        LOG_ERROR_0("config json could not be read");
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-    json = WJEOpenDocument(readjson, NULL, NULL, NULL);
-    if(json == NULL) {
-        LOG_ERROR_0("config json could not be read");
-        if(readjson != NULL) {
-            free(readjson);
-        }
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-
-    // Fetch schema file
-    FILE* schema_fp = fopen("./VideoIngestion/schema.json", "r");
-    if(schema_fp == NULL) {
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-    readschema = WJROpenFILEDocument(schema_fp, NULL, 0);
-    if(readschema == NULL) {
-        LOG_ERROR_0("schema json could not be read");
-        if(schema_fp != NULL) {
-            fclose(schema_fp);
-        }
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-    schema = WJEOpenDocument(readschema, NULL, NULL, NULL);
-    if(schema == NULL) {
-        LOG_ERROR_0("schema json could not be read");
-        if(readschema != NULL) {
-            free(readschema);
-        }
-        if(schema_fp != NULL) {
-            fclose(schema_fp);
-        }
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-
-    // Validating config against schema
-    bool result = false;
-    if(schema != NULL && json != NULL) {
-        result = validate_json(schema, json);
-    }
-
-    // Close schema validation related documents
-    if(json != NULL) {
-        WJECloseDocument(json);
-    }
-    if(schema != NULL) {
-        WJECloseDocument(schema);
-    }
-    if(readjson != NULL) {
-        WJRCloseDocument(readjson);
-    }
-    if(readschema != NULL) {
-        WJRCloseDocument(readschema);
-    }
-
-    // Closing json config & schema file pointers
-    if(config_fp != NULL) {
-        fclose(config_fp);
-    }
-    if(schema_fp != NULL) {
-        fclose(schema_fp);
-    }
-
-    if(!result) {
-        // Clean up and return if failure
-        clean_up();
-        if(readjson != NULL) {
-            free(readjson);
-        }
-        if(json != NULL) {
-            free(json);
-        }
-        if(readschema != NULL) {
-            free(readschema);
-        }
-        if(schema != NULL) {
-            free(schema);
-        }
-        return false;
-    }
-    return true;
-}
-
 int main(int argc, char** argv) {
     signal(SIGINT, signal_callback_handler);
     signal(SIGABRT, signal_callback_handler);
@@ -290,7 +171,8 @@ int main(int argc, char** argv) {
         LOG_DEBUG("App config: %s", g_vi_config);
 
         // Validating config against schema
-        if (!validate_config(g_vi_config)) {
+        if (!validate_json_file_buffer(
+                    "./VideoIngestion/schema.json", g_vi_config)) {
             LOG_ERROR_0("Schema validation failed");
             return -1;
         }

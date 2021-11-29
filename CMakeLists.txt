@@ -63,7 +63,6 @@ find_package(EIIMessageBus REQUIRED)
 find_package(UDFLoader REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(IntelSafeString REQUIRED)
-find_package(WJE REQUIRED)
 find_package(realsense2 REQUIRED)
 
 ## --- Picked required gRPC related CMake configuration taken from https://github.com/grpc/grpc/blob/master/examples/cpp/helloworld/CMakeLists.txt --- ##
@@ -111,9 +110,9 @@ link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 add_executable(video-ingestion ${SOURCES})
 target_link_libraries(video-ingestion
     PUBLIC
+        ${CJSON_LIBRARIES}
         ${OpenCV_LIBS}
         ${IntelSafeString_LIBRARIES}
-        ${CJSON_LIBRARIES}
         ${EIIMsgEnv_LIBRARIES}
         ${EIIUtils_LIBRARIES}
         ${EIIConfigMgrStatic_LIBRARIES}
@@ -125,9 +124,7 @@ target_link_libraries(video-ingestion
         ${_PROTOBUF_LIBPROTOBUF}
         ${realsense2_LIBRARY}
     PRIVATE
-        ${ZMQ_LIBRARIES}
-        wjelement
-        wjreader)
+        ${ZMQ_LIBRARIES})
 
 # If compile in debug mode, set DEBUG flag for C code
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")

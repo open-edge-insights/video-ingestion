@@ -36,6 +36,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgstreamer-plugins-base1.0-dev \
     libusb-1.0-0-dev \
     libtool \
+    libcjson-dev \
+    libzmq3-dev \
     make && \
     rm -rf /var/lib/apt/lists/*
 
@@ -72,6 +74,7 @@ RUN cd VideoIngestion && \
 FROM ${OPENVINO_IMAGE} AS runtime
 
 USER root
+RUN apt update && apt install --no-install-recommends -y libcjson1 libzmq5
 
 ARG EII_UID
 ARG EII_USER_NAME
