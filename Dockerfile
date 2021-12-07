@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtool \
     libcjson-dev \
     libzmq3-dev \
+    zlib1g-dev \
     make && \
     rm -rf /var/lib/apt/lists/*
 
@@ -74,7 +75,7 @@ RUN cd VideoIngestion && \
 FROM ${OPENVINO_IMAGE} AS runtime
 
 USER root
-RUN apt update && apt install --no-install-recommends -y libcjson1 libzmq5
+RUN apt update && apt install --no-install-recommends -y libcjson1 libzmq5 zlib1g
 
 ARG EII_UID
 ARG EII_USER_NAME

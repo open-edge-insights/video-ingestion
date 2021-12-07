@@ -52,19 +52,6 @@ if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
     )
 endif()
 
-# Finding packages
-find_package(OpenCV REQUIRED)
-find_package(EIIMsgEnv REQUIRED)
-find_package(cJSON REQUIRED)
-find_package(Threads REQUIRED)
-find_package(EIIUtils REQUIRED)
-find_package(EIIConfigMgrStatic REQUIRED)
-find_package(EIIMessageBus REQUIRED)
-find_package(UDFLoader REQUIRED)
-find_package(PkgConfig REQUIRED)
-find_package(IntelSafeString REQUIRED)
-find_package(realsense2 REQUIRED)
-
 ## --- Picked required gRPC related CMake configuration taken from https://github.com/grpc/grpc/blob/master/examples/cpp/helloworld/CMakeLists.txt --- ##
 # Looks for protobuf-config.cmake file installed by Protobuf's cmake installation.
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -84,6 +71,18 @@ set(_GRPC_GRPCPP gRPC::grpc++)
 set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
 ## --- Picked required gRPC related CMake configuration taken from https://github.com/grpc/grpc/blob/master/examples/cpp/helloworld/CMakeLists.txt --- ##
 
+# Finding packages
+find_package(OpenCV REQUIRED)
+find_package(EIIMsgEnv REQUIRED)
+find_package(Threads REQUIRED)
+find_package(EIIUtils REQUIRED)
+find_package(EIIConfigMgrStatic REQUIRED)
+find_package(EIIMessageBus REQUIRED)
+find_package(UDFLoader REQUIRED)
+find_package(PkgConfig REQUIRED)
+find_package(IntelSafeString REQUIRED)
+find_package(realsense2 REQUIRED)
+
 pkg_check_modules(GST REQUIRED
     gstreamer-1.0>=1.14
     gstreamer-video-1.0>=1.14
@@ -94,7 +93,6 @@ pkg_check_modules(GST REQUIRED
 include_directories(
     include/
     ${OpenCV_INCLUDE_DIRS}
-    ${CJSON_INCLUDE_DIRS}
     ${EIIMsgEnv_INCLUDE}
     ${EIIUtils_INCLUDE}
     ${EIIConfigMgrStatic_INCLUDE}
@@ -110,7 +108,7 @@ link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 add_executable(video-ingestion ${SOURCES})
 target_link_libraries(video-ingestion
     PUBLIC
-        ${CJSON_LIBRARIES}
+        cjson
         ${OpenCV_LIBS}
         ${IntelSafeString_LIBRARIES}
         ${EIIMsgEnv_LIBRARIES}
