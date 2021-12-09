@@ -38,10 +38,10 @@ The high level logical flow of VideoIngestion pipeline is as below:
    on EII MessageBus.
 
 ---
-> **NOTE**:
+> **NOTE:**
 Below usecases are suitable for single node deployment where one can avoid the
 overhead of VA(VideoAnalytics) service.
-
+>
 > 1. If VI(VideoIngestion) service is configured with an UDF that does the
    classification, then one may choose to not to have VA service as all
    pre-processing, classification and any post-processing can be handled in VI
@@ -66,7 +66,7 @@ overhead of VA(VideoAnalytics) service.
 All the app module configuration are added into distributed key-value store under `AppName` env, as mentioned in the environment section of this app's service definition in docker-compose. If `AppName` is `VideoIngestion`, then the app's config would be fetched from
 `/VideoIngestion/config` key via EII Configuration Manager.
 
->**Note**:
+>**Note:**
 
 > - Developer mode related overrides go into docker-compose-dev.override.yml
 
@@ -76,9 +76,9 @@ All the app module configuration are added into distributed key-value store unde
 
 > - One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration against the above schema.
 
-> * To change the pipeline config from [environment file](https://github.com/open-edge-insights/eii-core/blob/master/build/.env) set the required pipeline value to the `PIPELINE` key and run [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) to set the environment variable. Please make sure the `PIPELINE` value is compatible with the type of ingestor used. In order to use dynamic config through ETCD UI please remove the value of the `PIPELINE` key and leave it blank. For working with RTSP cameras one has to add the RTSP CAMERA IP to `RTSP_CAMERA_IP` in [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) if working behind a proxy network.
+> - To change the pipeline config from [environment file](https://github.com/open-edge-insights/eii-core/blob/master/build/.env) set the required pipeline value to the `PIPELINE` key and run [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) to set the environment variable. Please make sure the `PIPELINE` value is compatible with the type of ingestor used. In order to use dynamic config through ETCD UI please remove the value of the `PIPELINE` key and leave it blank. For working with RTSP cameras one has to add the RTSP CAMERA IP to `RTSP_CAMERA_IP` in [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) if working behind a proxy network.
 
-----
+---
 
 ### Ingestor config
 
@@ -88,9 +88,9 @@ The following are the type of ingestors supported:
 2. [GStreamer](docs/gstreamer_ingestor_doc.md)
 3. [RealSense](https://www.intelrealsense.com/)
 
-   **For more information on Intel RealSense SDK refer [librealsense](https://github.com/IntelRealSense/librealsense)**
+**For more information on Intel RealSense SDK refer [librealsense](https://github.com/IntelRealSense/librealsense)**
 
-  ----
+---
 
 ### Video Ingestion Contents
 
@@ -101,7 +101,7 @@ The following are the type of ingestors supported:
 5. [RTSP Camera Support](#rtsp-camera)
 6. [USB Camera Support](#usb-camera)
 
-  ----
+---
 
 #### Camera Configuration
 
@@ -129,7 +129,7 @@ The following are the type of ingestors supported:
 
     **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
 
- ----
+---
 
 #### GenICam GigE or USB3 Camera
 
@@ -143,42 +143,44 @@ The following are the type of ingestors supported:
 
   **For GenICam GigE Camera:**
 
-      ```yaml
-      ia_video_ingestion:
-        # Add root user
-        user: root
-        # Add network mode host
-        network_mode: host
-        # Please make sure that the above commands are not added under environment section and also take care about the indentations in the compose file.
-        ...
-        environment:
-        ...
-          # Add HOST_IP to no_proxy and ETCD_HOST
-          no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
-          ETCD_HOST: "<HOST_IP>"
-        ...
-        # Comment networks section as below as it will throw an error when network mode host is used.
-        # networks:
-          # - eii
-        # Comment ports section as below
-        # ports:
-        # - 64013:64013
-      ```
+  ```yaml
+  ia_video_ingestion:
+    # Add root user
+    user: root
+    # Add network mode host
+    network_mode: host
+    # Please make sure that the above commands are not added under environment section and also take care about the indentations in the compose file.
+    ...
+    environment:
+    ...
+      # Add HOST_IP to no_proxy and ETCD_HOST
+      no_proxy: "${RTSP_CAMERA_IP},<HOST_IP>"
+      ETCD_HOST: "<HOST_IP>"
+    ...
+    # Comment networks section as below as it will throw an error when network mode host is used.
+    # networks:
+      # - eii
+    # Comment ports section as below
+    # ports:
+    # - 64013:64013
+  ```
+
   **For GenIcam USB3.0 Camera:**
 
-      ```yaml
-      ia_video_ingestion:
-        # Add root user
-        user: root
-        ...
-      ```
+  ```yaml
+  ia_video_ingestion:
+    # Add root user
+    user: root
+    ...
+  ```
 
-    > **Note:**
-    >  * In case one notices GenICam cameras not getting initialized during runtime then try executing `docker system prune` command on the host system and then removing the GenICam specific semaphore files under `/dev/shm/` path of the host system. `docker system prune` command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent the plugin from accessing the device.
-    >  * In case one notices `Feature not writable` while working with GenICam cameras please reset the device using camera software or using the reset property of [Generic Plugin README](src-gst-gencamsrc/README).
-    >  * In `IPC` mode if Ingestion service is running with `root` privilige then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
-    >  * In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
-    >  * In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
+  > **Note:**
+  >
+  > - In case one notices GenICam cameras not getting initialized during runtime then try executing `docker system prune` command on the host system and then removing the GenICam specific semaphore files under `/dev/shm/` path of the host system. `docker system prune` command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent the plugin from accessing the device.
+  > - In case one notices `Feature not writable` while working with GenICam cameras please reset the device using camera software or using the reset property of [Generic Plugin README](src-gst-gencamsrc/README).
+  > - In `IPC` mode if Ingestion service is running with `root` privilige then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
+  > - In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
+  > - In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
 - `Gstreamer Ingestor`
 
@@ -223,7 +225,7 @@ The following are the type of ingestors supported:
 
     **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
 
- ----
+ ---
 
 #### RTSP Camera
 
@@ -231,29 +233,29 @@ The following are the type of ingestors supported:
 
 - `OpenCV Ingestor`
 
-      ```javascript
-      {
-        "type": "opencv",
-        "pipeline": "rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>"
-      }
-      ```
+     ```javascript
+     {
+       "type": "opencv",
+       "pipeline": "rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>"
+     }
+     ```
 
     > **NOTE**: Opencv for rtsp will use software decoders
 
 - `Gstreamer Ingestor`
 
-      ```javascript
-      {
-        "type": "gstreamer",
-        "pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
-      }
-      ```
+     ```javascript
+     {
+       "type": "gstreamer",
+       "pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+     }
+     ```
 
     > **Note:** The RTSP URI of the physical camera depends on how it is configured using the camera software. One can use VLC Network Stream to verify the RTSP URI to confirm the RTSP source.
 
- ----
+ ---
 
-* `RTSP simulated camera using cvlc`
+- `RTSP simulated camera using cvlc`
 
   - `OpenCV Ingestor`
 
@@ -275,7 +277,7 @@ The following are the type of ingestors supported:
 
     **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for more information/configuration on rtsp simulated camera.**
 
- ----
+ ---
 
 #### USB Camera
 
@@ -283,23 +285,23 @@ The following are the type of ingestors supported:
 
 - `OpenCV Ingestor`
 
-      ```javascript
-      {
-        "type": "opencv",
-        "pipeline": "/dev/video0"
-      }
-      ```
+     ```javascript
+     {
+       "type": "opencv",
+       "pipeline": "/dev/video0"
+     }
+     ```
 
 - `Gstreamer Ingestor`
 
-      ```javascript
-      {
-        "type": "gstreamer",
-        "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
-      }
-      ```
+     ```javascript
+     {
+       "type": "gstreamer",
+       "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+     }
+     ```
 
- ----
+ ---
 
 #### RealSense Depth Camera
 
@@ -325,9 +327,9 @@ The following are the type of ingestors supported:
 
     > - IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
 
- ----
+ ---
 
-> **Note**:
+> **Note:**
 
 > For all video and camera streams please make sure you are using appropriate UDF configuration. One may not get the expected output in the Visualizer/WebVisualizer screen if the udf is not compatible with the video source.
 
@@ -344,7 +346,7 @@ The following are the type of ingestors supported:
 
 > Same changes need to be applied in VideoAnalytics configuration if it is subscribing to VideoIngestion.
 
-----
+---
 
 # Image Ingestion
 
@@ -399,4 +401,4 @@ ia_video_ingestion:
     ...
 ```
 
-----
+---
