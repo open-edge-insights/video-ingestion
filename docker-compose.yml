@@ -39,6 +39,7 @@ services:
         CMAKE_INSTALL_PREFIX: ${EII_INSTALL_PATH}
         OPENVINO_IMAGE: ${OPENVINO_IMAGE}
         RUN_TESTS: "OFF"
+        SOCKET_DIR: ${SOCKET_DIR}
     image: ${DOCKER_REGISTRY}openedgeinsights/ia_video_ingestion:${EII_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
@@ -63,14 +64,12 @@ services:
       # Setting the GST log levels
       # The env variable will set WARNING level 2 for gencamsrc plugin and none for other plugins
       GST_DEBUG: "0,gencamsrc:2"
-      # Provisioning related variable
-      CertType: "zmq"
     ports:
       - 64013:64013
     networks:
       - eii
     volumes:
-      - "vol_eii_socket:${SOCKET_DIR}"
+      - "${EII_INSTALL_PATH}/sockets:${SOCKET_DIR}"
       - "/var/tmp:/var/tmp"
       # Add volume for image ingestion feature
       # Please provide the absolute path to the images directory present in the host system for volume mounting the directory.
@@ -85,6 +84,8 @@ services:
       - "/tmp:/tmp"
       # volume mount the udev database with read-only permission,so the USB3 Vision interfaces can be enumerated correctly in the container
       - "/run/udev:/run/udev:ro"
+      - ./Certificates/VideoIngestion:/run/secrets/VideoIngestion
+      - ./Certificates/rootca:/run/secrets/rootca
     device_cgroup_rules:
       # Default run - device-cgroup-rule='c 189:* rmw'
       # NCS2 run - device-cgroup-rule='c 209:* rmw'
@@ -100,13 +101,3 @@ services:
       # USB camera devices
       # Selective mount can be done for deployment as mounting whole /dev is not recommended
       - "/dev:/dev"
-    secrets:
-      - ca_etcd
-      - etcd_VideoIngestion_cert
-      - etcd_VideoIngestion_key
-
-secrets:
-  etcd_VideoIngestion_cert:
-    file: provision/Certificates/VideoIngestion/VideoIngestion_client_certificate.pem
-  etcd_VideoIngestion_key:
-    file: provision/Certificates/VideoIngestion/VideoIngestion_client_key.pem

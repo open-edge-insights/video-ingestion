@@ -145,7 +145,10 @@ RUN usermod -a -G users ${EII_USER_NAME}
 # Needed to not show the warnings while executing sample_onnx UDF
 RUN mkdir -p /home/${EII_USER_NAME} && \
     chown -R ${EII_USER_NAME}:${EII_USER_NAME} /home/${EII_USER_NAME}/
-
-USER ${EII_USER_NAME}
+ARG SOCKET_DIR
+RUN mkdir -p ${SOCKET_DIR}
+ENV SOCK_DIR=${SOCKET_DIR}
+ENV EIIUSER=${EII_USER_NAME}
+COPY entrypoint.sh ./entrypoint.sh
 HEALTHCHECK NONE
-ENTRYPOINT ["./VideoIngestion/vi_start.sh"]
+ENTRYPOINT ["./entrypoint.sh", "./VideoIngestion/vi_start.sh"]
