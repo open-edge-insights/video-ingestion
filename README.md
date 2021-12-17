@@ -147,8 +147,6 @@ The following are the type of ingestors supported:
 
   ```yaml
   ia_video_ingestion:
-    # Add root user
-    user: root
     # Add network mode host
     network_mode: host
     # Please make sure that the above commands are not added under environment section and also take care about the indentations in the compose file.
@@ -171,8 +169,11 @@ The following are the type of ingestors supported:
 
   ```yaml
   ia_video_ingestion:
-    # Add root user
-    user: root
+    ...
+    environment:
+    ...
+      # Set RUN_AS_USER env variable to root
+      RUN_AS_USER: "root"
     ...
   ```
 
@@ -180,7 +181,7 @@ The following are the type of ingestors supported:
   >
   > - In case one notices GenICam cameras not getting initialized during runtime then try executing `docker system prune` command on the host system and then removing the GenICam specific semaphore files under `/dev/shm/` path of the host system. `docker system prune` command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent the plugin from accessing the device.
   > - In case one notices `Feature not writable` while working with GenICam cameras please reset the device using camera software or using the reset property of [Generic Plugin README](src-gst-gencamsrc/README).
-  > - In `IPC` mode if Ingestion service is running with `root` privilige then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
+  > - In `IPC` mode if Ingestion service is running with `root` privilige using `RUN_AS_USER: "root"` env variable then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
   > - In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
   > - In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 
@@ -328,6 +329,7 @@ The following are the type of ingestors supported:
     > - If `framerate` config is not provided then the default framerate of 30 will be applied. Please make sure that the framerate provided is compatible with both the color and depth sensor of the realsense camera. With D435i camera only framerate 6,15,30 and 60 is supported and tested.
 
     > - IMU stream will work only if the realsense camera model supports the IMU feature. The default value for `imu_on` is set to false.
+    > - In case realsense ingestor calls the destructor after identifying the camera there could be some issues with the device during runtime which can be verified with realsense-viewer. Try resetting the device through realsense-viwer and update the firmware if required.
 
  ---
 

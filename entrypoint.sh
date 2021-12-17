@@ -21,4 +21,4 @@
 # SOFTWARE.
 
 chown -R $EIIUSER:$EIIUSER $SOCK_DIR
-exec runuser -u $EIIUSER -- $@
+exec runuser -u ${RUN_AS_USER} -- $@
