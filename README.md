@@ -172,8 +172,9 @@ The following are the type of ingestors supported:
     ...
     environment:
     ...
-      # Set RUN_AS_USER env variable to root
+      # Set RUN_AS_USER env variable to root.
       RUN_AS_USER: "root"
+      # RUN_AS_USER env variable can be used to run VideoIngestion service with the specified user privileges.
     ...
   ```
 
