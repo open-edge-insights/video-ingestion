@@ -104,7 +104,9 @@ spec:
         {{ end }}
         env:
         - name: AppName
-          value: "VideoIngestion{{ $instance }}"
+          value: 'VideoIngestion{{ $instance }}'
+        - name: RUN_AS_USER
+          value: 'eiiuser'
         - name: DEV_MODE
           value: '{{ $global.Values.env.DEV_MODE }}'
         - name: PROFILING_MODE
@@ -117,8 +119,6 @@ spec:
           value: ''
         - name:  GENICAM
           value: 'Matrix_Vision'
-        - name: RUN_AS_USER 
-          value: '{{ $global.Values.env.EII_USER_NAME }}'
         {{- if eq $global.Values.config.video_ingestion.IPC false}}
         - name: PUBLISHER_ENDPOINT
           value: "0.0.0.0:{{ $publish_port }}"
