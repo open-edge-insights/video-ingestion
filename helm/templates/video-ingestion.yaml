@@ -105,8 +105,6 @@ spec:
         env:
         - name: AppName
           value: 'VideoIngestion{{ $instance }}'
-        - name: RUN_AS_USER
-          value: 'eiiuser'
         - name: DEV_MODE
           value: '{{ $global.Values.env.DEV_MODE }}'
         - name: PROFILING_MODE

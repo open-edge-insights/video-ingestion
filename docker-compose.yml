@@ -52,8 +52,6 @@ services:
     ipc: "none"
     environment:
       AppName: "VideoIngestion"
-      # RUN_AS_USER env variable can be used to run the services with the specified user privileges
-      RUN_AS_USER: ${EII_USER_NAME}
       DEV_MODE: ${DEV_MODE}
       PROFILING_MODE: ${PROFILING_MODE}
       no_proxy: ${RTSP_CAMERA_IP},${ETCD_HOST}

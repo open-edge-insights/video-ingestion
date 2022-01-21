@@ -170,11 +170,8 @@ The following are the type of ingestors supported:
   ```yaml
   ia_video_ingestion:
     ...
-    environment:
-    ...
-      # Set RUN_AS_USER env variable to root.
-      RUN_AS_USER: "root"
-      # RUN_AS_USER env variable can be used to run VideoIngestion service with the specified user privileges.
+    # Add root user
+    user: root
     ...
   ```
 
@@ -182,7 +179,7 @@ The following are the type of ingestors supported:
   >
   > - In case one notices GenICam cameras not getting initialized during runtime then try executing `docker system prune` command on the host system and then removing the GenICam specific semaphore files under `/dev/shm/` path of the host system. `docker system prune` command will remove all stopped containers, networks not used by at least one container, dangling images and build cache which could prevent the plugin from accessing the device.
   > - In case one notices `Feature not writable` while working with GenICam cameras please reset the device using camera software or using the reset property of [Generic Plugin README](src-gst-gencamsrc/README).
-  > - In `IPC` mode if Ingestion service is running with `root` privilige using `RUN_AS_USER: "root"` env variable then `ia_video_analytics` and `ia_visualizer` service subscribing to it must also run with `root` privileges.
+  > - In `IPC` mode if Ingestion service is running with `root` privilige then any service subscribing to it must also run with `root` privileges.
   > - In multi-node scenario, replace <HOST_IP> in "no_proxy" with leader node IP address.
   > - In TCP mode of communication, msgbus subscribers and clients of VideoIngestion are required to configure the "EndPoint" in config.json with host IP and port under "Subscribers" or "Clients" interfaces section.
 

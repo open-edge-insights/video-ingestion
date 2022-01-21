@@ -148,7 +148,10 @@ RUN mkdir -p /home/${EII_USER_NAME} && \
 ARG SOCKET_DIR
 RUN mkdir -p ${SOCKET_DIR}
 ENV SOCK_DIR=${SOCKET_DIR}
+RUN chown -R ${EII_USER_NAME}:${EII_USER_NAME} ${SOCKET_DIR}
 ENV EIIUSER=${EII_USER_NAME}
-COPY entrypoint.sh ./entrypoint.sh
+
+USER ${EII_USER_NAME}
+
 HEALTHCHECK NONE
-ENTRYPOINT ["./entrypoint.sh", "./VideoIngestion/vi_start.sh"]
+ENTRYPOINT ["./VideoIngestion/vi_start.sh"]
