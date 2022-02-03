@@ -88,8 +88,10 @@ spec:
         securityContext:
           privileged: true
         volumeMounts:
-        - name: eii-dev
+        - name: dev
           mountPath: /dev
+        - name: dev-shm
+          mountPath: /dev/shm
         - name: tmp
           mountPath: /tmp
         - name: var-tmp
@@ -146,9 +148,12 @@ spec:
         {{ end }}
 
       volumes:
-      - name: eii-dev
+      - name: dev
         hostPath:
           path: /dev
+      - name: dev-shm
+        hostPath:
+          path: /dev/shm
       - name: tmp
         hostPath:
           path: /tmp
