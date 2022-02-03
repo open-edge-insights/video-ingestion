@@ -96,6 +96,8 @@ spec:
           mountPath: /tmp
         - name: var-tmp
           mountPath: /var/tmp
+        - name: run-udev
+          mountPath: /run/udev
         {{- if eq $global.Values.config.video_ingestion.IPC true}}
         - name: {{ $global.Values.volumes.eii_socket.name }}
           mountPath: {{ $global.Values.volumes.eii_socket.location }}
@@ -160,6 +162,9 @@ spec:
       - name: var-tmp
         hostPath:
           path: /var/tmp
+      - name: run-udev
+        hostPath:
+          path: /run/udev
 
       {{- if eq $global.Values.config.video_ingestion.IPC true}}
       - name: {{ $global.Values.volumes.eii_socket.name }}
