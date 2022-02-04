@@ -31,7 +31,7 @@ The GVA use case configurations with different cameras are as follows:
   {
    "type": "gstreamer",
    "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! vaapipostproc format=bgrx ! gvadetect model=models/<DETECTION_MODEL> ! videoconvert !  video/x-raw,format=BGR ! appsink"
-  }  
+  }
 ```
 
 - RTSP camera - Gstreamer ingestor with GVA elements
@@ -68,7 +68,7 @@ The GVA use case configurations with different cameras are as follows:
 ```javascript
   {
    "type": "gstreamer",
-   "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! gvainference device=CPU model=common/video/udfs/python/pcb/ref/model_2.xml !    vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink",
+   "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! gvainference device=CPU model=common/video/udfs/python/pcb/ref/model_2.xml ! vaapipostproc format=bgrx height=600 width=600 ! videoconvert ! video/x-raw,format=BGR ! appsink",
   }
 ```
 
@@ -78,11 +78,11 @@ The GVA use case configurations with different cameras are as follows:
 > - Using the device property of the `gvadetect` and `gvaclassify` elements you can set CPU, GPU, or HDDL device to use with the GVA elements.
 > - By default, the device property is set to CPU.
 > - Start the HDDL daemon on the host machine by following the steps mentioned in the [Using video accelerators] section in the [../../README.md](https://github.com/open-edge-insights/eii-core/blob/master/README.md#using-video-accelerators-in-ingestionanalytics-containers).
-> The following is an example pipeline to run the Safety Gear Detection Sample using the GVA plugins on an HDDL device:
+> The following is an example pipeline to run sample detection model using the GVA plugins on an HDDL device(ensure that the detection model IR files are copied to models path):
 >
 > ```javascript
 >  {
 >   "type": "gstreamer",
->   "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect device=HDDL  model=models/frozen_inference_graph.xml ! videoconvert ! video/x-raw,format=BGR ! appsink"
+>   "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! gvadetect device=HDDL  model=models/<DETECTION_MODEL> ! videoconvert ! video/x-raw,format=BGR ! appsink"
 >  }
 > ```
