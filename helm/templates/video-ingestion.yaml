@@ -119,6 +119,8 @@ spec:
           value: '{{ $global.Values.config.etcd.client_port }}'
         - name:  ETCD_PREFIX
           value: ''
+        - name: PIPELINE
+          value: '{{ $global.Values.env.PIPELINE }}'
         - name:  GENICAM
           value: 'Matrix_Vision'
         {{- if eq $global.Values.config.video_ingestion.IPC false}}
