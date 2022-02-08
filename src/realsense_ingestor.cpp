@@ -315,9 +315,14 @@ void RealSenseIngestor::read(Frame*& frame) {
 
     msg_envelope_t* rs2_meta = frame->get_meta_data();
 
-    MsgEnvelope* msgEnv = new MsgEnvelope(rs2_meta);
+    MsgEnvelope* msgEnv;
+    MsgEnvelope* msgEnvImu;
+    MsgEnvelopeList* rs2_meta_arr;
+    MsgEnvelopeObject* accel_obj;
+    MsgEnvelopeObject* gyro_obj;
 
     try {
+        msgEnv = new MsgEnvelope(rs2_meta);
 
         msgEnv->put_integer("rs2_depth_intrinsics_width", depth_intrinsics.width);
         msgEnv->put_integer("rs2_depth_intrinsics_height", depth_intrinsics.height);
@@ -357,17 +362,17 @@ void RealSenseIngestor::read(Frame*& frame) {
 
         if (m_imu_support) {
 
-            MsgEnvelope* msgEnvImu = new MsgEnvelope(rs2_meta);
+            msgEnvImu = new MsgEnvelope(rs2_meta);
 
             // Add IMU data to frame metadata
-            MsgEnvelopeList* rs2_meta_arr = new MsgEnvelopeList();
+            rs2_meta_arr = new MsgEnvelopeList();
 
             // Find and retrieve IMU and/or tracking data
             if (rs2::motion_frame accel_frame = data.first_or_default(RS2_STREAM_ACCEL)) {
                 rs2_vector accel_sample = accel_frame.get_motion_data();
                 LOG_DEBUG("Accel_Sample: x:%f, y:%f, z:%f", accel_sample.x, accel_sample.y, accel_sample.z);
 
-                MsgEnvelopeObject* accel_obj = new MsgEnvelopeObject();
+                accel_obj = new MsgEnvelopeObject();
                 accel_obj->put_float("accel_sample_x", accel_sample.x);
                 accel_obj->put_float("accel_sample_y", accel_sample.y);
                 accel_obj->put_float("accel_sample_z", accel_sample.z);
@@ -378,7 +383,7 @@ void RealSenseIngestor::read(Frame*& frame) {
                 rs2_vector gyro_sample = gyro_frame.get_motion_data();
                 LOG_DEBUG("Gyro Sample: x:%f, y:%f, z:%f", gyro_sample.x, gyro_sample.y, gyro_sample.z);
 
-                MsgEnvelopeObject* gyro_obj = new MsgEnvelopeObject();
+                gyro_obj = new MsgEnvelopeObject();
                 gyro_obj->put_float("gyro_sample_x", gyro_sample.x);
                 gyro_obj->put_float("gyro_sample_y", gyro_sample.y);
                 gyro_obj->put_float("gyro_sample_z", gyro_sample.z);
@@ -390,6 +395,11 @@ void RealSenseIngestor::read(Frame*& frame) {
         }
     } catch (const std::exception& MsgbusException) {
         LOG_ERROR("Error in RealSense ingestor %s", MsgbusException.what());
+        delete msgEnv;
+        delete msgEnvImu;
+        delete rs2_meta_arr;
+        delete accel_obj;
+        delete gyro_obj;
     }
 
     if (m_poll_interval > 0) {
