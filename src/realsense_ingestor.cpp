@@ -23,13 +23,13 @@
  * @brief RealSense Ingestor implementation
  */
 
-#include <string>
-#include <vector>
-#include <cerrno>
 #include <unistd.h>
 #include <eii/msgbus/msgbus.h>
 #include <eii/utils/logger.h>
 #include <eii/utils/json_config.h>
+#include <string>
+#include <vector>
+#include <cerrno>
 #include "eii/msgbus/msg_envelope.hpp"
 #include "eii/vi/realsense_ingestor.h"
 
@@ -43,7 +43,9 @@ using namespace eii::msgbus;
 #define FRAMERATE "framerate"
 #define UUID_LENGTH 5
 
-RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl):
+RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue,
+                                     std::string service_name, std::condition_variable& snapshot_cv,
+                                     EncodeType enc_type, int enc_lvl):
     Ingestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl) {
     m_encoding = false;
     m_initialized.store(true);
@@ -52,7 +54,7 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
     m_framerate = 0;
 
     const auto dev_list = m_ctx.query_devices();
-    if(dev_list.size() == 0) {
+    if (dev_list.size() == 0) {
         const char* err = "No RealSense devices found";
         LOG_ERROR("%s", err);
         throw(err);
@@ -61,13 +63,13 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
     std::string first_serial = std::string(dev_list[0].get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
 
     config_value_t* cvt_serial = config->get_config_value(config->cfg, SERIAL);
-    if(cvt_serial == NULL) {
+    if (cvt_serial == NULL) {
         LOG_DEBUG_0("\"serial\" key is not added, first connected device in the list will be enabled");
         // Get the serial number of the first connected device in the list
         m_serial = first_serial;
     } else {
         LOG_DEBUG_0("cvt_serial initialized");
-        if(cvt_serial->type != CVT_STRING) {
+        if (cvt_serial->type != CVT_STRING) {
             config_value_destroy(cvt_serial);
             const char* err = "JSON value must be a string";
             LOG_ERROR("%s for \'%s\'", err, SERIAL);
@@ -78,23 +80,23 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
         config_value_destroy(cvt_serial);
 
         // Verify serial number when single device is connected
-        if(dev_list.size() == 1 && m_serial != first_serial) {
+        if (dev_list.size() == 1 && m_serial != first_serial) {
             const char* err = "Input serial not matching with RealSence Device Serial";
             LOG_ERROR("%s", err);
             throw(err);
         }
 
         // Verify serial number when multiple devices are connected
-        if(dev_list.size() > 1) {
+        if (dev_list.size() > 1) {
             bool serial_found = false;
-            for(uint16_t i = 0; i <= dev_list.size(); i++) {
+            for (uint16_t i = 0; i <= dev_list.size(); i++) {
                 if (m_serial == std::string(dev_list[i].get_info(RS2_CAMERA_INFO_SERIAL_NUMBER))) {
                     serial_found = true;
                     break;
                 }
             }
 
-            if(!serial_found) {
+            if (!serial_found) {
                 const char* err = "Input serial not matching with RealSence Device Serial";
                 LOG_ERROR("%s", err);
                 throw(err);
@@ -105,8 +107,8 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
 
     // Get framerate config value
     config_value_t* cvt_framerate = config->get_config_value(config->cfg, FRAMERATE);
-    if(cvt_framerate != NULL) {
-        if(cvt_framerate->type != CVT_INTEGER) {
+    if (cvt_framerate != NULL) {
+        if (cvt_framerate->type != CVT_INTEGER) {
             const char* err = "framerate must be an integer";
             LOG_ERROR("%s", err);
             config_value_destroy(cvt_framerate);
@@ -114,7 +116,7 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
         }
         m_framerate = cvt_framerate->body.integer;
         config_value_destroy(cvt_framerate);
-    } else if(cvt_framerate == NULL) {
+    } else if (cvt_framerate == NULL) {
         m_framerate = 30;
     }
     LOG_INFO("Framerate: %d", m_framerate);
@@ -124,22 +126,22 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
     m_cfg.enable_stream(RS2_STREAM_COLOR, RS2_FORMAT_BGR8, m_framerate);
     m_cfg.enable_stream(RS2_STREAM_DEPTH, RS2_FORMAT_Z16, m_framerate);
 
-    //TODO: Verify pose stream from tracking camera
+    // TODO: Verify pose stream from tracking camera
 
     config_value_t* cvt_imu = config->get_config_value(
             config->cfg, IMU);
-    if(cvt_imu != NULL) {
-        if(cvt_imu->type != CVT_BOOLEAN) {
+    if (cvt_imu != NULL) {
+        if (cvt_imu->type != CVT_BOOLEAN) {
             LOG_ERROR_0("IMU must be a boolean");
             config_value_destroy(cvt_imu);
         }
-        if(cvt_imu->body.boolean) {
+        if (cvt_imu->body.boolean) {
             m_imu_on = true;
         }
         config_value_destroy(cvt_imu);
     }
 
-    if(m_imu_on) {
+    if (m_imu_on) {
         // Enable streams to get IMU data
         if (!check_imu_is_supported()) {
             LOG_DEBUG_0("Device supporting IMU not found");
@@ -153,7 +155,6 @@ RealSenseIngestor::RealSenseIngestor(config_t* config, FrameQueue* frame_queue, 
 
     // Start streaming with enabled configuration
     m_pipe.start(m_cfg);
-
     }
 
 RealSenseIngestor::~RealSenseIngestor() {
@@ -164,7 +165,6 @@ RealSenseIngestor::~RealSenseIngestor() {
 void free_rs2_frame(void* obj) {
     // This may not be needed as the frame memory
     // is internally handled.
-
 }
 
 void RealSenseIngestor::run(bool snapshot_mode) {
@@ -189,7 +189,7 @@ void RealSenseIngestor::run(bool snapshot_mode) {
             // Profiling end
 
             msgbus_ret_t ret;
-            if(frame_count == INT64_MAX) {
+            if (frame_count == INT64_MAX) {
                 LOG_WARN_0("frame count has reached INT64_MAX, so resetting \
                             it back to zero");
                 frame_count = 0;
@@ -204,7 +204,7 @@ void RealSenseIngestor::run(bool snapshot_mode) {
                 throw err;
             }
             ret = msgbus_msg_envelope_put(meta_data, "frame_number", elem);
-            if(ret != MSG_SUCCESS) {
+            if (ret != MSG_SUCCESS) {
                 delete frame;
                 const char* err = "Failed to put frame_number in meta-data";
                 LOG_ERROR("%s", err);
@@ -227,8 +227,8 @@ void RealSenseIngestor::run(bool snapshot_mode) {
             }
 
             QueueRetCode ret_queue = m_udf_input_queue->push(frame);
-            if(ret_queue == QueueRetCode::QUEUE_FULL) {
-                if(m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
+            if (ret_queue == QueueRetCode::QUEUE_FULL) {
+                if (m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
                     LOG_ERROR_0("Failed to enqueue message, "
                                 "message dropped");
                 }
@@ -238,7 +238,7 @@ void RealSenseIngestor::run(bool snapshot_mode) {
 
             frame = NULL;
 
-            if(snapshot_mode) {
+            if (snapshot_mode) {
                 m_stop.store(true);
                 m_snapshot_cv.notify_all();
             }
@@ -247,7 +247,7 @@ void RealSenseIngestor::run(bool snapshot_mode) {
         LOG_ERROR("Exception: %s", e);
         if (elem != NULL)
             msgbus_msg_envelope_elem_destroy(elem);
-        if(frame != NULL)
+        if (frame != NULL)
             delete frame;
         throw e;
     } catch (const rs2::error & e) {
@@ -256,7 +256,7 @@ void RealSenseIngestor::run(bool snapshot_mode) {
                   e.get_failed_args().c_str(), e.what());
         if (elem != NULL)
             msgbus_msg_envelope_elem_destroy(elem);
-        if(frame != NULL)
+        if (frame != NULL)
             delete frame;
         throw e;
     }
@@ -264,23 +264,23 @@ void RealSenseIngestor::run(bool snapshot_mode) {
         LOG_ERROR("Exception: %s", e.what());
         if (elem != NULL)
             msgbus_msg_envelope_elem_destroy(elem);
-        if(frame != NULL)
+        if (frame != NULL)
             delete frame;
         throw e;
     } catch(...) {
         LOG_ERROR("Exception occured in opencv ingestor run()");
         if (elem != NULL)
             msgbus_msg_envelope_elem_destroy(elem);
-        if(frame != NULL)
+        if (frame != NULL)
             delete frame;
         throw;
     }
     if (elem != NULL)
         msgbus_msg_envelope_elem_destroy(elem);
-    if(frame != NULL)
+    if (frame != NULL)
         delete frame;
     LOG_INFO_0("Ingestor thread stopped");
-    if(snapshot_mode)
+    if (snapshot_mode)
         m_running.store(false);
 }
 
@@ -385,24 +385,24 @@ void RealSenseIngestor::read(Frame*& frame) {
                 rs2_meta_arr->put_object(gyro_obj);
             }
 
-            //TODO: Verify pose sample from tracking camera
+            // TODO: Verify pose sample from tracking camera
             msgEnvImu->put_array("rs2_imu_meta_data", rs2_meta_arr);
         }
     } catch (const std::exception& MsgbusException) {
         LOG_ERROR("Error in RealSense ingestor %s", MsgbusException.what());
     }
 
-    if(m_poll_interval > 0) {
+    if (m_poll_interval > 0) {
         LOG_WARN("poll_interval not supported in realsense ingestor please use framerate config");
     }
 }
 
 void RealSenseIngestor::stop() {
-    if(m_initialized.load()) {
-        if(!m_stop.load()) {
+    if (m_initialized.load()) {
+        if (!m_stop.load()) {
             m_stop.store(true);
             // wait for the ingestor thread run() to finish its execution.
-            if(m_th != NULL) {
+            if (m_th != NULL) {
                 m_th->join();
             }
         }
@@ -413,19 +413,15 @@ void RealSenseIngestor::stop() {
     }
 }
 
-bool RealSenseIngestor::check_imu_is_supported()
-{
+bool RealSenseIngestor::check_imu_is_supported() {
     bool found_gyro = false;
     bool found_accel = false;
-    for (auto dev : m_ctx.query_devices())
-    {
+    for (auto dev : m_ctx.query_devices()) {
         // The same device should support gyro and accel
         found_gyro = false;
         found_accel = false;
-        for (auto sensor : dev.query_sensors())
-        {
-            for (auto profile : sensor.get_stream_profiles())
-            {
+        for (auto sensor : dev.query_sensors()) {
+            for (auto profile : sensor.get_stream_profiles()) {
                 if (profile.stream_type() == RS2_STREAM_GYRO)
                     found_gyro = true;
 

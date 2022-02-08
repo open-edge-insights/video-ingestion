@@ -23,12 +23,13 @@
  * @brief VideoIngestion Implementation
  */
 
-#include <iostream>
 #include <safe_lib.h>
+#include <mutex>
+#include <iostream>
 #include "eii/vi/video_ingestion.h"
 #include "eii/vi/ingestor.h"
 #include "eii/vi/gstreamer_ingestor.h"
-#include <mutex>
+
 
 #define INTEL_VENDOR "GenuineIntel"
 #define INTEL_VENDOR_LENGTH 12
@@ -43,8 +44,10 @@ using namespace eii::msgbus;
 using namespace eii::udf;
 
 VideoIngestion::VideoIngestion(
-        std::string app_name, std::condition_variable& err_cv, char* vi_config, ConfigMgr* ctx, CommandHandler* commandhandler) :
-    m_app_name(app_name), m_commandhandler(commandhandler), m_err_cv(err_cv), m_enc_type(EncodeType::NONE), m_enc_lvl(0) {
+        std::string app_name, std::condition_variable& err_cv, char* vi_config,
+        ConfigMgr* ctx, CommandHandler* commandhandler) :
+    m_app_name(app_name), m_commandhandler(commandhandler), m_err_cv(err_cv),
+    m_enc_type(EncodeType::NONE), m_enc_lvl(0) {
 
     // Parse the configuration
     config_t* config = json_config_new_from_buffer(vi_config);
@@ -198,8 +201,8 @@ VideoIngestion::VideoIngestion(
             throw(err);
         }
 
-        // Ingestion is not going ON by default when VideoIngestion constructor is called. Even if init_state=start, the ingestion
-        // will start when start() is called
+        // Ingestion is not going ON by default when VideoIngestion constructor is called. Even if
+        // init_state=start, the ingestion will start when start() is called
         m_ingestion_running.store(false);
     }
 
@@ -217,7 +220,8 @@ VideoIngestion::VideoIngestion(
     }
 
     // Get ingestor
-    m_ingestor = get_ingestor( m_ingestor_cfg, m_udf_input_queue, m_ingestor_type.c_str(), m_app_name, m_snapshot_cv, m_enc_type, m_enc_lvl);
+    m_ingestor = get_ingestor(m_ingestor_cfg, m_udf_input_queue, m_ingestor_type.c_str(),
+                              m_app_name, m_snapshot_cv, m_enc_type, m_enc_lvl);
 
     PublisherCfg* pub_ctx = ctx->getPublisherByIndex(0);
     if (pub_ctx == NULL) {
@@ -258,7 +262,7 @@ msg_envelope_elem_body_t* VideoIngestion::process_start_ingestion(msg_envelope_e
             }
             IngestRetCode ret = m_ingestor->start();
             if (ret != IngestRetCode::SUCCESS) {
-                LOG_ERROR("Failed to start ingestor thread: %d",ret);
+                LOG_ERROR("Failed to start ingestor thread: %d", ret);
                 std::string err = "Failed to start ingestor thread";
                 return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
             } else {
@@ -313,7 +317,7 @@ msg_envelope_elem_body_t* VideoIngestion::process_snapshot(msg_envelope_elem_bod
                 ret = m_ingestor->start(true);
             }
             if (ret != IngestRetCode::SUCCESS) {
-                LOG_ERROR("Failed to start ingestor thread: %d",ret);
+                LOG_ERROR("Failed to start ingestor thread: %d", ret);
                 std::string err = "Failed to start ingestor thread";
                 return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
             }
@@ -331,7 +335,8 @@ msg_envelope_elem_body_t* VideoIngestion::process_snapshot(msg_envelope_elem_bod
     } catch(std::exception& ex) {
         std::string err = "exception occurred request not honored";
         LOG_ERROR("%s %s", ex.what(), err.c_str());
-        return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED, err, NULL);
+        return m_commandhandler->form_reply_payload((int)REQ_NOT_HONORED,
+                                                    err, NULL);
     }
 }
 
@@ -349,7 +354,8 @@ void VideoIngestion::start() {
         LOG_INFO("Started udf manager");
     }
 
-    // if SW trigger is disabled OR (if sw trigger is enabled && init_state = running) then start ingestion
+    // if SW trigger is disabled OR (if sw trigger is enabled && init_state = running)
+    // then start ingestion
     if (!m_sw_trgr_en || (m_sw_trgr_en && m_init_state_start)) {
         IngestRetCode ret = m_ingestor->start();
         if (ret != IngestRetCode::SUCCESS) {

@@ -23,18 +23,18 @@
  * @brief OpenCV Ingestor implementation
  */
 
-#include <string>
-#include <vector>
-#include <cerrno>
 #include <unistd.h>
-
 #include <eii/msgbus/msgbus.h>
 #include <eii/utils/logger.h>
 #include <eii/utils/json_config.h>
-#include "eii/vi/opencv_ingestor.h"
 
 #include <glob.h>
 #include <sys/stat.h>
+#include <string>
+#include <vector>
+#include <cerrno>
+
+#include "eii/vi/opencv_ingestor.h"
 
 using namespace std;
 
@@ -80,9 +80,9 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
             const char* err = "JSON value must be a boolean";
             LOG_ERROR("%s for \'%s\'", err, "IMAGE_INGESTION");
             throw(err);
-        } 
-    }    
-        
+        }
+    }
+
     config_value_t* cvt_pipeline = config->get_config_value(config->cfg, PIPELINE);
     LOG_INFO("cvt_pipeline initialized");
     if (cvt_pipeline == NULL) {
@@ -113,7 +113,7 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
     }
 
     if (m_img_flag) {
-	// Verify if image directory is volume mounted    
+	// Verify if image directory is volume mounted
 	struct stat buffer;
         if (stat(m_pipeline.c_str(), &buffer) != 0) {
             LOG_ERROR("%s directory is empty. Failed to open opencv pipeline", m_pipeline.c_str());
@@ -123,7 +123,7 @@ OpenCvIngestor::OpenCvIngestor(config_t* config, FrameQueue* frame_queue, std::s
         if (!m_cap->isOpened()) {
         LOG_ERROR("Failed to open opencv pipeline: %s", m_pipeline.c_str());
         }
-    }     
+    }
 }
 
 OpenCvIngestor::~OpenCvIngestor() {
@@ -158,7 +158,7 @@ void OpenCvIngestor::run(bool snapshot_mode) {
                 this->imread(frame);
             } else {
                 this->read(frame);
-            }            
+            }
             msg_envelope_t* meta_data = frame->get_meta_data();
             // Profiling start
             DO_PROFILING(this->m_profile, meta_data, "ts_Ingestor_entry")
@@ -248,7 +248,7 @@ void OpenCvIngestor::read(Frame*& frame) {
 
     cv::Mat* cv_frame = new cv::Mat();
     cv::Mat* frame_copy = NULL;
- 
+
     if (m_cap == NULL) {
         m_cap = new cv::VideoCapture(m_pipeline);
         if (!m_cap->isOpened()) {
@@ -280,7 +280,7 @@ void OpenCvIngestor::read(Frame*& frame) {
             LOG_ERROR("%s", err);
         }
     }
-      
+
     LOG_DEBUG_0("Frame read successfully");
 
     frame = new Frame(
@@ -303,13 +303,13 @@ void OpenCvIngestor::read(Frame*& frame) {
 
 void OpenCvIngestor::imread(Frame*& frame) {
     cv::Mat* cv_frame = new cv::Mat();
-    // save the path to the images present in directory /app/img_dir/  
+    // save the path to the images present in directory /app/img_dir/
     static vector<cv::String> filenames;
     // current image format
     static int image_format_index;
     // for indexing filename
     static size_t k;
-    const string image_formats[] = {"jpg" , "JPG" , "jpeg" , "JPEG" ,  "jpe", "JPE" ,  "bmp" , "BMP" , "png" , "PNG"};       
+    const string image_formats[] = {"jpg", "JPG", "jpeg", "JPEG", "jpe", "JPE", "bmp", "BMP", "png", "PNG"};
     // length of the array image_format
     const int len_image_format = sizeof(image_formats) / sizeof(image_formats[0]);
     // pattern for reading images
@@ -326,8 +326,9 @@ void OpenCvIngestor::imread(Frame*& frame) {
         img_path = m_pipeline + "*." + image_formats[image_format_index];
 	cv::glob(img_path , filenames , true);
         count++;
-    } 
-    // filename.size() gives the total number of images within the directory having image format specified in the image_formats[type]
+    }
+    // filename.size() gives the total number of images within the directory
+    // having image format specified in the image_formats[type]
     if (k < filenames.size()) {
 	cv::Mat image  = cv::imread(filenames[k]);
 	if (image.empty()) {
@@ -348,11 +349,12 @@ void OpenCvIngestor::imread(Frame*& frame) {
         do {
             count++;
             if (count == len_image_format+1) {
-		// Exit loop if no images are present within the directory    
-                LOG_ERROR("No images present within directory. Failed to open opencv pipeline %s", m_pipeline.c_str());
+		// Exit loop if no images are present within the directory
+                LOG_ERROR("No images present within directory. Failed to open \
+                           opencv pipeline %s", m_pipeline.c_str());
 		image_format_index = 0;
 	        break;
-            }         
+            }
 	    // If type has reached last image format value, then all image formats are processed
 	    if (image_format_index == len_image_format - 1) {
                 if (m_loop_video == true) {
@@ -368,19 +370,19 @@ void OpenCvIngestor::imread(Frame*& frame) {
                     }
 	        }
             } else {
-		// proceed to the next image format    
+		// proceed to the next image format
 		image_format_index++;
-	    } 
+	    }
 	    img_path = m_pipeline + "*." + image_formats[image_format_index];
             cv::glob(img_path , filenames , true);
 	} while (filenames.size() == 0);
-        
+
 	if (count != len_image_format+1) {
 	    cv::Mat image  = cv::imread(filenames[k]);
             if (image.empty()) {
                 LOG_ERROR("Could not read image : %s", filenames[k].c_str());
             } else {
-		// find the resolution of the image 
+		// find the resolution of the image
                 size = image.size();
                 if (size.width > MAX_IMAGE_WIDTH || size.height > MAX_IMAGE_HEIGHT) {
 		    // resize the image to resolution width = 1920 and height = 1200
@@ -392,7 +394,7 @@ void OpenCvIngestor::imread(Frame*& frame) {
 	}
         k++;
     }
-    
+
     LOG_DEBUG_0("Image read successfully");
 
     frame = new Frame(
@@ -402,7 +404,7 @@ void OpenCvIngestor::imread(Frame*& frame) {
     if (m_poll_interval > 0) {
         usleep(m_poll_interval * 1000 * 1000);
     }
-} 
+}
 
 void OpenCvIngestor::stop() {
     if (m_initialized.load()) {

@@ -86,7 +86,7 @@ int CommandHandler::service_init(ConfigMgr* ctx) {
 
     char* name = NULL;
     config_value_t* interface_value = server_ctx->getInterfaceValue("Name");
-    if (interface_value == NULL || interface_value->type != CVT_STRING){
+    if (interface_value == NULL || interface_value->type != CVT_STRING) {
         LOG_ERROR_0("Failed to get interface value");
         return -1;
     }
@@ -119,7 +119,7 @@ int CommandHandler::service_init(ConfigMgr* ctx) {
 }
 
 
-void CommandHandler::register_callback (int key, std::function<msg_envelope_elem_body_t* (msg_envelope_elem_body_t *)> cb_func) {
+void CommandHandler::register_callback(int key, std::function<msg_envelope_elem_body_t* (msg_envelope_elem_body_t *)> cb_func) {
     // Add the callback functions to the map with the key value
     auto result = m_cmd_handler_map.insert({key, cb_func});
     if (!result.second) {
