@@ -84,8 +84,8 @@ services:
       - "/tmp:/tmp"
       # volume mount the udev database with read-only permission,so the USB3 Vision interfaces can be enumerated correctly in the container
       - "/run/udev:/run/udev:ro"
-      - ./Certificates/VideoIngestion:/run/secrets/VideoIngestion
-      - ./Certificates/rootca:/run/secrets/rootca
+      - ./Certificates/VideoIngestion:/run/secrets/VideoIngestion:ro
+      - ./Certificates/rootca/cacert.pem:/run/secrets/rootca/cacert.pem:ro
     device_cgroup_rules:
       # Default run - device-cgroup-rule='c 189:* rmw'
       # NCS2 run - device-cgroup-rule='c 209:* rmw'
