@@ -1,15 +1,14 @@
-**Contents**
+# Contents
 
-- [GStreamer Ingestor](#gstreamer-ingestor)
+- [Contents](#contents)
+  - [GStreamer ingestor](#gstreamer-ingestor)
+    - [Using the GStreamer ingestor](#using-the-gstreamer-ingestor)
 
-### GStreamer Ingestor
+## GStreamer ingestor
 
-**NOTE**:
-
-- The Gstreamer elements used are being leveraged from OpenVINO DL Streamer Framework.
-  For debugging purpose one can use the `gst-inspect-1.0` and `gst-launch-1.0` tool with
-  the gstreamer elements. In order to use the tool with the VideoIngestion container refer
-  the below steps.
+> Note
+>
+> The Gstreamer elements used are being leveraged from the OpenVINO DL Streamer Framework. For debugging, use the `gst-inspect-1.0` and `gst-launch-1.0` tool with the GStreamer elements. To use the tool with the VideoIngestion container, refer the following steps:
 
   ```sh
 
@@ -21,34 +20,36 @@
 
   $ source /opt/intel/openvino/bin/setupvars.sh
 
-  **Note**: For VAAPI elements few additional env variables need to be exported. Refer VideoIngestion/vi_start.sh for exporting those additional variables.
+  **Note**: For VAAPI elements, few additional env variables should be exported. Refer the VideoIngestion/vi_start.sh for exporting the additional variables.
 
-  # 3. Run the gstreamer command using the tool.
+  # 3. Run the GStreamer command using the tool.
 
-  # For e.g inorder to print info about a gstreamer element like `gvadetect` use the gst-inspect.1.0 tool
+  # For example, to print information about a GStreamer element like the `gvadetect`, use the gst-inspect.1.0 tool
 
   $ gst-inspect-1.0 gvadetect
 
-  # To view information about Generic Plugin or exercise it then update the GST_PLUGIN_PATH to include below path and then use the `gst-inspect-1.0` tool
+  # To use or view information about the Generic Plugin, update the GST_PLUGIN_PATH to include the following path, and then, use the `gst-inspect-1.0` tool
 
   $ export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
 
   $ gst-inspect-1.0 gencamsrc
 
   ```
+>  
+> For more information on the GStreamer tool, refer the following:
+>
+><https://gstreamer.freedesktop.org/documentation/tutorials/basic/gstreamer-tools.html?gi-language=c>
 
-  For more information on the gstreamer tool refer the below link:
-  <https://gstreamer.freedesktop.org/documentation/tutorials/basic/gstreamer-tools.html?gi-language=c>
+### Using the GStreamer ingestor
 
-- If running on non-gfx systems or older systems which doesn't have hardware
-  media decoders (like in Xeon m/c) it is recommended to use `opencv` ingestor
+For using the GStreamer ingestor, consider the following key points:
 
-- `gstreamer` ingestor expects the image format to be in `BGR` format so the output image format should be in `BGR`
+- It is recommended to use `opencv` ingestor, if the VideoIngestion is running on the non-gfx systems or older systems such as Xeon machines that doesn't have hardware media decoders.
+- The GStreamer ingestor expects the image format to be in the `BGR` format. The output image format should also be in the `BGR` format.
+- The `poll_interval` key is not applicable for the GStreamer ingestor. Refer the usage of the `videorate` element in the following example to control the framerate in case of the GStreamer. ingestor.
+- To reduce the ingestion rate, with the GStreamer ingestor use the `videorate` element to control the frame rate in the GStreamer pipeline.
 
-- `poll_interval` key is not applicable for `gstreamer` ingestor. Refer the usage of `videorate` element in the below section to control the framerate in case of `gstreamer` ingestor.
-- In case one wants to reduce the ingestion rate with `gstreamer` ingestor the `videorate` element can be used to control the framerate in the gstreamer pipeline.
-
-  **Example pipeline to use the `videorate` element**:
+  The following is an example pipeline to use the `videorate` element:
 
   ```javascript
   {
@@ -57,14 +58,15 @@
   }
   ```
 
-  >**Note**: In the above example after the stream is decoded and the color space conversion is done the framerate is adjusted to 5 FPS (The incoming stream framerate is 20 which is adjusted to 5 FPS). The correction in framerate is performed by dropping the frames in case the framerate is adjusted to a lower ethan the input stream. In case the framerate is adjusted to a higher FPS compared to the input stream then frames will be duplicated.
+  > Note
+  >
+  > In the example, after completing the stream decoding and the color space conversion, the incoming stream frame rate is adjusted from 20 frames per second (fps) to 5 fps. If the frame rate is adjusted to lower than the input stream then the frame rate is corrected by dropping the frames. If the frame rate is adjusted to a higher fps compared to the input stream then frames are duplicated.
+  > For more information on `videorate` element, refer the following link:
+  > <https://gstreamer.freedesktop.org/documentation/videorate/index.html?gi-language=c>
 
-  For more information on `videorate` element refer the below link:
-  <https://gstreamer.freedesktop.org/documentation/videorate/index.html?gi-language=c>
+- In case of extended run with the Gstreamer ingestor, you can consider the properties of `appsink` element, such as `max-buffers` and `drop` to overcome issues like ingestion of frames getting blocked. The `appsink` element internally uses a queue to collect buffers from the streaming thread. The `max-buffers` property can be used to limit the queue size. The `drop` property is used to specify whether to block the streaming thread or to drop the old buffers when the maximum size of queue is reached.
 
-- In case of extended run with gstreamer ingestor one can consider the properties of `appsink` element such as `max-buffers` and `drop` to overcome issues like ingestion of frames getting blocked. The `appsink` element internally uses a queue to collect buffers from the streaming thread. The `max-buffers` property can be used to limit the queue size. The `drop` property is used to specify whether to block the streaming thread or to drop the old buffers when maximum size of queue is reached.
-
-  **Example pipline to use `max-buffers` and `drop` properties of `appsink` element**:
+  The following is an example pipeline to use the `max-buffers` and `drop` properties of `appsink` element:
 
   ```javascript
     {
@@ -73,11 +75,13 @@
     }
   ```
 
-  >**Note**:  The usage of `max-buffers` and `drop` properties are helpful when the camera should not be disconnected in case of slow downstream processing of buffers.
+  > Note
+  >
+  > Using the `max-buffers` and `drop` properties is helpful in scenarios, when the camera should not be disconnected, in case of slow downstream processing of buffers.
 
-- In case one notices the VideoIngestion not publishing any frames when working with GVA use case the `queue` element of Gstramer can be used to limit the     max size of the buffers and the upstreaming/downstreaming can be set to leak to drop the buffers
+- For the GVA use case, if the VideoIngestion does not publish any frames then the `queue` element of Gstreamer can be used to limit the max size of the buffers. The upstreaming or downstreaming can be set to leak to drop the buffers.
 
-  **Example pipeline to use the `queue` element**:
+  The following is an example pipeline to use the `queue` element:
 
   ```javascript
   {
@@ -86,12 +90,12 @@
   }
   ```
 
-  For more information reagarding the queue element refer the below link:
+  For more information about the queue element, refer the following link:
   <https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-plugins/html/gstreamer-plugins-queue.html>
 
-- In case the user wants to enable debug information for the gstreamer elements, it can be set using the `GST_DEBUG` env variable in [../docker-compose.yml](../docker-compose.yml).
+- To enable the debug information for the Gstreamer elements use the `GST_DEBUG` env variable in [../docker-compose.yml](../docker-compose.yml).
 
-  **Example snippet to set the `GST_DEBUG` env variable in [../docker-compose.yml](../docker-compose.yml):**
+  The following is an example snippet to set the `GST_DEBUG` env variable in [../docker-compose.yml](../docker-compose.yml):
 
    ```yml
    services:
@@ -104,5 +108,5 @@
 
    `GST_DEBUG: "1,gencamsrc:4"` env variable  will set the GST log level of `gencamsrc` element to 4 and all other elements to 1.
 
-   For more information on gstreamer debug log levels refer the below link:
+   For more information on the Gstreamer debug log levels, refer the following link:
    <https://gstreamer.freedesktop.org/documentation/tutorials/basic/debugging-tools.html?gi-language=c>
