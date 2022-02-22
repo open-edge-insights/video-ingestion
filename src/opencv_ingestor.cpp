@@ -350,8 +350,8 @@ void OpenCvIngestor::imread(Frame*& frame) {
             count++;
             if (count == len_image_format+1) {
 		// Exit loop if no images are present within the directory
-                LOG_ERROR("No images present within directory. Failed to open \
-                           opencv pipeline %s", m_pipeline.c_str());
+                LOG_ERROR("No images present within directory. Failed to open "
+                          "opencv pipeline %s", m_pipeline.c_str());
 		image_format_index = 0;
 	        break;
             }
