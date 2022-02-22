@@ -10,9 +10,10 @@
     - [Camera configurations](#camera-configurations)
       - [GenICam GigE or USB3 cameras](#genicam-gige-or-usb3-cameras)
         - [Prerequisites for working with the GenICam compliant cameras](#prerequisites-for-working-with-the-genicam-compliant-cameras)
-      - [USB cameras](#usb-cameras)
+      - [RTSP camera support](#rtsp-cameras)
+      - [USB cameras](#usb-v4l2-cameras)
       - [RealSense Depth cameras](#realsense-depth-cameras)
-  
+
 ## VideoIngestion module
 
 The VideoIngestion (VI) module ingests the video frames from video sources in the OEI stack for processing. The example of video sources include video files or cameras such as Basler, RTSP, or USB cameras. The VI module can also perform video analytics, when it runs with the classifier and post-processing user defined functions (UDFs).
@@ -58,7 +59,7 @@ OEI supports the following type of ingestors:
 - [OpenCV](https://opencv.org/)
 - [GStreamer](docs/gstreamer_ingestor_doc.md)
 - [RealSense](https://www.intelrealsense.com/)
-  
+
 For more information on the Intel RealSense SDK, refer to [librealsense](https://github.com/IntelRealSense/librealsense).
 
 ## VideoIngestion features
@@ -68,9 +69,9 @@ Refer the following to learn more about the VideoIngestion features and supporte
 - [Generic server](docs/generic_server_doc.md)
 - [Gstreamer video analytics](docs/gva_doc.md)
 - [Run GVA elements in VI or VA](models/README.md)
-- [GenICam GigE/USB3.0 camera support](#genicam-gige-or-usb3-camera)
-- [RTSP camera support](#rtsp-camera)
-- [USB camera support](#usb-camera)
+- [GenICam GigE/USB3.0 camera support](#genicam-gige-or-usb3-cameras)
+- [RTSP camera support](#rtsp-cameras)
+- [USB v4l2 compatible camera support](#usb-v4l2-cameras)
 
 ### Image ingestion
 
@@ -128,7 +129,7 @@ ia_video_ingestion:
     - "vol_eii_socket:${SOCKET_DIR}"
     - "/var/tmp:/var/tmp"
     # Add volume
-    # Please provide the absolute path to the images directory present in the host system for volume mounting the directory. Eg: -"home/directory_1/images_directory:/app/img_dir" 
+    # Please provide the absolute path to the images directory present in the host system for volume mounting the directory. Eg: -"home/directory_1/images_directory:/app/img_dir"
     - "<path_to_images_directory>:/app/img_dir"
     ...
 ```
@@ -145,7 +146,7 @@ Ensure that you are using the appropriate UDF configuration for all the video an
         "type": "python"
     }]
   ```
->  
+>
 > Apply the same changes in the VideoAnalytics configuration if it is subscribing to VideoIngestion.
 
 ### Camera configurations
@@ -210,7 +211,7 @@ ia_video_ingestion:
   # ports:
   # - 64013:64013
 ```
-  
+
 For GenIcam USB3.0 cameras:
 
 ```yaml
@@ -233,13 +234,103 @@ ia_video_ingestion:
 > - In a multi-node scenario, replace <HOST_IP> in "no_proxy" with the leader node's IP address.
 > - In the TCP mode of communication, the msgbus subscribers and clients of VideoIngestion are required to configure the `Endpoint` in the `config.json` file with the host IP and port under the `Subscribers` or `Clients` interfaces section.
 
-- For the Gstreamer ingestor, refer to the following:
+
+- Gstreamer Ingestor
 
   - GenICam GigE/USB3.0 cameras
 
-  > For more information or configuration details on RTSP simulated cameras, refer to [docs/rtsp_doc.md](docs/rtsp_doc.md).
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+      > **Note:**
 
-#### USB cameras
+      > * Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
+      > * The above gstreamer pipeline was tested with Basler and IDS GigE cameras.
+      > * If `serial` is not provided then the first connected camera in the device list will be used.
+      > * If `pixel-format` is not provided then the default `mono8` pixel format will be used.
+      > * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
+
+   - Hardware trigger based ingestion with gstreamer ingestor
+
+     ```javascript
+     {
+      "type": "gstreamer",
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
+     }
+     ```
+
+    > **Note:**
+    > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work.
+
+    One can refer the below example pipeline:
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+    **Refer [docs/basler_doc.md](docs/basler_doc.md) for more information/configuration on basler camera.**
+
+ ----
+
+#### RTSP cameras
+
+  **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for information/configuration on rtsp camera.**
+
+- OpenCV Ingestor
+
+      ```javascript
+      {
+        "type": "opencv",
+        "pipeline": "rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>"
+      }
+      ```
+
+    > **NOTE**: Opencv for rtsp will use software decoders
+
+- Gstreamer Ingestor
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "rtspsrc location=\"rtsp://<USERNAME>:<PASSWORD>@<RTSP_CAMERA_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+    > **Note:** The RTSP URI of the physical camera depends on how it is configured using the camera software. One can use VLC Network Stream to verify the RTSP URI to confirm the RTSP source.
+
+ ----
+- For RTSP simulated camera using cvlc
+
+- OpenCV Ingestor
+
+      ```javascript
+      {
+        "type": "opencv",
+        "pipeline": "rtsp://<SOURCE_IP>:<PORT>/<FEED>"
+      }
+      ```
+
+- Gstreamer Ingestor
+
+      ```javascript
+      {
+        "type": "gstreamer",
+        "pipeline": "rtspsrc location=\"rtsp://<SOURCE_IP>:<PORT>/<FEED>\" latency=100 ! rtph264depay ! h264parse ! vaapih264dec ! vaapipostproc format=bgrx ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      }
+      ```
+
+    **Refer [docs/rtsp_doc.md](docs/rtsp_doc.md) for more information/configuration on rtsp simulated camera.**
+
+ ----
+
+
+#### USB v4l2 cameras
 
 For information or configurations details on the USB cameras, refer to [docs/usb_doc.md](docs/usb_doc.md).
 
@@ -248,7 +339,7 @@ For information or configurations details on the USB cameras, refer to [docs/usb
   ```javascript
       {
         "type": "opencv",
-        "pipeline": "/dev/video0"
+        "pipeline": "/dev/<DEVICE_VIDEO_NODE>"
       }
   ```
 
@@ -257,7 +348,7 @@ For information or configurations details on the USB cameras, refer to [docs/usb
   ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "v4l2src ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "v4l2src device=/dev/<DEVICE_VIDEO_NODE> ! video/x-raw,format=YUY2 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
   ```
 
