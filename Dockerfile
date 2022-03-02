@@ -36,13 +36,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgstreamer-plugins-base1.0-dev \
     libusb-1.0-0-dev \
     libtool \
-    libcjson-dev \
-    libzmq3-dev \
     zlib1g-dev \
     make && \
     rm -rf /var/lib/apt/lists/*
 
 ARG CMAKE_INSTALL_PREFIX
+
+# Install libzmq
+RUN rm -rf deps && \
+    mkdir -p deps && \
+    cd deps && \
+    wget -q --show-progress https://github.com/zeromq/libzmq/releases/download/v4.3.4/zeromq-4.3.4.tar.gz -O zeromq.tar.gz && \
+    tar xf zeromq.tar.gz && \
+    cd zeromq-4.3.4 && \
+    ./configure --prefix=${CMAKE_INSTALL_PREFIX} && \
+    make install
+
+# Install cjson
+RUN rm -rf deps && \
+    mkdir -p deps && \
+    cd deps && \
+    wget -q --show-progress https://github.com/DaveGamble/cJSON/archive/v1.7.12.tar.gz -O cjson.tar.gz && \
+    tar xf cjson.tar.gz && \
+    cd cJSON-1.7.12 && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_INSTALL_INCLUDEDIR=${CMAKE_INSTALL_PREFIX}/include -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} .. && \
+    make install
+
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_INSTALL_PREFIX}/include
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/bin ${CMAKE_INSTALL_PREFIX}/bin
@@ -75,7 +95,6 @@ RUN cd VideoIngestion && \
 FROM ${OPENVINO_IMAGE} AS runtime
 
 USER root
-RUN apt update && apt install --no-install-recommends -y libcjson1 libzmq5 zlib1g
 
 ARG EII_UID
 ARG EII_USER_NAME
