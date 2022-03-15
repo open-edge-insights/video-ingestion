@@ -315,11 +315,11 @@ void RealSenseIngestor::read(Frame*& frame) {
 
     msg_envelope_t* rs2_meta = frame->get_meta_data();
 
-    MsgEnvelope* msgEnv;
-    MsgEnvelope* msgEnvImu;
-    MsgEnvelopeList* rs2_meta_arr;
-    MsgEnvelopeObject* accel_obj;
-    MsgEnvelopeObject* gyro_obj;
+    MsgEnvelope* msgEnv = NULL;
+    MsgEnvelope* msgEnvImu = NULL;
+    MsgEnvelopeList* rs2_meta_arr = NULL;
+    MsgEnvelopeObject* accel_obj = NULL;
+    MsgEnvelopeObject* gyro_obj = NULL;
 
     try {
         msgEnv = new MsgEnvelope(rs2_meta);
