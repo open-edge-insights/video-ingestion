@@ -31,7 +31,7 @@ set(EII_COMMON_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/../common/cmake")
 set(CMAKE_CXX_STANDARD 14)
 
 # Set CFLAGS for C/C++
-set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -D_FORTIFY_SOURCE=2")
+set(CMAKE_C_FLAGS "-fPIE -fPIC -O2 -Wall -pedantic -fstack-protector-strong -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -D_FORTIFY_SOURCE=2")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 
 # Set LDFLAGS
