@@ -85,8 +85,6 @@ spec:
       - name: ia-video-ingestion{{ $instance }}
         image: {{ $global.Values.DOCKER_REGISTRY }}openedgeinsights/ia_video_ingestion:{{ $global.Values.EII_VERSION }}
         imagePullPolicy: {{ $global.Values.imagePullPolicy }}
-        securityContext:
-          privileged: true
         volumeMounts:
         - name: dev
           mountPath: /dev
