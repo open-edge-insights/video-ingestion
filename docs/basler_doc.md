@@ -1,6 +1,7 @@
 **Contents**
 
 - [Basler Camera](#basler-camera)
+- [Set Securiry Context to Enable Basler Camera in helm environment](#updating-security-context-of-videoingestion-helm-charts-for-enabling-k8s-environment-to-accessdetect-basler-camera)
 
 ### Basler Camera
 
@@ -78,3 +79,29 @@
 - For testing the hardware trigger functionality Basler `acA1920-40gc` camera model had been used.
 
   >**Note**: Other triggering capabilities with different camera models are not tested.
+
+### Updating Security Context of VideoIngestion Helm Charts for enabling K8s environment to access/detect Basler Camera
+
+Please follow the steps to update helm charts for enabling K8s environment to access/detect Basler Camera
+
+* Open `EII_HOME_DIR/IEdgeInsights/VideoIngestion/helm/templates/video-ingestion.yaml` file
+
+* Update below security context snippet
+  ```yml
+        securityContext:
+          privileged: true
+  ```
+  in the yaml file as:
+  ```yaml
+    ...
+    ...
+    ...
+        imagePullPolicy: {{ $global.Values.imagePullPolicy }}
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+    ...
+  ```
+  * Re-run `builder.py` to apply these changes to your deployment helm charts.
