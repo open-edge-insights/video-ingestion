@@ -36,10 +36,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgstreamer-plugins-base1.0-dev \
     libusb-1.0-0-dev \
     libtool \
+    zlib1g-dev \
     make && \
     rm -rf /var/lib/apt/lists/*
 
 ARG CMAKE_INSTALL_PREFIX
+
+# Install libzmq
+RUN rm -rf deps && \
+    mkdir -p deps && \
+    cd deps && \
+    wget -q --show-progress https://github.com/zeromq/libzmq/releases/download/v4.3.4/zeromq-4.3.4.tar.gz -O zeromq.tar.gz && \
+    tar xf zeromq.tar.gz && \
+    cd zeromq-4.3.4 && \
+    ./configure --prefix=${CMAKE_INSTALL_PREFIX} && \
+    make install
+
+# Install cjson
+RUN rm -rf deps && \
+    mkdir -p deps && \
+    cd deps && \
+    wget -q --show-progress https://github.com/DaveGamble/cJSON/archive/v1.7.12.tar.gz -O cjson.tar.gz && \
+    tar xf cjson.tar.gz && \
+    cd cJSON-1.7.12 && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_INSTALL_INCLUDEDIR=${CMAKE_INSTALL_PREFIX}/include -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} .. && \
+    make install
+
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/include ${CMAKE_INSTALL_PREFIX}/include
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
 COPY --from=video_common ${CMAKE_INSTALL_PREFIX}/bin ${CMAKE_INSTALL_PREFIX}/bin
@@ -87,28 +110,13 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     TERM="xterm" \
     GST_DEBUG="1"
 
-### Note: In case one cannot non-interactively download the camera SDK from the
-### web then first download the camera SDK onto to the system, place it under
-### VideoIngestion directory and use the COPY instruction to use it in the build context.
-
-# Installing Matrix Vision Camera SDK
+# Installing apt packages for Matrix Vision Camera SDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     iproute2 \
     net-tools \
     wget && \
     rm -rf /var/lib/apt/lists/*
-
-ARG MATRIX_VISION_SDK_VER=2.38.0
-
-RUN mkdir -p matrix_vision_downloads && \
-    cd matrix_vision_downloads && \
-    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/mvGenTL_Acquire-x86_64_ABI2-${MATRIX_VISION_SDK_VER}.tgz && \
-    wget -q --show-progress http://static.matrix-vision.com/mvIMPACT_Acquire/${MATRIX_VISION_SDK_VER}/install_mvGenTL_Acquire.sh && \
-    chmod +x install_mvGenTL_Acquire.sh && \
-    ./install_mvGenTL_Acquire.sh && \
-    rm -rf matrix_vision_downloads
-
-### To install other/newer Genicam camera SDKs add the installation steps here
 
 ARG CMAKE_INSTALL_PREFIX
 COPY --from=builder ${CMAKE_INSTALL_PREFIX}/lib ${CMAKE_INSTALL_PREFIX}/lib
@@ -124,6 +132,24 @@ COPY --from=builder /app/VideoIngestion/src-gst-gencamsrc/plugins/genicam-core/g
 COPY --from=builder /usr/local/lib/gstreamer-1.0 /usr/local/lib/gstreamer-1.0
 COPY --from=video_common /eii/common/video/udfs/python ./common/video/udfs/python
 COPY --from=video_common /root/.local/lib .local/lib
+COPY --from=builder /app/VideoIngestion/mvGenTL_Acquire-x86_64_ABI2-2.44.1.tgz ./VideoIngestion/
+
+### Note: In case one cannot non-interactively download the camera SDK from the
+### web then first download the camera SDK onto to the system, place it under
+### VideoIngestion directory and use the COPY instruction to use it in the build context.
+
+# Installing New Matrix Vision SDK
+RUN cd ./VideoIngestion && \
+    ./install_mvGenTL_Acquire.sh && \
+    rm -rf matrix_vision_downloads
+
+# Set environment variables required for Matrix Vision SDK
+ENV MVIMPACT_ACQUIRE_DIR="/opt/mvIMPACT_Acquire" \
+    MVIMPACT_ACQUIRE_DATA_DIR="/opt/mvIMPACT_Acquire/data" \
+    GENICAM_ROOT="/opt/mvIMPACT_Acquire/runtime" \
+    MVIMPACT_ACQUIRE_FAVOUR_SYSTEMS_LIBUSB="1"
+
+### To install other/newer Genicam camera SDKs add the installation steps here
 
 # Installing Intel® Graphics Compute Runtime for OpenCL™
 RUN /bin/bash -c "source /opt/intel/openvino/bin/setupvars.sh && \
@@ -134,6 +160,18 @@ ENV PYTHONPATH ${PYTHONPATH}:/app/common/video/udfs/python:/app/common/:/app:/ap
 ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib/udfs
 RUN chown ${EII_USER_NAME}:${EII_USER_NAME} /app /var/tmp
 RUN usermod -a -G users ${EII_USER_NAME}
+
+# Needed to not show the warnings while executing sample_onnx UDF
+RUN mkdir -p /home/${EII_USER_NAME} && \
+    chown -R ${EII_USER_NAME}:${EII_USER_NAME} /home/${EII_USER_NAME}/
+ARG SOCKET_DIR
+RUN mkdir -p ${SOCKET_DIR}
+ENV SOCK_DIR=${SOCKET_DIR}
+RUN chown -R ${EII_USER_NAME}:${EII_USER_NAME} ${SOCKET_DIR}
+ENV EIIUSER=${EII_USER_NAME}
+
+RUN apt-get remove --purge patch -y
+
 USER ${EII_USER_NAME}
 
 HEALTHCHECK NONE

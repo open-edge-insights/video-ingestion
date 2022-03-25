@@ -25,15 +25,15 @@
 
 #include <unistd.h>
 #include <condition_variable>
-#include "eii/vi/video_ingestion.h"
-#include <mutex>
-#include <atomic>
-#include <csignal>
 #include <safe_lib.h>
 #include <stdbool.h>
 #include <eii/utils/json_validator.h>
+#include <mutex>
+#include <atomic>
+#include <csignal>
 #include <fstream>
 #include <iostream>
+#include "eii/vi/video_ingestion.h"
 
 #define MAX_CONFIG_KEY_LENGTH 250
 
@@ -53,16 +53,16 @@ void usage(const char* name) {
     printf("Usage: %s \n", name);
 }
 
-void signal_callback_handler(int signum){
-    if (signum == SIGTERM){
+void signal_callback_handler(int signum) {
+    if (signum == SIGTERM) {
         LOG_INFO("Received SIGTERM signal, terminating Video Ingestion");
-    }else if(signum == SIGABRT){
+    } else if (signum == SIGABRT) {
         LOG_INFO("Received SIGABRT signal, terminating Video Ingestion");
-    }else if(signum == SIGINT){
+    } else if (signum == SIGINT) {
         LOG_INFO("Received Ctrl-C, terminating Video Ingestion");
     }
 
-    if(g_vi) {
+    if (g_vi) {
         delete g_vi;
     }
     exit(0);
@@ -80,7 +80,7 @@ void clean_up() {
     }
 }
 
-void vi_initialize(char* vi_config, std::string app_name){
+void vi_initialize(char* vi_config, std::string app_name) {
     if (g_ch) {
         delete g_ch;
         g_ch = NULL;
@@ -107,7 +107,8 @@ void vi_initialize(char* vi_config, std::string app_name){
     }
 
     try {
-        g_vi = new VideoIngestion(app_name, g_err_cv, vi_config, g_cfg_mgr, g_ch);
+        g_vi = new VideoIngestion(app_name, g_err_cv, vi_config,
+                                  g_cfg_mgr, g_ch);
         g_vi->start();
     } catch(const std::exception& ex) {
         LOG_ERROR("Exception '%s' occurred", ex.what());
@@ -118,10 +119,11 @@ void vi_initialize(char* vi_config, std::string app_name){
     }
 }
 
-void on_change_config_callback(const char* key, config_t* value, void* user_data) {
+void on_change_config_callback(const char* key, config_t* value,
+                               void* user_data) {
     LOG_INFO("Callback triggered for key %s", key);
     char* vi_config = configt_to_char(value);
-    if(strcmp(g_vi_config, vi_config)){
+    if (strcmp(g_vi_config, vi_config)) {
 	// Deleting of g_vi, g_vi_config was hanging with gstreamer ingestor.
 	// Making a forceful exit until this is fixed.
 	// This shouldnt cause memory leaks as the application process is
@@ -135,129 +137,10 @@ void on_change_config_callback(const char* key, config_t* value, void* user_data
         delete g_vi_config;*/
         // TODO: Uncomment the below logic once the dynamic cfg fix works as
         // expected
-        //g_vi_config = vi_config;
-        //g_cfg_change.store(true);
-        //g_err_cv.notify_one();
+        // g_vi_config = vi_config;
+        // g_cfg_change.store(true);
+        // g_err_cv.notify_one();
     }
-}
-
-bool validate_config(char config_key[]) {
-    // Writing to external file
-    std::ofstream out;
-    out.open("/var/tmp/config.json", std::ios::binary);
-    out << config_key;
-    out.close();
-
-    WJReader readjson = NULL;
-    WJReader readschema = NULL;
-    WJElement json = NULL;
-    WJElement schema = NULL;
-
-    // Fetch config file
-    FILE* config_fp = fopen("/var/tmp/config.json", "r");
-    if(config_fp == NULL) {
-        return false;
-    }
-    readjson = WJROpenFILEDocument(config_fp, NULL, 0);
-    if(readjson == NULL) {
-        LOG_ERROR_0("config json could not be read");
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-    json = WJEOpenDocument(readjson, NULL, NULL, NULL);
-    if(json == NULL) {
-        LOG_ERROR_0("config json could not be read");
-        if(readjson != NULL) {
-            free(readjson);
-        }
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-
-    // Fetch schema file
-    FILE* schema_fp = fopen("./VideoIngestion/schema.json", "r");
-    if(schema_fp == NULL) {
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-    readschema = WJROpenFILEDocument(schema_fp, NULL, 0);
-    if(readschema == NULL) {
-        LOG_ERROR_0("schema json could not be read");
-        if(schema_fp != NULL) {
-            fclose(schema_fp);
-        }
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-    schema = WJEOpenDocument(readschema, NULL, NULL, NULL);
-    if(schema == NULL) {
-        LOG_ERROR_0("schema json could not be read");
-        if(readschema != NULL) {
-            free(readschema);
-        }
-        if(schema_fp != NULL) {
-            fclose(schema_fp);
-        }
-        if(config_fp != NULL) {
-            fclose(config_fp);
-        }
-        return false;
-    }
-
-    // Validating config against schema
-    bool result = false;
-    if(schema != NULL && json != NULL) {
-        result = validate_json(schema, json);
-    }
-
-    // Close schema validation related documents
-    if(json != NULL) {
-        WJECloseDocument(json);
-    }
-    if(schema != NULL) {
-        WJECloseDocument(schema);
-    }
-    if(readjson != NULL) {
-        WJRCloseDocument(readjson);
-    }
-    if(readschema != NULL) {
-        WJRCloseDocument(readschema);
-    }
-
-    // Closing json config & schema file pointers
-    if(config_fp != NULL) {
-        fclose(config_fp);
-    }
-    if(schema_fp != NULL) {
-        fclose(schema_fp);
-    }
-
-    if(!result) {
-        // Clean up and return if failure
-        clean_up();
-        if(readjson != NULL) {
-            free(readjson);
-        }
-        if(json != NULL) {
-            free(json);
-        }
-        if(readschema != NULL) {
-            free(readschema);
-        }
-        if(schema != NULL) {
-            free(schema);
-        }
-        return false;
-    }
-    return true;
 }
 
 int main(int argc, char** argv) {
@@ -266,7 +149,7 @@ int main(int argc, char** argv) {
     signal(SIGTERM, signal_callback_handler);
 
     try {
-        if(argc >= 2) {
+        if (argc >= 2) {
             usage(argv[0]);
             return -1;
         }
@@ -274,7 +157,7 @@ int main(int argc, char** argv) {
         // Get the configuration from the configuration manager
         g_cfg_mgr = new ConfigMgr();
         AppCfg* cfg = g_cfg_mgr->getAppConfig();
-        if(cfg == NULL) {
+        if (cfg == NULL) {
             throw "Failed to initilize AppCfg object";
         }
         config_t* app_config = cfg->getConfig();
@@ -290,25 +173,26 @@ int main(int argc, char** argv) {
         LOG_DEBUG("App config: %s", g_vi_config);
 
         // Validating config against schema
-        if (!validate_config(g_vi_config)) {
+        if (!validate_json_file_buffer(
+                    "./VideoIngestion/schema.json", g_vi_config)) {
             LOG_ERROR_0("Schema validation failed");
             return -1;
         }
 
         char* str_log_level = NULL;
-        log_lvl_t log_level = LOG_LVL_ERROR; // default log level is `ERROR`
+        log_lvl_t log_level = LOG_LVL_ERROR;  // default log level is `ERROR`
 
         str_log_level = getenv("C_LOG_LEVEL");
-        if(str_log_level == NULL) {
+        if (str_log_level == NULL) {
             throw "\"C_LOG_LEVEL\" env not set";
         } else {
-            if(strncmp(str_log_level, "DEBUG", 5) == 0) {
+            if (strncmp(str_log_level, "DEBUG", 5) == 0) {
                 log_level = LOG_LVL_DEBUG;
-            } else if(strncmp(str_log_level, "INFO", 5) == 0) {
+            } else if (strncmp(str_log_level, "INFO", 5) == 0) {
                 log_level = LOG_LVL_INFO;
-            } else if(strncmp(str_log_level, "WARN", 5) == 0) {
+            } else if (strncmp(str_log_level, "WARN", 5) == 0) {
                 log_level = LOG_LVL_WARN;
-            } else if(strncmp(str_log_level, "ERROR", 5) == 0) {
+            } else if (strncmp(str_log_level, "ERROR", 5) == 0) {
                 log_level = LOG_LVL_ERROR;
         }
         set_log_level(log_level);
@@ -326,10 +210,10 @@ int main(int argc, char** argv) {
 
         std::mutex mtx;
 
-        while(true) {
+        while (true) {
             std::unique_lock<std::mutex> lk(mtx);
             g_err_cv.wait(lk);
-            if(g_cfg_change.load()) {
+            if (g_cfg_change.load()) {
                 vi_initialize(g_vi_config, app_name);
                 g_cfg_change.store(false);
             } else {

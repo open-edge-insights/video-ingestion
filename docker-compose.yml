@@ -39,6 +39,7 @@ services:
         CMAKE_INSTALL_PREFIX: ${EII_INSTALL_PATH}
         OPENVINO_IMAGE: ${OPENVINO_IMAGE}
         RUN_TESTS: "OFF"
+        SOCKET_DIR: ${SOCKET_DIR}
     image: ${DOCKER_REGISTRY}openedgeinsights/ia_video_ingestion:${EII_VERSION}
     container_name: ia_video_ingestion
     hostname: ia_video_ingestion
@@ -57,20 +58,23 @@ services:
       ETCD_HOST: ${ETCD_HOST}
       ETCD_CLIENT_PORT: ${ETCD_CLIENT_PORT}
       ETCD_PREFIX: ${ETCD_PREFIX}
+      PIPELINE: ${PIPELINE}
       # Setting GENICAM value to the respective camera/GenTL producer which needs to be used
       GENICAM: "Matrix_Vision"
       # Setting the GST log levels
       # The env variable will set WARNING level 2 for gencamsrc plugin and none for other plugins
       GST_DEBUG: "0,gencamsrc:2"
-      # Provisioning related variable
-      CertType: "zmq"
     ports:
       - 64013:64013
     networks:
       - eii
     volumes:
-      - "vol_eii_socket:${SOCKET_DIR}"
+      - "${EII_INSTALL_PATH}/sockets:${SOCKET_DIR}"
       - "/var/tmp:/var/tmp"
+      # Add volume for image ingestion feature
+      # Please provide the absolute path to the images directory present in the host system for volume mounting the directory.
+      # Eg: -"home/directory_1/images_directory:/app/img_dir"
+      #- "<path_to_images_directory>:/app/img_dir"
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
       # ion - VPU
@@ -78,12 +82,18 @@ services:
       # Selective mount can be done for deployment as mounting whole /dev is not recommended
       - "/dev:/dev"
       - "/tmp:/tmp"
+      # volume mount the udev database with read-only permission,so the USB3 Vision interfaces can be enumerated correctly in the container
+      - "/run/udev:/run/udev:ro"
+      - ./Certificates/VideoIngestion:/run/secrets/VideoIngestion:ro
+      - ./Certificates/rootca/cacert.pem:/run/secrets/rootca/cacert.pem:ro
     device_cgroup_rules:
       # Default run - device-cgroup-rule='c 189:* rmw'
       # NCS2 run - device-cgroup-rule='c 209:* rmw'
       # Selective rules can be applied for deployment
       - 'c 189:* rmw'
       - 'c 209:* rmw'
+      # permission for GenICam USB3 vision cameras
+      - 'a 189:* rwm'
     devices:
       # Following devices under /dev filesystem will be needed based on usecase
       # dri - GPU
@@ -91,13 +101,3 @@ services:
       # USB camera devices
       # Selective mount can be done for deployment as mounting whole /dev is not recommended
       - "/dev:/dev"
-    secrets:
-      - ca_etcd
-      - etcd_VideoIngestion_cert
-      - etcd_VideoIngestion_key
-
-secrets:
-  etcd_VideoIngestion_cert:
-    file: provision/Certificates/VideoIngestion/VideoIngestion_client_certificate.pem
-  etcd_VideoIngestion_key:
-    file: provision/Certificates/VideoIngestion/VideoIngestion_client_key.pem

@@ -35,4 +35,8 @@ export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:"/usr/local/lib/gstreamer-1.0"
 
 source ./VideoIngestion/gentl_producer_env.sh
 
+# Open CL Cache to optimize load & execution time for GPU models on subsequent runs
+mkdir -p /var/tmp/.cl-cache
+export cl_cache_dir=/var/tmp/.cl-cache
+
 ./VideoIngestion/build/video-ingestion

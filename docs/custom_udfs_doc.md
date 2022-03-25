@@ -2,7 +2,7 @@
 
 - [Adding custom udfs in VideoIngestion/VideoAnalytics:](#adding-custom-udfs-in-videoingestionvideoanalytics)
 
-### Adding custom udfs in VideoIngestion/VideoAnalytics:
+### Adding custom udfs in VideoIngestion/VideoAnalytics
 
 1. **For python udfs:** Copy udf code to `[WORKDIR]/IEdgeInsights/common/video/udfs/python` directory
 
@@ -10,13 +10,11 @@
 
     $ cp -r <PATH>/safety_gear [WORKDIR]/IEdgeInsights/common/video/udfs/python
 
-
     **For native udfs:** Copy udf code to `[WORKDIR]/IEdgeInsights/common/video/udfs/native` directory
 
     Refer the below example to copy the native safety gear udf (For this example native safety_gear_demo udf can be copied from [WORKDIR]/IEdgeInsights/CustomUdfs/NativeSafetyGearAnalytics):
 
     $ cp -r <PATH>/safety_gear [WORKDIR]/IEdgeInsights/common/video/udfs/native
-
 
 2. Make sure the appropriate ingestion config for the udf is set. In case one needs to use a video file then copy the video file to `[WORKDIR]/IEdgeInsights/VideoIngestion/test_videos`  and make the config changes.
 
@@ -26,9 +24,9 @@
 
     In [WORKDIR]/IEdgeInsights/VideoIngestion/config.json make the below changes to use `Safety_Full_Hat_and_Vest.avi` video file for safety_gear udf
 
-	```javascript
-	----snip----
-	 "ingestor": {
+ ```javascript
+ ----snip----
+  "ingestor": {
             "type": "opencv",
             "pipeline": "./test_videos/Safety_Full_Hat_and_Vest.avi",
             "loop_video": true,
@@ -78,6 +76,7 @@
         }
      ]
    ```
+
    Note: The IR model files must be copied along with udfs
 
 4. For native udfs one needs to build it by modifying the `[WORKDIR]/IEdgeInsights/common/video/udfs/native/CMakeLists.txt` file to add the subdirectory of the udf for build.

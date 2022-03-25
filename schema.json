@@ -4,6 +4,7 @@
   "required": [
     "ingestor"
   ],
+
   "properties": {
     "encoding": {
       "description": "Encoding object",
@@ -100,6 +101,19 @@
       "type": "integer",
       "default": 4
     },
+    "cert_type": {
+      "description": "cert_type",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "pem",
+          "der",
+          "zmq"
+        ]
+      }
+    },
+
     "udfs": {
       "description": "Array of UDF config objects",
       "type": "array",

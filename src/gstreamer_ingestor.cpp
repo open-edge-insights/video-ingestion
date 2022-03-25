@@ -27,16 +27,16 @@
 #include <chrono>
 #endif
 
-#include <cstring>
-#include "eii/utils/logger.h"
 #include "eii/vi/gstreamer_ingestor.h"
-#include "eii/vi/gva_roi_meta.h"
 #include <eii/udf/frame.h>
 #include <eii/utils/thread_safe_queue.h>
+#include <safe_lib.h>
 #include <sstream>
 #include <fstream>
 #include <random>
-#include <safe_lib.h>
+#include <cstring>
+#include "eii/utils/logger.h"
+#include "eii/vi/gva_roi_meta.h"
 
 #define UUID_LENGTH 5
 #define PIPELINE "pipeline"
@@ -50,18 +50,20 @@ static int g_enc_lvl;
 // Prototypes
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data);
 
-GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, std::string service_name, std::condition_variable& snapshot_cv, EncodeType enc_type, int enc_lvl):
+GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue,
+                                     std::string service_name, std::condition_variable& snapshot_cv,
+                                     EncodeType enc_type, int enc_lvl):
     Ingestor(config, frame_queue, service_name, snapshot_cv, enc_type, enc_lvl) {
     g_enc_type = enc_type;
     g_enc_lvl = enc_lvl;
 
     config_value_t* cvt_pipeline = config->get_config_value(config->cfg, PIPELINE);
     LOG_INFO("cvt_pipeline initialized");
-    if(cvt_pipeline == NULL) {
+    if (cvt_pipeline == NULL) {
         const char* err = "JSON missing key";
         LOG_ERROR("%s \'%s\'", err, PIPELINE);
         throw(err);
-    } else if(cvt_pipeline->type != CVT_STRING) {
+    } else if (cvt_pipeline->type != CVT_STRING) {
         const char* err = "JSON value must be a string";
         LOG_ERROR("%s for \'%s\'", err, PIPELINE);
         throw(err);
@@ -84,11 +86,11 @@ GstreamerIngestor::GstreamerIngestor(config_t* config, FrameQueue* frame_queue, 
 }
 
 GstreamerIngestor::~GstreamerIngestor() {
-    if(m_gst_pipeline != NULL)
+    if (m_gst_pipeline != NULL)
         gst_object_unref(GST_OBJECT(m_gst_pipeline));
-    if(m_bus_watch_id != 0)
+    if (m_bus_watch_id != 0)
         g_source_remove(m_bus_watch_id);
-    if(m_loop != NULL)
+    if (m_loop != NULL)
         g_main_loop_unref(m_loop);
     // TODO: What about the m_sink? TO BE VERIFIED...
 }
@@ -113,7 +115,7 @@ void GstreamerIngestor::gstreamer_init(bool snapshot_mode) {
     }
     // Get the GST bus
     GstBus* bus = gst_pipeline_get_bus(GST_PIPELINE(m_gst_pipeline));
-    if ( bus == NULL ) {
+    if (bus == NULL) {
         const char* err = "Failed to initialize GST bus";
         LOG_ERROR("%s", err);
         throw err;
@@ -160,7 +162,7 @@ void GstreamerIngestor::run(bool snapshot_mode) {
     str_app_name = getenv("AppName");
     std::ofstream fps_file;
     fps_file.open("/var/tmp/fps.txt", std::ofstream::app);
-    fps_file << str_app_name << " FPS : " << (m_frame_count / elapsed) << std::endl ;
+    fps_file << str_app_name << " FPS : " << (m_frame_count / elapsed) << std::endl;
     fps_file.close();
 #endif
 }
@@ -171,7 +173,7 @@ void GstreamerIngestor::run(bool snapshot_mode) {
 static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data) {
     GMainLoop *loop = (GMainLoop *) data;
 
-    switch (GST_MESSAGE_TYPE (msg)) {
+    switch (GST_MESSAGE_TYPE(msg)) {
         case GST_MESSAGE_EOS:
             LOG_INFO_0("End of stream");
             g_main_loop_quit(loop);
@@ -181,7 +183,7 @@ static gboolean bus_call(GstBus* bus, GstMessage* msg, gpointer data) {
             GError *error;
 
             gst_message_parse_error(msg, &error, &debug);
-            g_free (debug);
+            g_free(debug);
 
             LOG_ERROR("Gst Bus Error: %s", error->message);
             g_error_free(error);
@@ -229,19 +231,19 @@ GstFlowReturn GstreamerIngestor::new_sample(GstElement *sink,
 GstreamerIngestor* ctx) {
     GstSample* sample;
     g_signal_emit_by_name(sink, "pull-sample", &sample);
-    if(sample) {
-        GstBuffer* buf = gst_sample_get_buffer(sample); // no lifetime transfer
-        if(buf) {
-            //GstMapInfo info = {};
+    if (sample) {
+        GstBuffer* buf = gst_sample_get_buffer(sample);  // no lifetime transfer
+        if (buf) {
+            // GstMapInfo info = {};
             GstMapInfo* info = (GstMapInfo*) malloc(sizeof(GstMapInfo));
-            if(info == NULL) {
+            if (info == NULL) {
                 throw "Failed to allocate memory for GstMapInfo";
             }
-            if(!gst_buffer_map(buf, info, GST_MAP_READ)) {
+            if (!gst_buffer_map(buf, info, GST_MAP_READ)) {
                 // Taken from OpenCV ???
                 LOG_ERROR_0("Failed to map GStreamer buffer to system memory");
             } else {
-                //LOG_INFO("Got frame of size: %ld", info.size);
+                // LOG_INFO("Got frame of size: %ld", info.size);
                 GstCaps * frame_caps = gst_sample_get_caps(sample);
                 GstStructure* structure = gst_caps_get_structure(frame_caps, 0);  // no lifetime transfer
                 gint width;
@@ -251,7 +253,7 @@ GstreamerIngestor* ctx) {
                 // Check for image format is done for the first frame
                 // The only accepted image format is BGR
                 if (g_first_frame) {
-                    g_first_frame = false; // first frame has been recieved
+                    g_first_frame = false;  // first frame has been recieved
                     const gchar* format = gst_structure_get_string(structure, "format");
                     if (format != NULL) {
                         LOG_INFO("Format: %s, Size: %dx%d", format, width, height);
@@ -273,40 +275,40 @@ GstreamerIngestor* ctx) {
                         (void*) gst_frame, free_gst_frame, (void*) info->data,
                         (int) width, (int) height, 3);
 
-                //Get the GVA metadata from the GST buffer
+                // Get the GVA metadata from the GST buffer
                 GVA::RegionOfInterestList roi_list(buf);
 
                 msgbus_ret_t ret = MSG_SUCCESS;
 
                 msg_envelope_elem_body_t* gva_meta_arr = msgbus_msg_envelope_new_array();
-		        if(gva_meta_arr == NULL) {
+		        if (gva_meta_arr == NULL) {
                     LOG_ERROR_0("Failed to initialize gva metadata");
                     delete frame;
                     return GST_FLOW_ERROR;
                 }
 
-                for(GVA::RegionOfInterest& roi : roi_list) {
+                for (GVA::RegionOfInterest& roi : roi_list) {
                     GstVideoRegionOfInterestMeta* meta = roi.meta();
 
                     LOG_DEBUG("Object Bounding Box: [%d, %d] [%d, %d]",
                             meta->x, meta->y, meta->w, meta->h)
 
-                    msg_envelope_elem_body_t* roi_obj= msgbus_msg_envelope_new_object();
-                    if(roi_obj == NULL) {
+                    msg_envelope_elem_body_t* roi_obj = msgbus_msg_envelope_new_object();
+                    if (roi_obj == NULL) {
                         LOG_ERROR_0("Failed to initialize roi metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     msg_envelope_elem_body_t* x = msgbus_msg_envelope_new_integer(meta->x);
-                    if(x == NULL) {
+                    if (x == NULL) {
                         LOG_ERROR_0("Failed to initialize horizontal offset metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     msg_envelope_elem_body_t* y = msgbus_msg_envelope_new_integer(meta->y);
-                    if(y == NULL) {
+                    if (y == NULL) {
                         LOG_ERROR_0("Failed to initialize vertical offset metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
@@ -314,124 +316,124 @@ GstreamerIngestor* ctx) {
 
 
                     msg_envelope_elem_body_t* w = msgbus_msg_envelope_new_integer(meta->w);
-                    if(w == NULL) {
+                    if (w == NULL) {
                         LOG_ERROR_0("Failed to initialize width metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     msg_envelope_elem_body_t* h = msgbus_msg_envelope_new_integer(meta->h);
-                    if(h == NULL) {
+                    if (h == NULL) {
                         LOG_ERROR_0("Failed to initialize height metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     ret = msgbus_msg_envelope_elem_object_put(roi_obj, "x", x);
-                    if(ret != MSG_SUCCESS) {
+                    if (ret != MSG_SUCCESS) {
                         LOG_ERROR_0("Failed to put horizontal offset metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     ret = msgbus_msg_envelope_elem_object_put(roi_obj, "y", y);
-                    if(ret != MSG_SUCCESS) {
+                    if (ret != MSG_SUCCESS) {
                         LOG_ERROR_0("Failed to put vertical offset metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     ret = msgbus_msg_envelope_elem_object_put(roi_obj, "width", w);
-                    if(ret != MSG_SUCCESS) {
+                    if (ret != MSG_SUCCESS) {
                         LOG_ERROR_0("Failed to put width metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     ret = msgbus_msg_envelope_elem_object_put(roi_obj, "height", h);
-                    if(ret != MSG_SUCCESS) {
+                    if (ret != MSG_SUCCESS) {
                         LOG_ERROR_0("Failed to put height metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
                     msg_envelope_elem_body_t* tensor_arr = msgbus_msg_envelope_new_array();
-                    if(tensor_arr == NULL) {
+                    if (tensor_arr == NULL) {
                         LOG_ERROR_0("Failed to initialize tensor metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
-                    for(GVA::Tensor& tensor : roi) {
+                    for (GVA::Tensor& tensor : roi) {
                         LOG_DEBUG("Attribute: %s, Label: %s, Confidence: %f Label_id:%d",
                                 tensor.name().c_str(), tensor.label().c_str(),
                                 tensor.confidence(), tensor.label_id());
 
-                        msg_envelope_elem_body_t* tensor_obj= msgbus_msg_envelope_new_object();
-                        if(tensor_obj == NULL) {
+                        msg_envelope_elem_body_t* tensor_obj = msgbus_msg_envelope_new_object();
+                        if (tensor_obj == NULL) {
                             LOG_ERROR_0("Failed to initialize tensor metadata for each roi");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         msg_envelope_elem_body_t* attribute = msgbus_msg_envelope_new_string(tensor.name().c_str());
-                        if(attribute == NULL) {
+                        if (attribute == NULL) {
                             LOG_ERROR_0("Failed to initialize attribute metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         msg_envelope_elem_body_t* label = msgbus_msg_envelope_new_string(tensor.label().c_str());
-                        if(label == NULL) {
+                        if (label == NULL) {
                             LOG_ERROR_0("Failed to initialize label metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         msg_envelope_elem_body_t* confidence = msgbus_msg_envelope_new_floating(tensor.confidence());
-                        if(confidence == NULL) {
+                        if (confidence == NULL) {
                             LOG_ERROR_0("Failed to initialize confidence metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         msg_envelope_elem_body_t* label_id = msgbus_msg_envelope_new_integer(tensor.label_id());
-                        if(label_id == NULL) {
+                        if (label_id == NULL) {
                             LOG_ERROR_0("Failed to initialize label_id metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "attribute", attribute);
-                        if(ret != MSG_SUCCESS) {
+                        if (ret != MSG_SUCCESS) {
                             LOG_ERROR_0("Failed to put attribute metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "label", label);
-                        if(ret != MSG_SUCCESS) {
+                        if (ret != MSG_SUCCESS) {
                             LOG_ERROR_0("Failed to put label metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "confidence", confidence);
-                        if(ret != MSG_SUCCESS) {
+                        if (ret != MSG_SUCCESS) {
                             LOG_ERROR_0("Failed to put confidence metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         ret = msgbus_msg_envelope_elem_object_put(tensor_obj, "label_id", label_id);
-                        if(ret != MSG_SUCCESS) {
+                        if (ret != MSG_SUCCESS) {
                             LOG_ERROR_0("Failed to put label_id metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
                         }
 
                         ret = msgbus_msg_envelope_elem_array_add(tensor_arr, tensor_obj);
-                        if(ret != MSG_SUCCESS) {
+                        if (ret != MSG_SUCCESS) {
                             LOG_ERROR_0("Failed to add tensor object to tensor array metadata");
                             delete frame;
                             return GST_FLOW_ERROR;
@@ -439,14 +441,14 @@ GstreamerIngestor* ctx) {
                     }
 
                     ret = msgbus_msg_envelope_elem_object_put(roi_obj, "tensor", tensor_arr);
-                    if(ret != MSG_SUCCESS) {
+                    if (ret != MSG_SUCCESS) {
                         LOG_ERROR_0("Failed to put tensor array to roi object metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
                     }
 
-                    ret = msgbus_msg_envelope_elem_array_add(gva_meta_arr,roi_obj);
-                    if(ret != MSG_SUCCESS) {
+                    ret = msgbus_msg_envelope_elem_array_add(gva_meta_arr, roi_obj);
+                    if (ret != MSG_SUCCESS) {
                         LOG_ERROR_0("Failed to add roi object to gva metadata");
                         delete frame;
                         return GST_FLOW_ERROR;
@@ -454,21 +456,21 @@ GstreamerIngestor* ctx) {
                 }
 
                 msg_envelope_t* gva_meta_data = frame->get_meta_data();
-                if(gva_meta_data == NULL) {
+                if (gva_meta_data == NULL) {
                     LOG_ERROR_0("Failed to initialize frame metadata");
                     delete frame;
                     return GST_FLOW_ERROR;
                 }
 
                 ret = msgbus_msg_envelope_put(gva_meta_data, "gva_meta", gva_meta_arr);
-                if(ret != MSG_SUCCESS) {
+                if (ret != MSG_SUCCESS) {
                     LOG_ERROR_0("Failed to put gva metadata");
                     delete frame;
                     return GST_FLOW_ERROR;
                 }
 
                 msg_envelope_elem_body_t* elem = NULL;
-                if(ctx->m_frame_count == INT64_MAX) {
+                if (ctx->m_frame_count == INT64_MAX) {
                     LOG_WARN_0("frame count has reached INT64_MAX, so resetting \
                                 it back to zero");
                     ctx->m_frame_count = 0;
@@ -490,7 +492,7 @@ GstreamerIngestor* ctx) {
                     return GST_FLOW_ERROR;
                 }
                 ret = msgbus_msg_envelope_put(gva_meta_data, "frame_number", elem);
-                if(ret != MSG_SUCCESS) {
+                if (ret != MSG_SUCCESS) {
                     LOG_ERROR_0("Failed to put frame_number meta-data");
                     delete frame;
                     return GST_FLOW_ERROR;
@@ -515,8 +517,8 @@ GstreamerIngestor* ctx) {
                 }
 
                 QueueRetCode ret_queue = ctx->m_udf_input_queue->push(frame);
-                if(ret_queue == QueueRetCode::QUEUE_FULL) {
-                    if(ctx->m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
+                if (ret_queue == QueueRetCode::QUEUE_FULL) {
+                    if (ctx->m_udf_input_queue->push_wait(frame) != QueueRetCode::SUCCESS) {
                         LOG_ERROR_0("Failed to enqueue message, "
                                     "message dropped");
                     }
@@ -528,7 +530,7 @@ GstreamerIngestor* ctx) {
             LOG_ERROR_0("Failed to get GstBuffer");
         }
 
-        if(ctx->m_snapshot) {
+        if (ctx->m_snapshot) {
             ctx->m_frame_count = 1;
             ctx->m_snapshot_cv.notify_all();
             return GST_FLOW_EOS;
