@@ -2,17 +2,17 @@
 
 - [Contents](#contents)
   - [VideoIngestion module](#videoingestion-module)
-  - [Configuration](#configuration)
-    - [Ingestor config](#ingestor-config)
-  - [VideoIngestion features](#videoingestion-features)
-    - [Image ingestion](#image-ingestion)
-    - [UDF configurations](#udf-configurations)
-    - [Camera configurations](#camera-configurations)
-      - [GenICam GigE or USB3 cameras](#genicam-gige-or-usb3-cameras)
-        - [Prerequisites for working with the GenICam compliant cameras](#prerequisites-for-working-with-the-genicam-compliant-cameras)
-      - [RTSP camera support](#rtsp-cameras)
-      - [USB cameras](#usb-v4l2-cameras)
-      - [RealSense Depth cameras](#realsense-depth-cameras)
+    - [Configuration](#configuration)
+      - [Ingestor config](#ingestor-config)
+    - [VideoIngestion features](#videoingestion-features)
+      - [Image ingestion](#image-ingestion)
+      - [UDF configurations](#udf-configurations)
+      - [Camera configurations](#camera-configurations)
+        - [GenICam GigE or USB3 cameras](#genicam-gige-or-usb3-cameras)
+          - [Prerequisites for working with the GenICam compliant cameras](#prerequisites-for-working-with-the-genicam-compliant-cameras)
+      - [RTSP cameras](#rtsp-cameras)
+        - [USB v4l2 cameras](#usb-v4l2-cameras)
+        - [RealSense Depth cameras](#realsense-depth-cameras)
 
 ## VideoIngestion module
 
@@ -34,7 +34,7 @@ The high-level logical flow of the VideoIngestion pipeline is as follows:
 > - The VA service is not required, when the VI service is configured with a UDF that does the classification. The VI service uses multiple UDFs for pre-processing, classification, and post-processing.
 > - The VA service is not required, when the VI service uses the Gstreamer Video Analytics (GVA) elements. Pre-processing, classification, and post-processing (using the vappi gstreamer elements) can be done in the gstreamer pipeline. If required, you can configure post-processing by having multiple UDFs in the VI service.
 
-## Configuration
+### Configuration
 
 For configuration details refer to the following topics:
 
@@ -52,7 +52,7 @@ All the app module configurations are added to the distributed key-value store u
 > - For the `png` encoding type, `level` is the compression level from `0 to 9`. A higher value means a smaller size and longer compression time.
 > - Use the [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration for the schema.
 
-### Ingestor config
+#### Ingestor config
 
 OEI supports the following type of ingestors:
 
@@ -62,7 +62,7 @@ OEI supports the following type of ingestors:
 
 For more information on the Intel RealSense SDK, refer to [librealsense](https://github.com/IntelRealSense/librealsense).
 
-## VideoIngestion features
+### VideoIngestion features
 
 Refer the following to learn more about the VideoIngestion features and supported camera:
 
@@ -73,7 +73,7 @@ Refer the following to learn more about the VideoIngestion features and supporte
 - [RTSP camera support](#rtsp-cameras)
 - [USB v4l2 compatible camera support](#usb-v4l2-cameras)
 
-### Image ingestion
+#### Image ingestion
 
 The Image ingestion feature is responsible for ingesting the images coming from a directory into the OEI stack for further processing. The `OpenCV Ingestor` supports image ingestion.
 Image ingestion supports the following image formats:
@@ -134,7 +134,7 @@ ia_video_ingestion:
     ...
 ```
 
-### UDF configurations
+#### UDF configurations
 
 Ensure that you are using the appropriate UDF configuration for all the video and camera streams. If the UDF is not compatible with the video source, then you may not get the expected output in the Visualizer or the Web Visualizer screen. Use the `dummy` UDF, if you are not sure about the compatibility of the UDF and a video source. The dummy UDF will not do any analytics on the video, and it will not filter any of the video frames. You will see the video streamed by the camera, as it is displayed on the video output screen in the Visualizer or Web Visualizer.
 
@@ -149,7 +149,7 @@ Ensure that you are using the appropriate UDF configuration for all the video an
 >
 > Apply the same changes in the VideoAnalytics configuration if it is subscribing to VideoIngestion.
 
-### Camera configurations
+#### Camera configurations
 
 The camera configurations for the VI module are as follows:
 
@@ -177,11 +177,11 @@ The camera configurations for the VI module are as follows:
 
 For more information or configuration details for the `multifilesrc` element, refer to the [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md).
 
-#### GenICam GigE or USB3 cameras
+##### GenICam GigE or USB3 cameras
 
 For more information or configuration details for the GenICam GigE or the USB3 camera support, refer to the [GenICam GigE/USB3.0 Camera Support](docs/generic_plugin_doc.md).
 
-##### Prerequisites for working with the GenICam compliant cameras
+###### Prerequisites for working with the GenICam compliant cameras
 
 The following are the prerequisites for working with the GeniCam compliant cameras.
 > Note
@@ -245,8 +245,9 @@ ia_video_ingestion:
         "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> exposure-time=5000 exposure-mode=timed exposure-auto=off throughput-limit=300000000 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
+      
       > **Note:**
-
+      >
       > - Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
       > - The above gstreamer pipeline was tested with Basler and IDS GigE cameras.
       > - If `serial` is not provided then the first connected camera in the device list will be used.
@@ -265,7 +266,8 @@ ia_video_ingestion:
      ```
 
     > **Note:**
-    > * For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work.
+    >
+    > - For PCB usecase use the `width` and `height` properties of gencamsrc to set the resolution to `1920x1200` and make sure it is pointing to the rotating pcb boards as seen in `pcb_d2000.avi` video file for pcb filter to work.
 
     One can refer the below example pipeline:
 
@@ -332,7 +334,7 @@ ia_video_ingestion:
  ----
 
 
-#### USB v4l2 cameras
+##### USB v4l2 cameras
 
 For information or configurations details on the USB cameras, refer to [docs/usb_doc.md](docs/usb_doc.md).
 
@@ -354,7 +356,7 @@ For information or configurations details on the USB cameras, refer to [docs/usb
       }
   ```
 
-#### RealSense Depth cameras
+##### RealSense Depth cameras
 
 - `RealSense Ingestor`
 
