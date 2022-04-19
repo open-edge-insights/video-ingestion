@@ -5,6 +5,7 @@
     - [Ingestor config](#ingestor-config)
     - [Video Ingestion Contents](#video-ingestion-contents)
       - [Camera Configuration](#camera-configuration)
+      - [Set Securiry Context to Enable Basler/USB Camera device helm environment](#updating-security-context-of-videoingestion-helm-charts-for-enabling-k8s-environment-to-accessdetect-baslerusb-device)
       - [GenICam GigE or USB3 Camera](#genicam-gige-or-usb3-camera)
       - [RTSP Camera](#rtsp-camera)
       - [USB Camera](#usb-camera)
@@ -76,6 +77,8 @@ All the app module configuration are added into distributed key-value store unde
 
 > * One can use [JSON validator tool](https://www.jsonschemavalidator.net/) for validating the app configuration against the above schema.
 
+> * For working with RTSP cameras one has to add the RTSP CAMERA IP to `RTSP_CAMERA_IP` in [builder.py](https://github.com/open-edge-insights/eii-core/blob/master/build/builder.py) if working behind a proxy network.
+
 ----
 
 ### Ingestor config
@@ -127,6 +130,32 @@ The following are the type of ingestors supported:
     **Refer [docs/multifilesrc_doc.md](docs/multifilesrc_doc.md) for more information/configuration on multifilesrc element.**
 
  ----
+#### Updating Security Context of VideoIngestion Helm Charts for enabling K8s environment to access/detect Basler/usb Device
+
+Please follow the steps to update helm charts for enabling K8s environment to access/detect Basler Camera and NCS2 Device
+
+* Open `EII_HOME_DIR/IEdgeInsights/VideoIngestion/helm/templates/video-ingestion.yaml` file
+
+* Update below security context snippet
+  ```yml
+        securityContext:
+          privileged: true
+  ```
+  in the yaml file as:
+  ```yaml
+    ...
+    ...
+    ...
+        imagePullPolicy: {{ $global.Values.imagePullPolicy }}
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+    ...
+  ```
+  * Re-run `builder.py` to apply these changes to your deployment helm charts.
+
 #### GenICam GigE or USB3 Camera
 
   **Refer [GenICam GigE/USB3.0 Camera Support](docs/generic_plugin_doc.md) for information/configuration on GenICam GigE/USB3 camera support.**
@@ -189,23 +218,25 @@ The following are the type of ingestors supported:
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> exposure-time=5000 exposure-mode=timed exposure-auto=off throughput-limit=300000000 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
-      > **Note:** 
-      
-      > * Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
-      > * The above gstreamer pipeline was tested with Basler and IDS GigE cameras. 
-      > * If `serial` is not provided then the first connected camera in the device list will be used. 
-      > * If `pixel-format` is not provided then the default `mono8` pixel format will be used.
-      > * If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
+      > **Note:**
+
+      > - Generic Plugin can work only with GenICam compliant cameras and only with gstreamer ingestor.
+      > - The above gstreamer pipeline was tested with Basler and IDS GigE cameras.
+      > - If `serial` is not provided then the first connected camera in the device list will be used.
+      > - If `pixel-format` is not provided then the default `mono8` pixel format will be used.
+      > - If `width` and `height` properies are not set then gencamsrc plugin will set the maximum resolution supported by the camera.
+      > - By default `exposure-auto` property is set to on. If the camera is not placed under sufficient light then with auto exposure, `exposure-time` can be set to very large value which will increase the time taken to grab frame. This can lead to `No frame received error`. Hence it is recommended to manually set exposure as in the below sample pipline when the camera is not placed under good lighting conditions.
+      > - `throughput-limit` is the bandwidth limit for streaming out data from the camera(in bytes per second).
 
    * `Hardware trigger based ingestion with gstreamer ingestor`
 
      ```javascript
      {
       "type": "gstreamer",
-      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe ! videoconvert ! video/x-raw,format=BGR ! appsink"
+      "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=<PIXEL_FORMAT> trigger-selector=FrameStart trigger-source=Line1 trigger-activation=RisingEdge hw-trigger-timeout=100 acquisition-mode=singleframe exposure-time=5000 exposure-mode=timed exposure-auto=off throughput-limit=300000000 ! videoconvert ! video/x-raw,format=BGR ! appsink"
      }
      ```
 
@@ -217,7 +248,7 @@ The following are the type of ingestors supported:
       ```javascript
       {
         "type": "gstreamer",
-        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 ! videoconvert ! video/x-raw,format=BGR ! appsink"
+        "pipeline": "gencamsrc serial=<DEVICE_SERIAL_NUMBER> pixel-format=ycbcr422_8 width=1920 height=1200 exposure-time=5000 exposure-mode=timed exposure-auto=off throughput-limit=300000000 ! videoconvert ! video/x-raw,format=BGR ! appsink"
       }
       ```
     
